@@ -54,9 +54,10 @@ describe("lead validation", () => {
 });
 
 describe("roles", () => {
-  it("only sales executives are limited to their own data", () => {
+  it("managers and executives are limited to their own data", () => {
     expect(seesAllSales("SALES_EXECUTIVE")).toBe(false);
-    for (const r of ["DIRECTOR", "ADMIN", "SALES_HEAD", "SALES_MANAGER"] as const) expect(seesAllSales(r)).toBe(true);
+    expect(seesAllSales("SALES_MANAGER")).toBe(false);
+    for (const r of ["DIRECTOR", "ADMIN", "SALES_HEAD"] as const) expect(seesAllSales(r)).toBe(true);
   });
   it("only directors and admins manage settings", () => {
     expect(canManageSettings("ADMIN")).toBe(true);

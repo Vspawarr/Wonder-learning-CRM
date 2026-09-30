@@ -3,8 +3,11 @@ import type { Role } from "@/generated/prisma/enums";
 
 export type SessionUser = { id: string; name: string; email: string; role: Role };
 
-/** Everyone except a Sales Executive sees the whole team's sales data. */
-export const seesAllSales = (role: Role) => role !== "SALES_EXECUTIVE";
+/**
+ * Directors, Admins and the Sales Head see the whole team's sales data.
+ * Sales Managers and Sales Executives see only what is assigned to them.
+ */
+export const seesAllSales = (role: Role) => role === "DIRECTOR" || role === "ADMIN" || role === "SALES_HEAD";
 
 /** Directors and Admins manage users, products and cities. */
 export const canManageSettings = (role: Role) => role === "DIRECTOR" || role === "ADMIN";
@@ -15,5 +18,5 @@ export const canViewUsers = seesAllSales;
 /** Roles that can own leads, opportunities and sales tasks. */
 export const SALES_ROLES: readonly Role[] = ["SALES_HEAD", "SALES_MANAGER", "SALES_EXECUTIVE"];
 
-/** Sales Executives can only assign work to themselves. */
+/** Those who see only their own data can only assign work to themselves. */
 export const canAssignOthers = seesAllSales;

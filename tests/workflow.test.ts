@@ -47,7 +47,7 @@ describe("creating a lead", () => {
   });
 
   it("uses Call and a default title when no follow-up type is given", async () => {
-    const id = await createLead(mgr, leadData(exA.id, { schoolName: "Sunrise" }));
+    const id = await createLead(head, leadData(exA.id, { schoolName: "Sunrise" }));
     const t = await db.task.findFirstOrThrow({ where: { leadId: id } });
     expect(t).toMatchObject({ type: "Call", title: "First call: Sunrise", assigneeId: exA.id });
   });
@@ -57,13 +57,13 @@ describe("creating a lead", () => {
   });
 
   it("only assigns to the sales team", async () => {
-    await expect(createLead(mgr, leadData(admin.id))).rejects.toThrow(/sales team/);
+    await expect(createLead(head, leadData(admin.id))).rejects.toThrow(/sales team/);
   });
 });
 
 describe("access control", () => {
   it("an executive cannot read or change another executive's lead", async () => {
-    const id = await createLead(mgr, leadData(exB.id));
+    const id = await createLead(head, leadData(exB.id));
     await expect(updateLead(exA, id, leadData(exA.id))).rejects.toThrow(/not found/);
     await expect(disqualifyLead(exA, id, { reason: "No Budget" })).rejects.toThrow(/not found/);
     await expect(convertLead(exA, id)).rejects.toThrow(/not found/);
@@ -72,8 +72,8 @@ describe("access control", () => {
   });
 
   it("an executive cannot move, edit or complete tasks on another's opportunity", async () => {
-    const lead = await createLead(mgr, leadData(exB.id));
-    const oppId = await convertLead(mgr, lead);
+    const lead = await createLead(head, leadData(exB.id));
+    const oppId = await convertLead(head, lead);
     await expect(moveOpportunity(exA, oppId, { stage: "DEMO_SCHEDULED" })).rejects.toThrow(/not found/);
     await expect(updateOpportunity(exA, oppId, { ownerId: exA.id, items: [] })).rejects.toThrow(/not found/);
     const task = await db.task.findFirstOrThrow({ where: { opportunityId: oppId } });
@@ -81,17 +81,28 @@ describe("access control", () => {
     await expect(completeTask(exB, task.id, {})).resolves.toBeUndefined();
   });
 
-  it("managers and the sales head can work on anyone's leads", async () => {
+  it("the sales head and admin can work on anyone's leads", async () => {
     const id = await createLead(exA, leadData(exA.id));
-    await expect(updateLead(mgr, id, leadData(exB.id, { status: "CONTACTED" }))).resolves.toBeUndefined();
-    await expect(disqualifyLead(head, id, { reason: "Postponed" })).resolves.toBeUndefined();
+    await expect(updateLead(head, id, leadData(exB.id, { status: "CONTACTED" }))).resolves.toBeUndefined();
+    await expect(disqualifyLead(admin, id, { reason: "Postponed" })).resolves.toBeUndefined();
+  });
+
+  it("a sales manager sees only their own leads and opportunities", async () => {
+    const other = await createLead(head, leadData(exA.id));
+    await expect(updateLead(mgr, other, leadData(mgr.id))).rejects.toThrow(/not found/);
+    await expect(convertLead(mgr, other)).rejects.toThrow(/not found/);
+    await expect(createLead(mgr, leadData(exA.id))).rejects.toThrow(/yourself/);
+    const own = await createLead(mgr, leadData(mgr.id));
+    const oppId = await convertLead(mgr, own);
+    await expect(moveOpportunity(mgr, oppId, { stage: "DEMO_SCHEDULED" })).resolves.toBeUndefined();
+    await expect(moveOpportunity(exA, oppId, { stage: "PROPOSAL_SENT" })).rejects.toThrow(/not found/);
   });
 });
 
 describe("updating a lead", () => {
   it("reassigning moves open tasks and keeps the follow-up task in step", async () => {
-    const id = await createLead(mgr, leadData(exA.id));
-    await updateLead(mgr, id, leadData(exB.id, { nextFollowUpDate: addDays(today, 7), followUpType: "Meeting" }));
+    const id = await createLead(head, leadData(exA.id));
+    await updateLead(head, id, leadData(exB.id, { nextFollowUpDate: addDays(today, 7), followUpType: "Meeting" }));
     const tasks = await db.task.findMany({ where: { leadId: id } });
     expect(tasks).toHaveLength(1);
     expect(tasks[0]).toMatchObject({ assigneeId: exB.id, type: "Meeting" });
@@ -197,7 +208,8 @@ describe("tasks and activity", () => {
 
   it("an executive can only create tasks for themselves", async () => {
     await expect(createTask(exA, { title: "x", type: "Call", dueDate: today, assigneeId: exB.id })).rejects.toThrow(/yourself/);
-    await expect(createTask(mgr, { title: "x", type: "Call", dueDate: today, assigneeId: exB.id })).resolves.toBeTruthy();
+    await expect(createTask(head, { title: "x", type: "Call", dueDate: today, assigneeId: exB.id })).resolves.toBeTruthy();
+    await expect(createTask(mgr, { title: "x", type: "Call", dueDate: today, assigneeId: exB.id })).rejects.toThrow(/yourself/);
   });
 });
 

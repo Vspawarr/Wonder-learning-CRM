@@ -27,7 +27,7 @@ sample leads or opportunities, and re-running it never overwrites existing rows.
 | Director | All sales data | Manages users (incl. Directors), products, cities |
 | Admin | All sales data | Manages users, products, cities |
 | Sales Head | All sales data | Can assign work to anyone in sales |
-| Sales Manager | All sales data | Can assign work to anyone in sales |
+| Sales Manager | **Only their own** leads, opportunities and tasks | Can only assign work to themselves |
 | Sales Executive | **Only their own** leads, opportunities and tasks | Can only assign work to themselves |
 
 Visibility rules live in one place, `src/server/access.ts`; every query and

@@ -97,8 +97,8 @@ export function UserButton({ actorRole, user, isSelf }: { actorRole: Role; user?
             </Field>
           </div>
           <div className="small muted">
-            Sales Executives see only their own leads, opportunities and tasks. Everyone else sees the whole team. Directors and Admins
-            also manage users, products and cities.
+            Sales Managers and Sales Executives see only their own leads, opportunities and tasks. The Sales Head, Admins and Directors
+            see the whole team. Directors and Admins also manage users, products and cities.
           </div>
         </Modal>
       ) : null}
