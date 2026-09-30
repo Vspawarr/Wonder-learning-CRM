@@ -20,10 +20,13 @@ datasource db {
 
 // ───────────────────────── Users ─────────────────────────
 
+// Access is defined in src/server/access.ts.
 enum Role {
-  DIRECTOR
-  SALES_MANAGER
-  SALES_EXECUTIVE
+  DIRECTOR // business owner: everything
+  ADMIN // manages users, products and cities; sees all sales data
+  SALES_HEAD // heads sales: sees and reassigns all sales data
+  SALES_MANAGER // sees all sales data
+  SALES_EXECUTIVE // sees only own leads, opportunities and tasks
 }
 
 model User {

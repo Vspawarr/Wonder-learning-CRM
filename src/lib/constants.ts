@@ -96,6 +96,8 @@ export const LOST_REASONS = [
 
 export const ROLE_LABEL = {
   DIRECTOR: "Director",
+  ADMIN: "Admin",
+  SALES_HEAD: "Sales Head",
   SALES_MANAGER: "Sales Manager",
   SALES_EXECUTIVE: "Sales Executive",
 } as const;
