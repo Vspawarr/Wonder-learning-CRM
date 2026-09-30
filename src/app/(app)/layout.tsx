@@ -1,7 +1,7 @@
 import { db } from "@/lib/db";
 import { toDbDate, todayIST } from "@/lib/dates";
 import { ROLE_LABEL } from "@/lib/constants";
-import { canManageSettings, canViewUsers } from "@/lib/permissions";
+import { canManageProducts, canManageSettings, canViewUsers } from "@/lib/permissions";
 import { ToastProvider } from "@/components/client";
 import { requireUser } from "@/server/session";
 import { Shell, type NavGroup } from "./shell";
@@ -25,12 +25,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   ];
   const admin = [
     ...(canViewUsers(user.role) ? [{ href: "/admin/users", label: "Users", icon: "users" as const }] : []),
-    ...(canManageSettings(user.role)
-      ? [
-          { href: "/admin/products", label: "Products", icon: "box" as const },
-          { href: "/admin/cities", label: "Cities", icon: "pin" as const },
-        ]
-      : []),
+    ...(canManageProducts(user.role) ? [{ href: "/admin/products", label: "Products", icon: "box" as const }] : []),
+    ...(canManageSettings(user.role) ? [{ href: "/admin/cities", label: "Cities", icon: "pin" as const }] : []),
   ];
   if (admin.length) nav.push({ group: "Settings", items: admin });
 

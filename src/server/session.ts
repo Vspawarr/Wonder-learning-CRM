@@ -3,7 +3,7 @@ import { cache } from "react";
 import { notFound, redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
-import { canManageSettings, type SessionUser } from "@/lib/permissions";
+import { canManageProducts, canManageSettings, type SessionUser } from "@/lib/permissions";
 
 /**
  * The signed-in user, re-read from the database on every request so that
@@ -29,5 +29,11 @@ export async function requireUser(): Promise<SessionUser> {
 export async function requireSettingsAdmin(): Promise<SessionUser> {
   const u = await requireUser();
   if (!canManageSettings(u.role)) notFound();
+  return u;
+}
+
+export async function requireProductManager(): Promise<SessionUser> {
+  const u = await requireUser();
+  if (!canManageProducts(u.role)) notFound();
   return u;
 }

@@ -6,7 +6,7 @@ import { logActivity } from "@/server/activities";
 import { convertLead, createLead, disqualifyLead, updateLead } from "@/server/leads";
 import { moveOpportunity, updateOpportunity } from "@/server/opportunities";
 import { completeTask, createTask } from "@/server/tasks";
-import { createUser, updateUser } from "@/server/settings";
+import { createUser, saveProduct, updateUser } from "@/server/settings";
 import { leadData, makeProduct, makeUser, resetData } from "./helpers";
 
 let head: SessionUser, mgr: SessionUser, exA: SessionUser, exB: SessionUser, admin: SessionUser;
@@ -210,6 +210,17 @@ describe("tasks and activity", () => {
     await expect(createTask(exA, { title: "x", type: "Call", dueDate: today, assigneeId: exB.id })).rejects.toThrow(/yourself/);
     await expect(createTask(head, { title: "x", type: "Call", dueDate: today, assigneeId: exB.id })).resolves.toBeTruthy();
     await expect(createTask(mgr, { title: "x", type: "Call", dueDate: today, assigneeId: exB.id })).rejects.toThrow(/yourself/);
+  });
+});
+
+describe("products", () => {
+  it("the sales head can set prices; managers cannot", async () => {
+    const p = await makeProduct("Parent Workshop");
+    const data = { name: "Parent Workshop", price: 12000, gstRate: 18, active: true };
+    await expect(saveProduct(mgr, p.id, data)).rejects.toThrow(/Sales Head/);
+    await expect(saveProduct(exA, p.id, data)).rejects.toThrow(/Sales Head/);
+    await saveProduct(head, p.id, data);
+    expect(Number((await db.product.findUniqueOrThrow({ where: { id: p.id } })).price)).toBe(12000);
   });
 });
 

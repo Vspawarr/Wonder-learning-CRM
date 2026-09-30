@@ -2,7 +2,7 @@
 import bcrypt from "bcryptjs";
 import { Prisma } from "@/generated/prisma/client";
 import { db } from "@/lib/db";
-import { canManageSettings, type SessionUser } from "@/lib/permissions";
+import { canManageProducts, canManageSettings, type SessionUser } from "@/lib/permissions";
 import { DomainError, NotFoundError } from "./errors";
 import { cityInput, parse, productInput, userInput } from "./validation";
 
@@ -70,7 +70,7 @@ export async function changeOwnPassword(actor: SessionUser, current: string, nex
 }
 
 export async function saveProduct(actor: SessionUser, id: string | null, raw: unknown) {
-  assertSettings(actor);
+  if (!canManageProducts(actor.role)) throw new DomainError("Only a Director, Admin or the Sales Head can change products.");
   const d = parse(productInput, raw);
   const data = { name: d.name, category: d.category, price: d.price, gstRate: d.gstRate, active: d.active };
   if (id) {

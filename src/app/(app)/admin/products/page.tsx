@@ -1,13 +1,13 @@
 import { db } from "@/lib/db";
 import { inr } from "@/lib/format";
 import { PageHeader, Pill, Table } from "@/components/ui";
-import { requireSettingsAdmin } from "@/server/session";
+import { requireProductManager } from "@/server/session";
 import { ProductButton } from "./product-form";
 
 export const metadata = { title: "Products" };
 
 export default async function ProductsPage() {
-  await requireSettingsAdmin();
+  await requireProductManager();
   const products = await db.product.findMany({ orderBy: [{ sortOrder: "asc" }, { name: "asc" }] });
   const rows = products.map((p) => ({
     id: p.id,

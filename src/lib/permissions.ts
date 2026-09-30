@@ -12,6 +12,9 @@ export const seesAllSales = (role: Role) => role === "DIRECTOR" || role === "ADM
 /** Directors and Admins manage users, products and cities. */
 export const canManageSettings = (role: Role) => role === "DIRECTOR" || role === "ADMIN";
 
+/** Directors, Admins and the Sales Head manage products and their prices. */
+export const canManageProducts = (role: Role) => canManageSettings(role) || role === "SALES_HEAD";
+
 /** Anyone who sees all sales data may view the user list. */
 export const canViewUsers = seesAllSales;
 
