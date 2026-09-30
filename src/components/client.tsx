@@ -75,13 +75,20 @@ export function Modal({
   drawer?: boolean;
 }) {
   const ref = useRef<HTMLDivElement>(null);
+  // Callers pass a fresh onClose on every render (i.e. every keystroke), so keep
+  // it in a ref: the mount effect below must run once, or it would re-focus the
+  // first field and scroll the modal back to the top on each change.
+  const onCloseRef = useRef(onClose);
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    onCloseRef.current = onClose;
+  });
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onCloseRef.current();
     document.addEventListener("keydown", onKey);
     const first = ref.current?.querySelector<HTMLElement>("input:not([type=hidden]),select,textarea");
-    first?.focus();
+    first?.focus({ preventScroll: true });
     return () => document.removeEventListener("keydown", onKey);
-  }, [onClose]);
+  }, []);
   return (
     <div className={`scrim ${drawer ? "dr" : ""}`} onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
       <div ref={ref} className={drawer ? "drawer" : `modal ${wide ? "wide" : ""}`} role="dialog" aria-modal="true">
