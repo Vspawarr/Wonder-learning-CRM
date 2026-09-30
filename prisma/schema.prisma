@@ -1,0 +1,317 @@
+// Wonder Learning CRM — Phase 1: Sales & Leads.
+//
+// Enums hold workflow values the code branches on. Business lists that the
+// company may edit (lead sources, designations, publications, follow-up types,
+// competitors, lost reasons, states) are plain text validated against
+// src/lib/constants.ts, so changing a list never needs a migration.
+//
+// Later phases plug in without reshaping these tables: School/Order/Service
+// add nullable FKs on Opportunity, Task and Activity; Product already carries
+// a type for printed material.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ───────────────────────── Users ─────────────────────────
+
+enum Role {
+  DIRECTOR
+  SALES_MANAGER
+  SALES_EXECUTIVE
+}
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  mobile       String?
+  role         Role
+  passwordHash String
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  leadsAssigned Lead[]                   @relation("LeadAssignedTo")
+  leadsCreated  Lead[]                   @relation("LeadCreatedBy")
+  oppsOwned     Opportunity[]            @relation("OpportunityOwner")
+  oppsCreated   Opportunity[]            @relation("OpportunityCreatedBy")
+  tasksAssigned Task[]                   @relation("TaskAssignee")
+  tasksCreated  Task[]                   @relation("TaskCreatedBy")
+  activities    Activity[]
+  stageChanges  OpportunityStageChange[]
+}
+
+// ───────────────────────── Masters ─────────────────────────
+
+enum ProductType {
+  SERVICE
+  MATERIAL
+}
+
+model Product {
+  id        String      @id @default(cuid())
+  code      String      @unique // P01, P02 … (M01 … for printed material in Phase 3)
+  name      String
+  type      ProductType
+  category  String?
+  price     Decimal?    @db.Decimal(12, 2) // null until real pricing is entered
+  gstRate   Decimal?    @db.Decimal(5, 2) // percent, e.g. 18.00
+  active    Boolean     @default(true)
+  sortOrder Int         @default(0)
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  leadInterests    LeadInterest[]
+  opportunityItems OpportunityItem[]
+}
+
+// Cities are managed in-app per state; the lead form also accepts a typed city.
+model City {
+  id        String  @id @default(cuid())
+  stateName String
+  name      String
+  active    Boolean @default(true)
+
+  @@unique([stateName, name])
+}
+
+// ───────────────────────── Leads ─────────────────────────
+
+enum LeadStatus {
+  NEW
+  CONTACTED
+  QUALIFIED
+  CONVERTED // set by the system when an Opportunity is created
+  DISQUALIFIED // set by the Disqualify action (reason required)
+}
+
+enum Temperature {
+  HOT
+  WARM
+  COLD
+}
+
+model Lead {
+  id     String @id @default(cuid())
+  number Int    @unique @default(autoincrement()) // displayed as L-<number>
+
+  // Basic information
+  schoolName  String
+  contactName String // Owner / contact person
+  designation String? // DESIGNATIONS
+  mobile      String
+  email       String?
+  state       String // STATES
+  city        String
+  area        String? // Area / location
+  address     String?
+
+  // School details
+  currentCurriculum String? // PUBLICATIONS
+  studentStrength   Int?
+  branches          Int?
+
+  // Lead
+  source        String // SOURCES
+  referenceName String? // only when source ∈ REF_SOURCES
+  remarks       String?
+
+  // CRM control
+  status       LeadStatus  @default(NEW)
+  temperature  Temperature @default(WARM)
+  assignedToId String
+  assignedTo   User        @relation("LeadAssignedTo", fields: [assignedToId], references: [id])
+  createdById  String
+  createdBy    User        @relation("LeadCreatedBy", fields: [createdById], references: [id])
+
+  // Follow-up
+  nextFollowUpDate DateTime? @db.Date // required on create; cleared once closed
+  followUpType     String? // FOLLOWUP_TYPES
+  followUpRemark   String?
+
+  // Outcome
+  disqualifyReason  String? // LOST_REASONS
+  disqualifyRemarks String?
+  disqualifiedAt    DateTime?
+  convertedAt       DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  interests     LeadInterest[]
+  opportunities Opportunity[]
+  tasks         Task[]
+  activities    Activity[]
+
+  @@index([assignedToId, status])
+  @@index([nextFollowUpDate])
+  @@index([createdAt])
+}
+
+model LeadInterest {
+  leadId    String
+  lead      Lead    @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+
+  @@id([leadId, productId])
+}
+
+// ───────────────────────── Opportunities ─────────────────────────
+
+enum OpportunityStage {
+  INTERESTED
+  DEMO_SCHEDULED
+  PROPOSAL_SENT
+  NEGOTIATION
+  WON
+  LOST
+}
+
+model Opportunity {
+  id     String @id @default(cuid())
+  number Int    @unique @default(autoincrement()) // displayed as O-<number>
+
+  leadId String? // nullable so Phase 2 can open one for an existing school
+  lead   Lead?   @relation(fields: [leadId], references: [id])
+  // Phase 2: schoolId String?
+
+  schoolName        String
+  stage             OpportunityStage @default(INTERESTED)
+  probability       Int // auto-set from STAGE_PROBABILITY on every stage change
+  expectedCloseDate DateTime?        @db.Date
+  competitor        String? // COMPETITORS
+  decisionMaker     String?
+  nextAction        String?
+  nextActionDate    DateTime?        @db.Date
+
+  lostReason  String? // LOST_REASONS, required when stage = LOST
+  lostRemarks String?
+  closedAt    DateTime? // set on WON or LOST
+
+  ownerId     String
+  owner       User   @relation("OpportunityOwner", fields: [ownerId], references: [id])
+  createdById String
+  createdBy   User   @relation("OpportunityCreatedBy", fields: [createdById], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  items        OpportunityItem[]
+  stageChanges OpportunityStageChange[]
+  tasks        Task[]
+  activities   Activity[]
+
+  @@index([ownerId, stage])
+  @@index([leadId])
+}
+
+model OpportunityItem {
+  id            String      @id @default(cuid())
+  opportunityId String
+  opportunity   Opportunity @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+  productId     String
+  product       Product     @relation(fields: [productId], references: [id])
+  qty           Int         @default(1)
+  unitPrice     Decimal?    @db.Decimal(12, 2) // snapshot of Product.price when added; null if unpriced
+
+  @@unique([opportunityId, productId])
+}
+
+model OpportunityStageChange {
+  id            String            @id @default(cuid())
+  opportunityId String
+  opportunity   Opportunity       @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+  fromStage     OpportunityStage?
+  toStage       OpportunityStage
+  changedById   String
+  changedBy     User              @relation(fields: [changedById], references: [id])
+  changedAt     DateTime          @default(now())
+
+  @@index([opportunityId, changedAt])
+}
+
+// ───────────────────────── Tasks & activity ─────────────────────────
+
+enum TaskStatus {
+  OPEN
+  DONE
+  CANCELLED
+}
+
+enum TaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+model Task {
+  id          String       @id @default(cuid())
+  type        String // FOLLOWUP_TYPES or "Other"
+  title       String
+  remark      String?
+  dueDate     DateTime     @db.Date
+  priority    TaskPriority @default(MEDIUM)
+  status      TaskStatus   @default(OPEN)
+  outcome     String?
+  completedAt DateTime?
+  isAuto      Boolean      @default(false) // created by the system, not a person
+
+  assigneeId  String
+  assignee    User   @relation("TaskAssignee", fields: [assigneeId], references: [id])
+  createdById String
+  createdBy   User   @relation("TaskCreatedBy", fields: [createdById], references: [id])
+
+  // What the task is about — later phases add schoolId, serviceId, invoiceId…
+  leadId        String?
+  lead          Lead?        @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  opportunityId String?
+  opportunity   Opportunity? @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([assigneeId, status, dueDate])
+  @@index([leadId])
+  @@index([opportunityId])
+}
+
+enum ActivityType {
+  PHONE
+  WHATSAPP
+  EMAIL
+  MEETING
+  SITE_VISIT
+  NOTE
+  SYSTEM // automatic events: created, converted, stage changed, disqualified…
+}
+
+model Activity {
+  id         String       @id @default(cuid())
+  type       ActivityType
+  subject    String
+  summary    String?
+  nextAction String?
+  occurredAt DateTime     @default(now())
+
+  byId String
+  by   User   @relation(fields: [byId], references: [id])
+
+  leadId        String?
+  lead          Lead?        @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  opportunityId String?
+  opportunity   Opportunity? @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@index([leadId, occurredAt])
+  @@index([opportunityId, occurredAt])
+  @@index([byId, occurredAt])
+}
