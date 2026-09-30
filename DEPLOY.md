@@ -45,12 +45,25 @@ that person, and ask them to change it after they log in (key icon at the bottom
    If you don't see it, click **Adjust GitHub App Permissions** and allow access to that repository.
 3. On the next screen, leave everything as it is, but open **Environment Variables**. Add each row from
    step 2: the name goes in **Key** and the value in **Value**. There are 7 in total.
-4. Click **Deploy** and wait 2–3 minutes. While it builds, it also creates the tables and the 5 user
+4. Click **Deploy** and wait 2–3 minutes. If Vercel creates the project but no deployment starts,
+   open the project, go to **Deployments**, and use **Create Deployment** with the branch shown on the
+   import screen. While it builds, it also creates the tables and the 5 user
    accounts in your database automatically.
 5. When you see **Congratulations**, click the preview to open your CRM. The address will look like
    `wonder-learning-crm.vercel.app`.
 
 ## Step 4: First login
+
+The seed creates these accounts, each with the first password you set in step 2:
+
+| Name | Role | Email |
+|---|---|---|
+| Gautami Varma | Admin | admin@wonderlearning.in |
+| Viren Dogra | Sales Head | virend@wonderlearning.in |
+| Rohan Jayde | Sales Manager | rj@wonderlearning.in |
+| Vinay Choure | Sales Manager | vinay.wonderlearning@gmail.com |
+| Harshal Jadhav | Sales Manager | harshal.wonderlearning@gmail.com |
+
 
 1. Log in as Gautami (`admin@wonderlearning.in`) with the password you set.
 2. Go to **Settings → Products** and enter prices and GST.
