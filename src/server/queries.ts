@@ -3,7 +3,7 @@
 import type { Prisma } from "@/generated/prisma/client";
 import { db } from "@/lib/db";
 import { CLOSED_STAGES, STAGES, type Stage } from "@/lib/constants";
-import { fmtDateTimeIST, fromDbDate, optDate } from "@/lib/dates";
+import { addDays, fmtDateTimeIST, fromDbDate, optDate, todayIST } from "@/lib/dates";
 import { SALES_ROLES, canAssignOthers, seesAllSales, type SessionUser } from "@/lib/permissions";
 import { clientScope, leadScope, oppScope, taskScope } from "./access";
 import { ACTIVE_LEAD_STATUSES } from "./rules";
@@ -25,15 +25,30 @@ export async function assignees(user: SessionUser): Promise<Option[]> {
 /** Anyone active, for task assignment. */
 export async function taskAssignees(user: SessionUser): Promise<Option[]> {
   if (!canAssignOthers(user.role)) return [{ id: user.id, name: user.name }];
-  return db.user.findMany({ where: { active: true }, select: { id: true, name: true }, orderBy: { name: "asc" } });
+  return db.user.findMany({
+    where: { active: true },
+    select: { id: true, name: true },
+    orderBy: { name: "asc" },
+  });
 }
 
-export type ProductOption = { id: string; name: string; price: number | null; active: boolean };
+export type ProductOption = {
+  id: string;
+  name: string;
+  price: number | null;
+  active: boolean;
+};
 export async function productOptions(): Promise<ProductOption[]> {
-  const ps = await db.product.findMany({ orderBy: [{ sortOrder: "asc" }, { name: "asc" }] });
-  return ps.map((p) => ({ id: p.id, name: p.name, price: p.price === null ? null : Number(p.price), active: p.active }));
+  const ps = await db.product.findMany({
+    orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+  });
+  return ps.map((p) => ({
+    id: p.id,
+    name: p.name,
+    price: p.price === null ? null : Number(p.price),
+    active: p.active,
+  }));
 }
-
 
 /* ---------- leads ---------- */
 
@@ -88,8 +103,15 @@ export async function leadDetail(user: SessionUser, id: string) {
       assignedTo: { select: { id: true, name: true } },
       createdBy: { select: { name: true } },
       interests: { include: { product: { select: { id: true, name: true } } } },
-      opportunities: { select: { id: true, number: true, stage: true }, orderBy: { createdAt: "desc" } },
-      activities: { include: { by: { select: { id: true, name: true } } }, orderBy: { occurredAt: "desc" }, take: 100 },
+      opportunities: {
+        select: { id: true, number: true, stage: true },
+        orderBy: { createdAt: "desc" },
+      },
+      activities: {
+        include: { by: { select: { id: true, name: true } } },
+        orderBy: { occurredAt: "desc" },
+        take: 100,
+      },
       tasks: {
         where: { status: "OPEN" },
         include: { assignee: { select: { name: true } } },
@@ -128,7 +150,13 @@ export async function leadDetail(user: SessionUser, id: string) {
     disqualifyRemarks: l.disqualifyRemarks,
     interests: l.interests.map((i) => i.product),
     opportunity: l.opportunities[0] ?? null,
-    openTasks: l.tasks.map((t) => ({ id: t.id, title: t.title, type: t.type, dueDate: fromDbDate(t.dueDate), assignee: t.assignee.name })),
+    openTasks: l.tasks.map((t) => ({
+      id: t.id,
+      title: t.title,
+      type: t.type,
+      dueDate: fromDbDate(t.dueDate),
+      assignee: t.assignee.name,
+    })),
     activities: l.activities.map((a) => ({
       id: a.id,
       type: a.type,
@@ -146,10 +174,18 @@ export type LeadDetail = NonNullable<Awaited<ReturnType<typeof leadDetail>>>;
 
 /** A deal's value is the expected value its owner typed; `noValue` marks deals without one. */
 export function oppValue(o: { expectedValue: Prisma.Decimal | null }) {
-  return { value: o.expectedValue === null ? 0 : Number(o.expectedValue), noValue: o.expectedValue === null };
+  return {
+    value: o.expectedValue === null ? 0 : Number(o.expectedValue),
+    noValue: o.expectedValue === null,
+  };
 }
 
-export type OppFilters = { owner?: string; q?: string; stage?: string; cat?: string };
+export type OppFilters = {
+  owner?: string;
+  q?: string;
+  stage?: string;
+  cat?: string;
+};
 
 /** Opportunities for the pipeline board and the Opportunities list. */
 export async function pipelineCards(user: SessionUser, f: OppFilters = {}) {
@@ -193,7 +229,8 @@ export async function pipelineCards(user: SessionUser, f: OppFilters = {}) {
     owner: o.owner,
     contactName: o.lead?.contactName ?? null,
     city: o.lead?.city ?? null,
-    clientId: o.client?.id ?? null,
+    clientId: o.client?.id ?? o.renewalOfId ?? null,
+    renewal: o.academicYear,
     ...oppValue(o),
   }));
 }
@@ -205,12 +242,30 @@ export async function oppDetail(user: SessionUser, id: string) {
     include: {
       items: { include: { product: { select: { name: true } } } },
       owner: { select: { id: true, name: true } },
-      lead: { select: { id: true, number: true, contactName: true, mobile: true, email: true, city: true, state: true } },
+      lead: {
+        select: {
+          id: true,
+          number: true,
+          contactName: true,
+          mobile: true,
+          email: true,
+          city: true,
+          state: true,
+        },
+      },
       quotations: { include: quoteInclude, orderBy: { createdAt: "desc" } },
-      stageChanges: { include: { changedBy: { select: { name: true } } }, orderBy: { changedAt: "desc" } },
-      activities: { include: { by: { select: { id: true, name: true } } }, orderBy: { occurredAt: "desc" }, take: 50 },
+      stageChanges: {
+        include: { changedBy: { select: { name: true } } },
+        orderBy: { changedAt: "desc" },
+      },
+      activities: {
+        include: { by: { select: { id: true, name: true } } },
+        orderBy: { occurredAt: "desc" },
+        take: 50,
+      },
       tasks: { where: { status: "OPEN" }, orderBy: { dueDate: "asc" } },
       client: { select: { id: true, number: true } },
+      renewalOf: { select: { id: true, number: true, schoolName: true } },
     },
   });
   if (!o) return null;
@@ -233,6 +288,8 @@ export async function oppDetail(user: SessionUser, id: string) {
     owner: o.owner,
     lead: o.lead,
     client: o.client,
+    renewalOf: o.renewalOf,
+    academicYear: o.academicYear,
     quotations: o.quotations.map(quoteSummary),
     items: o.items.map((i) => ({
       productId: i.productId,
@@ -257,7 +314,11 @@ export async function oppDetail(user: SessionUser, id: string) {
       at: a.occurredAt.toISOString(),
       by: a.by,
     })),
-    openTasks: o.tasks.map((t) => ({ id: t.id, title: t.title, dueDate: fromDbDate(t.dueDate) })),
+    openTasks: o.tasks.map((t) => ({
+      id: t.id,
+      title: t.title,
+      dueDate: fromDbDate(t.dueDate),
+    })),
   };
 }
 export type OppDetail = NonNullable<Awaited<ReturnType<typeof oppDetail>>>;
@@ -271,7 +332,11 @@ export async function taskList(user: SessionUser, team: boolean, kind: TaskKind 
   const mine: Prisma.TaskWhereInput = {
     ...(team && seesAllSales(user.role) ? taskScope(user) : { assigneeId: user.id }),
     ...(kind === "todos" ? { leadId: null, opportunityId: null, clientId: null } : {}),
-    ...(kind === "followups" ? { OR: [{ leadId: { not: null } }, { opportunityId: { not: null } }, { clientId: { not: null } }] } : {}),
+    ...(kind === "followups"
+      ? {
+          OR: [{ leadId: { not: null } }, { opportunityId: { not: null } }, { clientId: { not: null } }],
+        }
+      : {}),
   };
   const include = {
     assignee: { select: { id: true, name: true } },
@@ -286,7 +351,12 @@ export async function taskList(user: SessionUser, team: boolean, kind: TaskKind 
       orderBy: [{ dueDate: "asc" }, { dueTime: { sort: "asc", nulls: "last" } }, { createdAt: "asc" }],
       take: 1000,
     }),
-    db.task.findMany({ where: { ...mine, status: { in: ["DONE", "CANCELLED"] } }, include, orderBy: { completedAt: "desc" }, take: 15 }),
+    db.task.findMany({
+      where: { ...mine, status: { in: ["DONE", "CANCELLED"] } },
+      include,
+      orderBy: { completedAt: "desc" },
+      take: 15,
+    }),
   ]);
   const shape = (t: (typeof open)[number]) => ({
     id: t.id,
@@ -307,10 +377,13 @@ export async function taskList(user: SessionUser, team: boolean, kind: TaskKind 
     related: t.client
       ? { href: `/clients/${t.client.id}`, label: t.client.schoolName }
       : t.opportunity
-      ? { href: `/opportunities?opp=${t.opportunity.id}`, label: t.opportunity.schoolName }
-      : t.lead
-        ? { href: `/leads/${t.lead.id}`, label: t.lead.schoolName }
-        : null,
+        ? {
+            href: `/opportunities?opp=${t.opportunity.id}`,
+            label: t.opportunity.schoolName,
+          }
+        : t.lead
+          ? { href: `/leads/${t.lead.id}`, label: t.lead.schoolName }
+          : null,
   });
   return { open: open.map(shape), done: done.map(shape) };
 }
@@ -331,12 +404,26 @@ export async function taskTargets(user: SessionUser) {
       orderBy: { schoolName: "asc" },
       take: 1000,
     }),
-    db.client.findMany({ where: clientScope(user), select: { id: true, schoolName: true }, orderBy: { schoolName: "asc" }, take: 1000 }),
+    db.client.findMany({
+      where: clientScope(user),
+      select: { id: true, schoolName: true },
+      orderBy: { schoolName: "asc" },
+      take: 1000,
+    }),
   ]);
   return [
-    ...leads.map((l) => ({ value: `lead:${l.id}`, label: `Lead: ${l.schoolName}` })),
-    ...opps.map((o) => ({ value: `opp:${o.id}`, label: `Opportunity: ${o.schoolName}` })),
-    ...clients.map((c) => ({ value: `client:${c.id}`, label: `Client: ${c.schoolName}` })),
+    ...leads.map((l) => ({
+      value: `lead:${l.id}`,
+      label: `Lead: ${l.schoolName}`,
+    })),
+    ...opps.map((o) => ({
+      value: `opp:${o.id}`,
+      label: `Opportunity: ${o.schoolName}`,
+    })),
+    ...clients.map((c) => ({
+      value: `client:${c.id}`,
+      label: `Client: ${c.schoolName}`,
+    })),
   ];
 }
 
@@ -391,6 +478,8 @@ function quoteSummary(q: Prisma.QuotationGetPayload<{ include: typeof quoteInclu
     sentAt: q.sentAt?.toISOString() ?? null,
     lines: q._count.items,
     createdAt: fmtDateTimeIST(q.createdAt),
+    validUntil: addDays(fromDbDate(q.date), q.validityDays),
+    expired: q.status === "SENT" && addDays(fromDbDate(q.date), q.validityDays) < todayIST(),
     itemNames: q.items.map((i) => i.description),
     preparedBy: q.preparedBy.name,
     shareToken: q.shareToken,
@@ -403,32 +492,81 @@ export async function clientDetail(user: SessionUser, id: string) {
     where: { id, ...clientScope(user) },
     include: {
       owner: { select: { id: true, name: true } },
-      opportunity: { select: { id: true, number: true, leadId: true, lead: { select: { number: true } } } },
-      activities: { include: { by: { select: { id: true, name: true } } }, orderBy: { occurredAt: "desc" }, take: 100 },
-      tasks: { where: { status: "OPEN" }, include: { assignee: { select: { name: true } } }, orderBy: { dueDate: "asc" } },
+      opportunity: {
+        select: {
+          id: true,
+          number: true,
+          leadId: true,
+          lead: { select: { number: true } },
+        },
+      },
+      activities: {
+        include: { by: { select: { id: true, name: true } } },
+        orderBy: { occurredAt: "desc" },
+        take: 100,
+      },
+      tasks: {
+        where: { status: "OPEN" },
+        include: { assignee: { select: { name: true } } },
+        orderBy: { dueDate: "asc" },
+      },
       salesOrders: {
-        include: { items: true, invoices: { select: { id: true, number: true, status: true } }, quotation: { select: { number: true, createdAt: true } }, poFile: { select: { fileName: true } }, advances: { where: { invoiceId: null }, select: { amount: true, status: true } },
+        include: {
+          items: true,
+          invoices: { select: { id: true, number: true, status: true } },
+          quotation: { select: { number: true, createdAt: true } },
+          poFile: { select: { fileName: true } },
+          advances: {
+            where: { invoiceId: null },
+            select: { amount: true, status: true },
+          },
           dispatches: {
-            include: { items: { select: { salesOrderItemId: true, qty: true } }, files: { select: { id: true, fileName: true } } },
+            include: {
+              items: { select: { salesOrderItemId: true, qty: true } },
+              files: { select: { id: true, fileName: true } },
+            },
             orderBy: { createdAt: "asc" },
           },
         },
         orderBy: { createdAt: "desc" },
       },
-      creditNotes: { include: { invoice: { select: { number: true } }, createdBy: { select: { name: true } } }, orderBy: { createdAt: "desc" } },
+      creditNotes: {
+        include: {
+          invoice: { select: { number: true } },
+          createdBy: { select: { name: true } },
+        },
+        orderBy: { createdAt: "desc" },
+      },
       files: {
         where: { dispatchId: null },
-        select: { id: true, category: true, title: true, fileName: true, size: true, uploadedAt: true, uploadedBy: { select: { name: true } } },
+        select: {
+          id: true,
+          category: true,
+          title: true,
+          fileName: true,
+          size: true,
+          uploadedAt: true,
+          uploadedBy: { select: { name: true } },
+        },
         orderBy: { uploadedAt: "desc" },
       },
       contacts: { orderBy: { createdAt: "asc" } },
-      payments: { include: { invoice: { select: { number: true } }, salesOrder: { select: { number: true } }, recordedBy: { select: { name: true } } }, orderBy: [{ date: "desc" }, { createdAt: "desc" }] },
+      payments: {
+        include: {
+          invoice: { select: { number: true } },
+          salesOrder: { select: { number: true } },
+          recordedBy: { select: { name: true } },
+        },
+        orderBy: [{ date: "desc" }, { createdAt: "desc" }],
+      },
     },
   });
   if (!c) return null;
   // Quotations made on the client (repeat orders) and on the deal it came from.
   const quotations = await db.quotation.findMany({
-    where: { OR: [{ clientId: c.id }, { opportunityId: c.opportunityId }] },
+    where: {
+      OR: [{ clientId: c.id }, { opportunityId: c.opportunityId }, { opportunity: { renewalOfId: c.id } }],
+    },
     include: quoteInclude,
     orderBy: { createdAt: "desc" },
   });
@@ -453,7 +591,13 @@ export async function clientDetail(user: SessionUser, id: string) {
     onboardingCompletedAt: c.onboardingCompletedAt?.toISOString() ?? null,
     owner: c.owner,
     opportunity: c.opportunity,
-    openTasks: c.tasks.map((t) => ({ id: t.id, title: t.title, type: t.type, dueDate: fromDbDate(t.dueDate), assignee: t.assignee.name })),
+    openTasks: c.tasks.map((t) => ({
+      id: t.id,
+      title: t.title,
+      type: t.type,
+      dueDate: fromDbDate(t.dueDate),
+      assignee: t.assignee.name,
+    })),
     quotations: quotations.map(quoteSummary),
     salesOrders: c.salesOrders.map((so) => ({
       id: so.id,
@@ -492,7 +636,13 @@ export async function clientDetail(user: SessionUser, id: string) {
       createdAt: fmtDateTimeIST(so.createdAt),
       kits: so.items.reduce((n, i) => n + i.qty, 0),
       lines: so.items.length,
-      total: totals(so.items.map((i) => ({ qty: i.qty, price: Number(i.price), gstRate: Number(i.gstRate) }))).total,
+      total: totals(
+        so.items.map((i) => ({
+          qty: i.qty,
+          price: Number(i.price),
+          gstRate: Number(i.gstRate),
+        })),
+      ).total,
       invoice: so.invoices.find((i) => i.status === "ISSUED") ?? null,
     })),
     invoices,
@@ -522,9 +672,22 @@ export async function clientDetail(user: SessionUser, id: string) {
       uploadedAt: f.uploadedAt.toISOString(),
       by: f.uploadedBy.name,
     })),
-    contacts: c.contacts.map((k) => ({ id: k.id, name: k.name, role: k.role, mobile: k.mobile, email: k.email, forPayments: k.forPayments })),
+    contacts: c.contacts.map((k) => ({
+      id: k.id,
+      name: k.name,
+      role: k.role,
+      mobile: k.mobile,
+      email: k.email,
+      forPayments: k.forPayments,
+    })),
     /** For "Send to" choices on reminders and receipts. */
-    people: c.contacts.map((k) => ({ name: k.name, role: k.role, mobile: k.mobile, email: k.email, forPayments: k.forPayments })),
+    people: c.contacts.map((k) => ({
+      name: k.name,
+      role: k.role,
+      mobile: k.mobile,
+      email: k.email,
+      forPayments: k.forPayments,
+    })),
     creditNotes: c.creditNotes.map((n) => ({
       id: n.id,
       number: n.number,

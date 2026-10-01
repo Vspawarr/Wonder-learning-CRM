@@ -5,6 +5,7 @@ import { Field, Modal, Options, useAction, useToast } from "@/components/client"
 import { DateInput } from "@/components/date-input";
 import { Icon } from "@/components/icons";
 import { Pill } from "@/components/ui";
+import { useApp } from "@/components/app-context";
 import {
   createQuotation,
   deleteQuotation,
@@ -31,10 +32,26 @@ export type QuoteTarget = {
   mobile: string | null;
   quotations: Q[];
 };
-type Line = { productId: string | null; description: string; mrp: string; price: string };
-type Draft = { date: string; validityDays: string; toLine: string; schoolName: string; address: string; items: Line[] };
+type Line = {
+  productId: string | null;
+  description: string;
+  mrp: string;
+  price: string;
+};
+type Draft = {
+  date: string;
+  validityDays: string;
+  toLine: string;
+  schoolName: string;
+  address: string;
+  items: Line[];
+};
 
-const VIA: Record<string, string> = { download: "downloaded", whatsapp: "WhatsApp", email: "email" };
+const VIA: Record<string, string> = {
+  download: "downloaded",
+  whatsapp: "WhatsApp",
+  email: "email",
+};
 
 export function QuotationsPanel({
   target: opp,
@@ -49,11 +66,15 @@ export function QuotationsPanel({
   emailReady: boolean;
   me: { name: string };
 }) {
-  const [editing, setEditing] = useState<{ id: string | null; draft: Draft } | null>(null);
+  const [editing, setEditing] = useState<{
+    id: string | null;
+    draft: Draft;
+  } | null>(null);
   const [sending, setSending] = useState<Q | null>(null);
   const [poFor, setPoFor] = useState<Q | null>(null);
   const { pending, run } = useAction();
   const today = todayIST();
+  const { features } = useApp();
 
   const startNew = () =>
     run(() => quotationDefaults(opp.parent), {
@@ -67,12 +88,20 @@ export function QuotationsPanel({
             toLine: d.toLine,
             schoolName: d.schoolName,
             address: d.address,
-            items: d.items.map((i) => ({ productId: i.productId, description: i.description, mrp: "", price: "" })),
+            items: d.items.map((i) => ({
+              productId: i.productId,
+              description: i.description,
+              mrp: "",
+              price: "",
+            })),
           },
         }),
     });
 
-  const editDraft = (q: Q) => run(() => quotationForEdit(q.id), { onDone: (d) => d && setEditing({ id: q.id, draft: d }) });
+  const editDraft = (q: Q) =>
+    run(() => quotationForEdit(q.id), {
+      onDone: (d) => d && setEditing({ id: q.id, draft: d }),
+    });
 
   return (
     <div className="mb-3">
@@ -90,9 +119,12 @@ export function QuotationsPanel({
             <div key={q.id} className="rounded-lg border border-line px-3 py-2">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="min-w-0">
-                  <b>{q.number}</b> <Pill tone={q.status === "SENT" ? "ok" : "mute"}>{q.status === "SENT" ? "Sent" : "Draft"}</Pill>
+                  <b>{q.number}</b> <Pill tone={q.status === "SENT" ? "ok" : "mute"}>{q.status === "SENT" ? "Sent" : "Draft"}</Pill>{" "}
+                  {features.quoteExpiry && q.expired ? <Pill tone="bad">Expired</Pill> : null}
                   <div className="small muted">
-                    Created {q.createdAt} · {q.lines} product{q.lines === 1 ? "" : "s"} · {q.preparedBy}
+                    Created {q.createdAt} · {q.lines} product
+                    {q.lines === 1 ? "" : "s"} · {q.preparedBy}
+                    {features.quoteExpiry ? ` · valid till ${q.validUntil.split("-").reverse().join("/")}` : ""}
                     {q.sentAt ? ` · sent ${fmtDate(istDate(q.sentAt), today)} by ${VIA[q.sentVia ?? ""] ?? q.sentVia}` : ""}
                   </div>
                 </div>
@@ -108,7 +140,12 @@ export function QuotationsPanel({
                       <button
                         className="btn sm ghost"
                         disabled={pending}
-                        onClick={() => confirm(`Delete draft ${q.number}?`) && run(() => deleteQuotation(q.id), { success: "Draft deleted." })}
+                        onClick={() =>
+                          confirm(`Delete draft ${q.number}?`) &&
+                          run(() => deleteQuotation(q.id), {
+                            success: "Draft deleted.",
+                          })
+                        }
                       >
                         Delete
                       </button>
@@ -128,7 +165,11 @@ export function QuotationsPanel({
                         <button
                           className="btn sm"
                           disabled={pending}
-                          onClick={() => run(() => reviseQuotation(q.id), { success: "New draft created from this quotation." })}
+                          onClick={() =>
+                            run(() => reviseQuotation(q.id), {
+                              success: "New draft created from this quotation.",
+                            })
+                          }
                         >
                           Revise
                         </button>
@@ -145,14 +186,7 @@ export function QuotationsPanel({
       )}
 
       {editing ? (
-        <QuotationEditor
-          parent={opp.parent}
-          id={editing.id}
-          initial={editing.draft}
-          products={products}
-          me={me}
-          onClose={() => setEditing(null)}
-        />
+        <QuotationEditor parent={opp.parent} id={editing.id} initial={editing.draft} products={products} me={me} onClose={() => setEditing(null)} />
       ) : null}
       {poFor ? <PoTemplateModal q={poFor} target={opp} me={me} onClose={() => setPoFor(null)} /> : null}
       {sending ? <SendQuotation q={sending} opp={opp} emailReady={emailReady} me={me} onClose={() => setSending(null)} /> : null}
@@ -178,7 +212,11 @@ function QuotationEditor({
   const [d, setD] = useState<Draft>(initial);
   const [add, setAdd] = useState("");
   const { pending, run } = useAction();
-  const setItem = (i: number, patch: Partial<Line>) => setD({ ...d, items: d.items.map((x, j) => (j === i ? { ...x, ...patch } : x)) });
+  const setItem = (i: number, patch: Partial<Line>) =>
+    setD({
+      ...d,
+      items: d.items.map((x, j) => (j === i ? { ...x, ...patch } : x)),
+    });
   const addable = products.filter((p) => p.active);
 
   const save = () =>
@@ -213,7 +251,14 @@ function QuotationEditor({
             <DateInput id="q-date" value={d.date} onChange={(date) => setD({ ...d, date })} />
           </Field>
           <Field label="Validity (days)" htmlFor="q-valid">
-            <input className="in" id="q-valid" type="number" min={1} value={d.validityDays} onChange={(e) => setD({ ...d, validityDays: e.target.value })} />
+            <input
+              className="in"
+              id="q-valid"
+              type="number"
+              min={1}
+              value={d.validityDays}
+              onChange={(e) => setD({ ...d, validityDays: e.target.value })}
+            />
           </Field>
         </div>
         <Field label="School name" htmlFor="q-school">
@@ -281,7 +326,10 @@ function QuotationEditor({
           disabled={!add}
           onClick={() => {
             const p = products.find((x) => x.id === add)!;
-            setD({ ...d, items: [...d.items, { productId: p.id, description: p.name, mrp: "", price: "" }] });
+            setD({
+              ...d,
+              items: [...d.items, { productId: p.id, description: p.name, mrp: "", price: "" }],
+            });
             setAdd("");
           }}
         >
@@ -320,14 +368,20 @@ function SendQuotation({
     const text = `Dear Sir/Madam,\nPlease find our quotation ${q.number} for ${opp.schoolName}:\n${link}\n\nRegards,\n${me.name}\nWonder Learning`;
     // Open straight away (inside the click) so the browser doesn't block it.
     window.open(`https://wa.me/${mobile}?text=${encodeURIComponent(text)}`, "_blank", "noopener");
-    run(() => markQuotationSent(q.id, "whatsapp"), { success: `${q.number} marked as sent on WhatsApp.`, onDone: onClose });
+    run(() => markQuotationSent(q.id, "whatsapp"), {
+      success: `${q.number} marked as sent on WhatsApp.`,
+      onDone: onClose,
+    });
   };
 
   const download = () => {
     const a = document.createElement("a");
     a.href = `/api/quotations/${q.id}/pdf?download=1`;
     a.click();
-    run(() => markQuotationSent(q.id, "download"), { success: `${q.number} downloaded and marked as sent.`, onDone: onClose });
+    run(() => markQuotationSent(q.id, "download"), {
+      success: `${q.number} downloaded and marked as sent.`,
+      onDone: onClose,
+    });
   };
 
   return (
@@ -354,8 +408,7 @@ function SendQuotation({
         </button>
       </div>
       <p className="small muted mt-2">
-        WhatsApp opens a message to {opp.mobile ?? "the school"} with a private link to the PDF. Download saves the PDF so you can attach it
-        yourself.
+        WhatsApp opens a message to {opp.mobile ?? "the school"} with a private link to the PDF. Download saves the PDF so you can attach it yourself.
       </p>
 
       <h3 className="mt-4">Email from the CRM</h3>

@@ -1,24 +1,14 @@
 import { db } from "@/lib/db";
 import { toDbDate, todayIST } from "@/lib/dates";
 import { ROLE_LABEL } from "@/lib/constants";
-import {
-  canManageFinance,
-  canManageProducts,
-  canManageSettings,
-  canViewUsers,
-  seesAllSales,
-} from "@/lib/permissions";
+import { canManageFinance, canManageProducts, canManageSettings, canViewUsers, seesAllSales } from "@/lib/permissions";
 import { AppProvider } from "@/components/app-context";
 import { getFeatures } from "@/server/features";
 import { ToastProvider } from "@/components/client";
 import { requireUser } from "@/server/session";
 import { Shell, type NavGroup } from "./shell";
 
-export default async function AppLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const user = await requireUser();
   const [due, features] = await Promise.all([
     db.task.count({
@@ -50,21 +40,12 @@ export default async function AppLayout({
     },
   ];
   const admin = [
-    ...(canViewUsers(user.role)
-      ? [{ href: "/admin/users", label: "Users", icon: "users" as const }]
-      : []),
-    ...(canManageProducts(user.role)
-      ? [{ href: "/admin/products", label: "Products", icon: "box" as const }]
-      : []),
-    ...(canManageSettings(user.role)
-      ? [{ href: "/admin/locations", label: "Locations", icon: "pin" as const }]
-      : []),
-    ...(canManageSettings(user.role)
-      ? [{ href: "/admin/quotation", label: "Quotation", icon: "doc" as const }]
-      : []),
-    ...(canManageSettings(user.role)
-      ? [{ href: "/admin/features", label: "Features", icon: "grid" as const }]
-      : []),
+    ...(canViewUsers(user.role) ? [{ href: "/admin/users", label: "Users", icon: "users" as const }] : []),
+    ...(canManageProducts(user.role) ? [{ href: "/admin/products", label: "Products", icon: "box" as const }] : []),
+    ...(canManageSettings(user.role) ? [{ href: "/admin/locations", label: "Locations", icon: "pin" as const }] : []),
+    ...(canManageSettings(user.role) ? [{ href: "/admin/quotation", label: "Quotation", icon: "doc" as const }] : []),
+    ...(seesAllSales(user.role) && features.targets ? [{ href: "/admin/targets", label: "Targets", icon: "rupee" as const }] : []),
+    ...(canManageSettings(user.role) ? [{ href: "/admin/features", label: "Features", icon: "grid" as const }] : []),
   ];
   if (admin.length) nav.push({ group: "Settings", items: admin });
 
@@ -79,10 +60,7 @@ export default async function AppLayout({
       }}
     >
       <ToastProvider>
-        <Shell
-          nav={nav}
-          user={{ id: user.id, name: user.name, role: ROLE_LABEL[user.role] }}
-        >
+        <Shell nav={nav} user={{ id: user.id, name: user.name, role: ROLE_LABEL[user.role] }}>
           {children}
         </Shell>
       </ToastProvider>

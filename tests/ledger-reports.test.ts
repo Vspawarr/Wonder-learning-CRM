@@ -25,17 +25,30 @@ beforeEach(async () => {
 });
 
 async function invoiceOf(amount: number, date = today) {
-  const so = await createSalesOrder(exA, clientId, { date, items: [{ description: "Kit", qty: 1, price: amount, gstRate: 0 }] });
+  const so = await createSalesOrder(exA, clientId, {
+    date,
+    items: [{ description: "Kit", qty: 1, price: amount, gstRate: 0 }],
+  });
   return createInvoice(exA, so, { date, dueDate: addDays(date, 45) });
 }
 const pay = (amount: number, date = today) => ({ amount, date, mode: "UPI" });
 
 describe("ledger", () => {
   it("uses the April–March financial year", () => {
-    expect(financialYear("2026-10-01")).toMatchObject({ from: "2026-04-01", to: "2027-03-31", label: "FY 2026-27" });
+    expect(financialYear("2026-10-01")).toMatchObject({
+      from: "2026-04-01",
+      to: "2027-03-31",
+      label: "FY 2026-27",
+    });
     expect(financialYear("2027-02-10").from).toBe("2026-04-01");
-    expect(resolvePeriod({ period: "lastfy" }, "2026-10-01")).toMatchObject({ from: "2025-04-01", to: "2026-03-31" });
-    expect(resolvePeriod({ period: "month" }, "2026-02-14")).toMatchObject({ from: "2026-02-01", to: "2026-02-28" });
+    expect(resolvePeriod({ period: "lastfy" }, "2026-10-01")).toMatchObject({
+      from: "2025-04-01",
+      to: "2026-03-31",
+    });
+    expect(resolvePeriod({ period: "month" }, "2026-02-14")).toMatchObject({
+      from: "2026-02-01",
+      to: "2026-02-28",
+    });
     expect(resolvePeriod({ period: "custom", from: "2026-05-01", to: "2026-04-01" }, "2026-10-01").key).toBe("fy");
   });
 
@@ -61,9 +74,19 @@ describe("ledger", () => {
   it("carries earlier entries into the opening balance", async () => {
     const a = await invoiceOf(80000);
     await recordPayment(exA, a, pay(30000));
-    const later = { from: addDays(today, 1), to: addDays(today, 30), label: "x" };
+    const later = {
+      from: addDays(today, 1),
+      to: addDays(today, 30),
+      label: "x",
+    };
     const l = await clientLedger(exA, clientId, later);
-    expect(l).toMatchObject({ opening: 50000, debit: 0, credit: 0, closing: 50000, entries: [] });
+    expect(l).toMatchObject({
+      opening: 50000,
+      debit: 0,
+      credit: 0,
+      closing: 50000,
+      entries: [],
+    });
     const s = await ledgerSummary(head, later);
     expect(s.rows).toHaveLength(1);
     expect(s.totals).toMatchObject({ opening: 50000, closing: 50000 });
@@ -90,9 +113,9 @@ describe("exports", () => {
   it("exports respect the same access as the screens", async () => {
     await invoiceOf(90000);
     const mine = await buildReport(exB, "outstanding", {});
-    expect(mine.sections[1].rows).toHaveLength(0);
+    expect(mine.sections.find((x) => x.heading === "Invoices")!.rows).toHaveLength(0);
     const all = await buildReport(head, "outstanding", {});
-    expect(all.sections[1].rows).toHaveLength(1);
+    expect(all.sections.find((x) => x.heading === "Invoices")!.rows).toHaveLength(1);
     await expect(buildReport(head, "nope", {})).rejects.toThrow(/not found/);
   });
 });

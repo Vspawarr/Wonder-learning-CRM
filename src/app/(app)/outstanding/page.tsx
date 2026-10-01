@@ -2,7 +2,8 @@ import { ExportButtons } from "@/components/export-buttons";
 import Link from "next/link";
 import { seesAllSales } from "@/lib/permissions";
 import { dmy, inr, inrExact as money } from "@/lib/format";
-import { AvatarName, Empty, Kpi, PageHeader, Table } from "@/components/ui";
+import { AvatarName, Card, Empty, Kpi, PageHeader, Table } from "@/components/ui";
+import { getFeatures } from "@/server/features";
 import { outstandingList } from "@/server/finance/service";
 import { isEmailConfigured } from "@/server/mailer";
 import { assignees } from "@/server/queries";
@@ -16,7 +17,11 @@ export default async function OutstandingPage({ searchParams }: { searchParams: 
   const user = await requireUser();
   const sp = await searchParams;
   const all = seesAllSales(user.role);
-  const [{ all: rows, shown, summary: sum }, owners] = await Promise.all([outstandingList(user, sp), all ? assignees(user) : Promise.resolve(null)]);
+  const [{ all: rows, shown, summary: sum, ageing, forecast }, owners, features] = await Promise.all([
+    outstandingList(user, sp),
+    all ? assignees(user) : Promise.resolve(null),
+    getFeatures(),
+  ]);
   const emailReady = isEmailConfigured();
   const me = { name: user.name };
   const empty = rows.length ? "No invoices match these filters." : "No invoices yet. Raise one from a client's sales order.";
@@ -30,8 +35,42 @@ export default async function OutstandingPage({ searchParams }: { searchParams: 
         <Kpi label="Invoiced" value={inr(sum.invoiced)} color="#1C86C4" />
         <Kpi label="Received" value={inr(sum.received)} color="#0E8F79" />
         <Kpi label="Outstanding" value={inr(sum.outstanding)} sub="Still to collect" color="#C77A00" href="/outstanding" />
-        <Kpi label="Overdue" value={inr(sum.overdue)} sub={`${sum.overdueCount} invoice(s) past due`} color="#D9412D" href="/outstanding?show=overdue" />
+        <Kpi
+          label="Overdue"
+          value={inr(sum.overdue)}
+          sub={`${sum.overdueCount} invoice(s) past due`}
+          color="#D9412D"
+          href="/outstanding?show=overdue"
+        />
       </div>
+      {features.ageing && sum.outstanding > 0 ? (
+        <div className="mb-4 grid grid-cols-1 gap-4 min-[901px]:grid-cols-2">
+          <Card title="How late is the money?">
+            {ageing.map((b, i) => (
+              <div key={b.label} className="flex items-center justify-between gap-2 border-b border-line py-1.5 last:border-0">
+                <span className={i >= 3 ? "font-semibold text-coral" : ""}>
+                  {b.label} <span className="small faint">· {b.count} invoice(s)</span>
+                </span>
+                <b>{inr(b.amount)}</b>
+              </div>
+            ))}
+          </Card>
+          <Card title="Expected collections">
+            {forecast.buckets.map((b, i) => (
+              <div key={b.label} className="flex items-center justify-between gap-2 border-b border-line py-1.5 last:border-0">
+                <span className={i === 0 ? "font-semibold text-coral" : ""}>
+                  {b.label} <span className="small faint">· {b.count}</span>
+                </span>
+                <b>{inr(b.amount)}</b>
+              </div>
+            ))}
+            <p className="small muted mt-2">
+              Based on each invoice&apos;s payment follow-up date (the promised date when one was given).
+              {forecast.chequesPending ? ` Cheques awaiting clearance: ${inr(forecast.chequesPending)}.` : ""}
+            </p>
+          </Card>
+        </div>
+      ) : null}
       <OutstandingFilterBar owners={owners} />
 
       <div className="hidden min-[1101px]:block">

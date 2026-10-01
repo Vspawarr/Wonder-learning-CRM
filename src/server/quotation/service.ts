@@ -3,7 +3,8 @@ import { z } from "zod";
 import { Prisma } from "@/generated/prisma/client";
 import { db } from "@/lib/db";
 import { CLOSED_STAGES } from "@/lib/constants";
-import { fromDbDate, isDateStr, todayIST, toDbDate } from "@/lib/dates";
+import { addDays, fromDbDate, isDateStr, todayIST, toDbDate } from "@/lib/dates";
+import { getFeatures } from "../features";
 import type { SessionUser } from "@/lib/permissions";
 import { clientScope, oppScope } from "../access";
 import { DomainError, NotFoundError } from "../errors";
@@ -65,7 +66,9 @@ const asParent = (p: string | QuoteParent): QuoteParent => (typeof p === "string
 
 async function loadParent(user: SessionUser, parent: QuoteParent) {
   if ("clientId" in parent) {
-    const c = await db.client.findFirst({ where: { id: parent.clientId, ...clientScope(user) } });
+    const c = await db.client.findFirst({
+      where: { id: parent.clientId, ...clientScope(user) },
+    });
     if (!c) throw new NotFoundError("Client");
     return {
       opportunityId: null,
@@ -76,7 +79,10 @@ async function loadParent(user: SessionUser, parent: QuoteParent) {
       address: [c.address, c.area, c.city].filter(Boolean).join(", "),
     };
   }
-  const opp = await db.opportunity.findFirst({ where: { id: parent.opportunityId, ...oppScope(user) }, include: { lead: true } });
+  const opp = await db.opportunity.findFirst({
+    where: { id: parent.opportunityId, ...oppScope(user) },
+    include: { lead: true },
+  });
   if (!opp) throw new NotFoundError("Opportunity");
   const l = opp.lead;
   return {
@@ -97,7 +103,11 @@ const quotationScope = (user: SessionUser): Prisma.QuotationWhereInput => ({
 export async function loadQuotation(user: SessionUser, id: string) {
   const q = await db.quotation.findFirst({
     where: { id, ...quotationScope(user) },
-    include: { opportunity: true, items: { orderBy: { sortOrder: "asc" } }, preparedBy: true },
+    include: {
+      opportunity: true,
+      items: { orderBy: { sortOrder: "asc" } },
+      preparedBy: true,
+    },
   });
   if (!q) throw new NotFoundError("Quotation");
   return q;
@@ -108,7 +118,10 @@ export async function quotationDefaults(user: SessionUser, parentRef: string | Q
   const parent = await loadParent(user, asParent(parentRef));
   const content = await getQuotationContent();
   const items = parent.opportunityId
-    ? await db.opportunityItem.findMany({ where: { opportunityId: parent.opportunityId }, include: { product: true } })
+    ? await db.opportunityItem.findMany({
+        where: { opportunityId: parent.opportunityId },
+        include: { product: true },
+      })
     : [];
   return {
     date: todayIST(),
@@ -116,7 +129,12 @@ export async function quotationDefaults(user: SessionUser, parentRef: string | Q
     toLine: "The Director",
     schoolName: parent.schoolName,
     address: parent.address,
-    items: items.map((i) => ({ productId: i.productId, description: i.product.name, mrp: "", price: "" })),
+    items: items.map((i) => ({
+      productId: i.productId,
+      description: i.product.name,
+      mrp: "",
+      price: "",
+    })),
   };
 }
 
@@ -129,7 +147,12 @@ export async function quotationForEdit(user: SessionUser, id: string) {
     toLine: q.toLine,
     schoolName: q.schoolName,
     address: q.address ?? "",
-    items: q.items.map((i) => ({ productId: i.productId, description: i.description, mrp: String(Number(i.mrp)), price: String(Number(i.price)) })),
+    items: q.items.map((i) => ({
+      productId: i.productId,
+      description: i.description,
+      mrp: String(Number(i.mrp)),
+      price: String(Number(i.price)),
+    })),
   };
 }
 
@@ -143,7 +166,10 @@ export async function createQuotation(user: SessionUser, parentRef: string | Quo
   for (let attempt = 0; attempt < 5; attempt++) {
     try {
       return await db.$transaction(async (tx) => {
-        const last = await tx.quotation.aggregate({ where: { year: y, month: m }, _max: { seq: true } });
+        const last = await tx.quotation.aggregate({
+          where: { year: y, month: m },
+          _max: { seq: true },
+        });
         const seq = (last._max.seq ?? 0) + 1;
         const q = await tx.quotation.create({
           data: {
@@ -160,11 +186,20 @@ export async function createQuotation(user: SessionUser, parentRef: string | Quo
             address: d.address,
             shareToken: randomBytes(24).toString("base64url"),
             preparedById: user.id,
-            items: { create: d.items.map((it, i) => ({ ...it, sortOrder: i })) },
+            items: {
+              create: d.items.map((it, i) => ({ ...it, sortOrder: i })),
+            },
           },
         });
         await tx.activity.create({
-          data: { type: "SYSTEM", subject: `Quotation ${q.number} drafted`, byId: user.id, opportunityId, clientId, leadId: parent.leadId },
+          data: {
+            type: "SYSTEM",
+            subject: `Quotation ${q.number} drafted`,
+            byId: user.id,
+            opportunityId,
+            clientId,
+            leadId: parent.leadId,
+          },
         });
         return q.id;
       });
@@ -206,7 +241,12 @@ export async function deleteQuotation(user: SessionUser, id: string) {
 export async function reviseQuotation(user: SessionUser, id: string) {
   const q = await loadQuotation(user, id);
   // A quotation from a deal that has since become a client is revised on the client.
-  const client = q.clientId ? null : await db.client.findUnique({ where: { opportunityId: q.opportunityId! }, select: { id: true } });
+  const client = q.clientId
+    ? null
+    : await db.client.findUnique({
+        where: { opportunityId: q.opportunityId! },
+        select: { id: true },
+      });
   const parent: QuoteParent = q.clientId ? { clientId: q.clientId } : client ? { clientId: client.id } : { opportunityId: q.opportunityId! };
   return createQuotation(user, parent, {
     date: todayIST(),
@@ -214,7 +254,12 @@ export async function reviseQuotation(user: SessionUser, id: string) {
     toLine: q.toLine,
     schoolName: q.schoolName,
     address: q.address,
-    items: q.items.map((i) => ({ productId: i.productId, description: i.description, mrp: Number(i.mrp), price: Number(i.price) })),
+    items: q.items.map((i) => ({
+      productId: i.productId,
+      description: i.description,
+      mrp: Number(i.mrp),
+      price: Number(i.price),
+    })),
   });
 }
 
@@ -223,7 +268,11 @@ export type SentVia = "download" | "whatsapp" | "email";
 /** Records that the quotation went out; an early-stage deal moves to Proposal Sent. */
 export async function markQuotationSent(user: SessionUser, id: string, via: SentVia, emailedTo?: string) {
   const q = await loadQuotation(user, id);
-  const label = { download: "downloaded to send", whatsapp: "shared on WhatsApp", email: `emailed to ${emailedTo}` }[via];
+  const label = {
+    download: "downloaded to send",
+    whatsapp: "shared on WhatsApp",
+    email: `emailed to ${emailedTo}`,
+  }[via];
   await db.$transaction([
     db.quotation.update({
       where: { id },
@@ -247,6 +296,37 @@ export async function markQuotationSent(user: SessionUser, id: string, via: Sent
   ]);
   if (q.opportunity && (q.opportunity.stage === "INTERESTED" || q.opportunity.stage === "DEMO_SCHEDULED"))
     await moveOpportunity(user, q.opportunity.id, { stage: "PROPOSAL_SENT" });
+  // First time it goes out: a reminder the day before the quotation expires.
+  if (!q.sentAt && (await getFeatures()).quoteExpiry) {
+    const validUntil = addDays(fromDbDate(q.date), q.validityDays);
+    const remindOn = addDays(validUntil, -1);
+    if (remindOn >= todayIST()) {
+      const owner =
+        q.opportunity?.ownerId ??
+        (q.clientId
+          ? (
+              await db.client.findUnique({
+                where: { id: q.clientId },
+                select: { ownerId: true },
+              })
+            )?.ownerId
+          : null);
+      if (owner)
+        await db.task.create({
+          data: {
+            type: "Call",
+            title: `Quotation ${q.number} expires ${validUntil.split("-").reverse().join("/")}: follow up – ${q.schoolName}`,
+            dueDate: toDbDate(remindOn),
+            priority: "MEDIUM",
+            isAuto: true,
+            assigneeId: owner,
+            createdById: user.id,
+            opportunityId: q.opportunityId,
+            clientId: q.opportunityId ? null : q.clientId,
+          },
+        });
+    }
+  }
 }
 
 function pdfData(q: Awaited<ReturnType<typeof loadQuotation>>, content: Awaited<ReturnType<typeof getQuotationContent>>): QuotationPdfData {
@@ -260,7 +340,11 @@ function pdfData(q: Awaited<ReturnType<typeof loadQuotation>>, content: Awaited<
     address: q.address,
     preparedBy: q.preparedBy.name,
     preparedByMobile: q.preparedBy.mobile,
-    items: q.items.map((i) => ({ description: i.description, mrp: Number(i.mrp), price: Number(i.price) })),
+    items: q.items.map((i) => ({
+      description: i.description,
+      mrp: Number(i.mrp),
+      price: Number(i.price),
+    })),
     content,
   };
 }
@@ -269,7 +353,10 @@ export const pdfFileName = (number: string) => `Quotation-${number.replace(/\//g
 
 export async function quotationPdf(user: SessionUser, id: string) {
   const q = await loadQuotation(user, id);
-  return { number: q.number, pdf: await renderQuotationPdf(pdfData(q, await getQuotationContent())) };
+  return {
+    number: q.number,
+    pdf: await renderQuotationPdf(pdfData(q, await getQuotationContent())),
+  };
 }
 
 /** For the WhatsApp link: anyone with the secret link may view that one PDF. */
@@ -277,10 +364,17 @@ export async function quotationPdfByToken(token: string) {
   if (!/^[A-Za-z0-9_-]{20,}$/.test(token)) return null;
   const q = await db.quotation.findUnique({
     where: { shareToken: token },
-    include: { opportunity: true, items: { orderBy: { sortOrder: "asc" } }, preparedBy: true },
+    include: {
+      opportunity: true,
+      items: { orderBy: { sortOrder: "asc" } },
+      preparedBy: true,
+    },
   });
   if (!q || q.status !== "SENT") return null;
-  return { number: q.number, pdf: await renderQuotationPdf(pdfData(q, await getQuotationContent())) };
+  return {
+    number: q.number,
+    pdf: await renderQuotationPdf(pdfData(q, await getQuotationContent())),
+  };
 }
 
 export async function emailQuotation(user: SessionUser, id: string, raw: unknown) {
@@ -295,7 +389,13 @@ export async function emailQuotation(user: SessionUser, id: string, raw: unknown
       replyTo: q.preparedBy.email,
       subject: `Quotation ${q.number} – Wonder Learning`,
       text: d.message,
-      attachments: [{ filename: pdfFileName(q.number), content: pdf, contentType: "application/pdf" }],
+      attachments: [
+        {
+          filename: pdfFileName(q.number),
+          content: pdf,
+          contentType: "application/pdf",
+        },
+      ],
     });
   } catch (e) {
     console.error(e);

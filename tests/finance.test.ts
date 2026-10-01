@@ -52,11 +52,7 @@ beforeEach(async () => {
   exA = await makeUser("SALES_EXECUTIVE");
   exB = await makeUser("SALES_EXECUTIVE");
   head = await makeUser("SALES_HEAD");
-  oppId = await convertLead(
-    exA,
-    await createLead(exA, leadData(exA.id, { schoolName: "Little Stars" })),
-    { temperature: "WARM" },
-  );
+  oppId = await convertLead(exA, await createLead(exA, leadData(exA.id, { schoolName: "Little Stars" })), { temperature: "WARM" });
   await moveOpportunity(exA, oppId, { stage: "WON" });
   clientId = await convertToClient(exA, oppId);
 });
@@ -78,37 +74,11 @@ describe("money rules", () => {
 
   it("works out unpaid, partial, paid and overdue", () => {
     const due = "2026-10-10";
-    expect(
-      invoiceState(
-        { total: 1000, status: "ISSUED", dueDate: due },
-        0,
-        "2026-10-01",
-      ).state,
-    ).toBe("UNPAID");
-    expect(
-      invoiceState(
-        { total: 1000, status: "ISSUED", dueDate: due },
-        400,
-        "2026-10-01",
-      ),
-    ).toMatchObject({ state: "PARTIAL", balance: 600 });
-    expect(
-      invoiceState(
-        { total: 1000, status: "ISSUED", dueDate: due },
-        400,
-        "2026-10-13",
-      ),
-    ).toMatchObject({ state: "OVERDUE", daysOverdue: 3 });
-    expect(
-      invoiceState(
-        { total: 1000, status: "ISSUED", dueDate: due },
-        1000,
-        "2026-12-01",
-      ).state,
-    ).toBe("PAID");
-    expect(
-      invoiceState({ total: 1000, status: "CANCELLED", dueDate: due }, 0).state,
-    ).toBe("CANCELLED");
+    expect(invoiceState({ total: 1000, status: "ISSUED", dueDate: due }, 0, "2026-10-01").state).toBe("UNPAID");
+    expect(invoiceState({ total: 1000, status: "ISSUED", dueDate: due }, 400, "2026-10-01")).toMatchObject({ state: "PARTIAL", balance: 600 });
+    expect(invoiceState({ total: 1000, status: "ISSUED", dueDate: due }, 400, "2026-10-13")).toMatchObject({ state: "OVERDUE", daysOverdue: 3 });
+    expect(invoiceState({ total: 1000, status: "ISSUED", dueDate: due }, 1000, "2026-12-01").state).toBe("PAID");
+    expect(invoiceState({ total: 1000, status: "CANCELLED", dueDate: due }, 0).state).toBe("CANCELLED");
   });
 });
 
@@ -173,9 +143,7 @@ describe("sales orders", () => {
         items: [{ description: "LKG Academic Kit", mrp: 5600, price: 3800 }],
       },
     );
-    expect((await orderableQuotations(exA, clientId)).map((q) => q.id)).toEqual(
-      [q1],
-    );
+    expect((await orderableQuotations(exA, clientId)).map((q) => q.id)).toEqual([q1]);
     await markQuotationSent(exA, q2, "whatsapp");
     expect(await orderableQuotations(exA, clientId)).toHaveLength(2);
     const d = await salesOrderDefaults(exA, clientId, q2);
@@ -192,33 +160,23 @@ describe("sales orders", () => {
       ...d,
       items: [{ ...d.items[0], qty: 10 }],
     });
-    expect(
-      (await db.salesOrder.findUniqueOrThrow({ where: { id } })).quotationId,
-    ).toBe(q2);
+    expect((await db.salesOrder.findUniqueOrThrow({ where: { id } })).quotationId).toBe(q2);
   });
 
   it("is limited to the client's owner and the sales head", async () => {
-    await expect(createSalesOrder(exB, clientId, order())).rejects.toThrow(
-      /not found/,
-    );
+    await expect(createSalesOrder(exB, clientId, order())).rejects.toThrow(/not found/);
     const id = await createSalesOrder(head, clientId, order());
     await expect(markDelivered(exB, id, today)).rejects.toThrow(/not found/);
     await markDelivered(exA, id, today);
-    expect(
-      (await db.salesOrder.findUniqueOrThrow({ where: { id } })).status,
-    ).toBe("DELIVERED");
+    expect((await db.salesOrder.findUniqueOrThrow({ where: { id } })).status).toBe("DELIVERED");
   });
 
   it("is locked once invoiced", async () => {
     const id = await createSalesOrder(exA, clientId, order());
     await createInvoice(exA, id, await invoiceDefaults(exA, id));
-    await expect(updateSalesOrder(exA, id, order())).rejects.toThrow(
-      /invoiced/,
-    );
+    await expect(updateSalesOrder(exA, id, order())).rejects.toThrow(/invoiced/);
     await expect(cancelSalesOrder(exA, id)).rejects.toThrow(/invoice first/);
-    await expect(
-      createInvoice(exA, id, await invoiceDefaults(exA, id)),
-    ).rejects.toThrow(/already has an invoice/);
+    await expect(createInvoice(exA, id, await invoiceDefaults(exA, id))).rejects.toThrow(/already has an invoice/);
   });
 });
 
@@ -256,22 +214,10 @@ describe("invoices and payments", () => {
       where: { invoiceId: id, status: "OPEN" },
     });
     expect(task.title).toMatch(/^Collect ₹1,47,000/);
-    await expect(recordPayment(exA, id, pay(200000))).rejects.toThrow(
-      /more than/,
-    );
-    await expect(
-      recordPayment(exA, id, pay(10, { mode: "Barter" })),
-    ).rejects.toThrow(/how it was paid/);
-    expect(
-      await recordPayment(
-        exA,
-        id,
-        pay("1,47,000", { mode: "NEFT/RTGS", reference: "UTR001234" }),
-      ),
-    ).toMatchObject({ state: "PAID", balance: 0 });
-    expect(
-      await db.task.count({ where: { invoiceId: id, status: "OPEN" } }),
-    ).toBe(0);
+    await expect(recordPayment(exA, id, pay(200000))).rejects.toThrow(/more than/);
+    await expect(recordPayment(exA, id, pay(10, { mode: "Barter" }))).rejects.toThrow(/how it was paid/);
+    expect(await recordPayment(exA, id, pay("1,47,000", { mode: "NEFT/RTGS", reference: "UTR001234" }))).toMatchObject({ state: "PAID", balance: 0 });
+    expect(await db.task.count({ where: { invoiceId: id, status: "OPEN" } })).toBe(0);
     await expect(recordPayment(exA, id, pay(1))).rejects.toThrow(/fully paid/);
   });
 
@@ -308,14 +254,9 @@ describe("invoices and payments", () => {
     await recordPayment(exA, id, pay(1000));
     await expect(cancelInvoice(exA, id)).rejects.toThrow(/Admin or the Sales Head/);
     await expect(cancelInvoice(head, id)).rejects.toThrow(/has payments/);
-    await deletePayment(
-      head,
-      (await db.payment.findFirstOrThrow({ where: { invoiceId: id } })).id,
-    );
+    await deletePayment(head, (await db.payment.findFirstOrThrow({ where: { invoiceId: id } })).id);
     await cancelInvoice(head, id);
-    expect(
-      await db.task.count({ where: { invoiceId: id, status: "OPEN" } }),
-    ).toBe(0);
+    expect(await db.task.count({ where: { invoiceId: id, status: "OPEN" } })).toBe(0);
     expect((await invoiceRows(exA))[0].state).toBe("CANCELLED");
   });
 
@@ -334,14 +275,7 @@ describe("invoices and payments", () => {
         where: { clientId, subject: { contains: "Payment reminder" } },
       }),
     ).toBe(1);
-    await expect(
-      emailInvoice(
-        exA,
-        id,
-        { to: "school@example.com", message: "Hi" },
-        "reminder",
-      ),
-    ).rejects.toThrow(/isn't set up/);
+    await expect(emailInvoice(exA, id, { to: "school@example.com", message: "Hi" }, "reminder")).rejects.toThrow(/isn't set up/);
   });
 });
 
@@ -362,16 +296,13 @@ describe("collection follow-ups", () => {
     });
     expect(next.title).toBe(t.title);
     await recordPayment(exA, id, pay(197000));
-    expect(
-      await db.task.count({ where: { invoiceId: id, status: "OPEN" } }),
-    ).toBe(0);
+    expect(await db.task.count({ where: { invoiceId: id, status: "OPEN" } })).toBe(0);
   });
 });
 
 describe("payment receipts", () => {
   it("numbers each payment RCPT/YYYY/MM/NNN and renders a shareable receipt", async () => {
-    const { receiptPdf, receiptPdfByToken, emailReceipt } =
-      await import("@/server/finance/service");
+    const { receiptPdf, receiptPdfByToken, emailReceipt } = await import("@/server/finance/service");
     const so = await createSalesOrder(exA, clientId, order());
     const id = await createInvoice(exA, so, {
       date: today,
@@ -379,17 +310,12 @@ describe("payment receipts", () => {
     });
     const a = await recordPayment(exA, id, pay(50000));
     const b = await recordPayment(exA, id, pay(47000));
-    expect([a.receiptNumber, b.receiptNumber]).toEqual([
-      `RCPT/${Y}/${M}/001`,
-      `RCPT/${Y}/${M}/002`,
-    ]);
+    expect([a.receiptNumber, b.receiptNumber]).toEqual([`RCPT/${Y}/${M}/001`, `RCPT/${Y}/${M}/002`]);
     const { pdf, number } = await receiptPdf(exA, b.paymentId);
     expect(number).toBe(b.receiptNumber);
     expect(pdf.subarray(0, 4).toString()).toBe("%PDF");
     await expect(receiptPdf(exB, b.paymentId)).rejects.toThrow(/not found/);
-    expect((await receiptPdfByToken(a.shareToken))?.number).toBe(
-      a.receiptNumber,
-    );
+    expect((await receiptPdfByToken(a.shareToken))?.number).toBe(a.receiptNumber);
     expect(await receiptPdfByToken("not-a-real-token-at-all-xyz")).toBeNull();
     await expect(
       emailReceipt(exA, a.paymentId, {
@@ -401,12 +327,8 @@ describe("payment receipts", () => {
 
   it("writes amounts in words, Indian style", async () => {
     const { rupeesInWords } = await import("@/server/finance/words");
-    expect(rupeesInWords(197000)).toBe(
-      "Rupees One Lakh Ninety-Seven Thousand Only",
-    );
-    expect(rupeesInWords(12345678.5)).toBe(
-      "Rupees One Crore Twenty-Three Lakh Forty-Five Thousand Six Hundred Seventy-Eight and Fifty Paise Only",
-    );
+    expect(rupeesInWords(197000)).toBe("Rupees One Lakh Ninety-Seven Thousand Only");
+    expect(rupeesInWords(12345678.5)).toBe("Rupees One Crore Twenty-Three Lakh Forty-Five Thousand Six Hundred Seventy-Eight and Fifty Paise Only");
     expect(rupeesInWords(1000)).toBe("Rupees One Thousand Only");
   });
 });
@@ -414,29 +336,17 @@ describe("payment receipts", () => {
 describe("purchase orders", () => {
   it("PO number is saved on the order, can be set after invoicing, and prints on the invoice", async () => {
     const { setPurchaseOrder } = await import("@/server/finance/po");
-    const so = await createSalesOrder(
-      exA,
-      clientId,
-      order({ poNumber: "PO/LS/17", poDate: today }),
-    );
-    expect(
-      (await db.salesOrder.findUniqueOrThrow({ where: { id: so } })).poNumber,
-    ).toBe("PO/LS/17");
+    const so = await createSalesOrder(exA, clientId, order({ poNumber: "PO/LS/17", poDate: today }));
+    expect((await db.salesOrder.findUniqueOrThrow({ where: { id: so } })).poNumber).toBe("PO/LS/17");
     const inv = await createInvoice(exA, so, {
       date: today,
       dueDate: addDays(today, 45),
     });
     await setPurchaseOrder(exA, so, { poNumber: "PO/LS/18", poDate: today });
     expect((await invoiceRows(exA))[0].salesOrder.poNumber).toBe("PO/LS/18");
-    await expect(setPurchaseOrder(exB, so, { poNumber: "X" })).rejects.toThrow(
-      /not found/,
-    );
-    await expect(setPurchaseOrder(exA, so, { poNumber: "" })).rejects.toThrow(
-      /PO number/,
-    );
-    expect((await invoicePdf(exA, inv)).pdf.subarray(0, 4).toString()).toBe(
-      "%PDF",
-    );
+    await expect(setPurchaseOrder(exB, so, { poNumber: "X" })).rejects.toThrow(/not found/);
+    await expect(setPurchaseOrder(exA, so, { poNumber: "" })).rejects.toThrow(/PO number/);
+    expect((await invoicePdf(exA, inv)).pdf.subarray(0, 4).toString()).toBe("%PDF");
   });
 
   it("stores the signed PO file (PDF or photo up to 4 MB)", async () => {
@@ -472,8 +382,7 @@ describe("purchase orders", () => {
   });
 
   it("makes a PO template from a sent quotation, kits optional", async () => {
-    const { parseKits, poTemplatePdf, poTemplatePdfByToken } =
-      await import("@/server/finance/po");
+    const { parseKits, poTemplatePdf, poTemplatePdfByToken } = await import("@/server/finance/po");
     const q = await createQuotation(
       exA,
       { clientId },
@@ -488,9 +397,7 @@ describe("purchase orders", () => {
         ],
       },
     );
-    await expect(poTemplatePdf(exA, q, [])).rejects.toThrow(
-      /Send the quotation first/,
-    );
+    await expect(poTemplatePdf(exA, q, [])).rejects.toThrow(/Send the quotation first/);
     await markQuotationSent(exA, q, "download");
     expect(parseKits("40, ,x,25")).toEqual([40, null, null, 25]);
     const { pdf } = await poTemplatePdf(exA, q, parseKits("40,25"));
@@ -498,19 +405,22 @@ describe("purchase orders", () => {
     const { shareToken } = await db.quotation.findUniqueOrThrow({
       where: { id: q },
     });
-    expect((await poTemplatePdfByToken(shareToken, []))?.schoolName).toBe(
-      "Little Stars",
-    );
+    expect((await poTemplatePdfByToken(shareToken, []))?.schoolName).toBe("Little Stars");
   });
 });
 
 describe("payment promise date", () => {
   it("moves the collection follow-up to the promised date on a part payment", async () => {
     const so = await createSalesOrder(exA, clientId, order());
-    const id = await createInvoice(exA, so, { date: today, dueDate: addDays(today, 45) });
+    const id = await createInvoice(exA, so, {
+      date: today,
+      dueDate: addDays(today, 45),
+    });
     await expect(recordPayment(exA, id, pay(1000, { promiseDate: addDays(today, -1) }))).rejects.toThrow(/past/);
     await recordPayment(exA, id, pay(50000, { promiseDate: addDays(today, 10) }));
-    const t = await db.task.findFirstOrThrow({ where: { invoiceId: id, status: "OPEN" } });
+    const t = await db.task.findFirstOrThrow({
+      where: { invoiceId: id, status: "OPEN" },
+    });
     expect(fromDbDate(t.dueDate)).toBe(addDays(today, 10));
     expect(t.remark).toMatch(/promised/);
   });
@@ -525,10 +435,20 @@ describe("advances and proforma", () => {
     expect((await proformaPdf(exA, so)).number).toBe(pi.number); // same number every time
     await recordAdvance(exA, so, pay(78800, { mode: "NEFT/RTGS" }));
     await expect(recordAdvance(exA, so, pay(200000))).rejects.toThrow(/remaining/);
-    const id = await createInvoice(exA, so, { date: today, dueDate: addDays(today, 45) });
+    const id = await createInvoice(exA, so, {
+      date: today,
+      dueDate: addDays(today, 45),
+    });
     const [row] = await invoiceRows(exA);
-    expect(row).toMatchObject({ id, paid: 78800, balance: 118200, state: "PARTIAL" });
-    const task = await db.task.findFirstOrThrow({ where: { invoiceId: id, status: "OPEN" } });
+    expect(row).toMatchObject({
+      id,
+      paid: 78800,
+      balance: 118200,
+      state: "PARTIAL",
+    });
+    const task = await db.task.findFirstOrThrow({
+      where: { invoiceId: id, status: "OPEN" },
+    });
     expect(task.title).toMatch(/^Collect ₹1,18,200/);
     await expect(recordAdvance(exA, so, pay(1000))).rejects.toThrow(/invoiced/);
   });
@@ -538,11 +458,25 @@ describe("cheques", () => {
   it("count as received only when cleared; bounced makes the amount due again", async () => {
     const { setChequeStatus, receiptPdf } = await import("@/server/finance/service");
     const so = await createSalesOrder(exA, clientId, order());
-    const id = await createInvoice(exA, so, { date: today, dueDate: addDays(today, 45) });
-    const r = await recordPayment(exA, id, pay(100000, { mode: "PDC (Post Dated Cheque)", reference: "000111", bank: "HDFC", chequeDate: addDays(today, 20) }));
+    const id = await createInvoice(exA, so, {
+      date: today,
+      dueDate: addDays(today, 45),
+    });
+    const r = await recordPayment(
+      exA,
+      id,
+      pay(100000, {
+        mode: "PDC (Post Dated Cheque)",
+        reference: "000111",
+        bank: "HDFC",
+        chequeDate: addDays(today, 20),
+      }),
+    );
     let [row] = await invoiceRows(exA);
     expect(row).toMatchObject({ paid: 0, pending: 100000, balance: 197000 });
-    const deposit = await db.task.findFirstOrThrow({ where: { paymentId: r.paymentId } });
+    const deposit = await db.task.findFirstOrThrow({
+      where: { paymentId: r.paymentId },
+    });
     expect(fromDbDate(deposit.dueDate)).toBe(addDays(today, 20));
     await expect(recordPayment(exA, id, pay(100000))).rejects.toThrow(/more than/); // only 97,000 left to take
     expect((await receiptPdf(exA, r.paymentId)).pdf.subarray(0, 4).toString()).toBe("%PDF");
@@ -557,7 +491,11 @@ describe("cheques", () => {
     await setChequeStatus(head, r2.paymentId, "BOUNCED");
     [row] = await invoiceRows(exA);
     expect(row).toMatchObject({ paid: 100000, pending: 0, balance: 97000 });
-    expect(await db.task.findFirst({ where: { invoiceId: id, status: "OPEN", priority: "CRITICAL" } })).not.toBeNull();
+    expect(
+      await db.task.findFirst({
+        where: { invoiceId: id, status: "OPEN", priority: "CRITICAL" },
+      }),
+    ).not.toBeNull();
   });
 
   it("with cheque tracking switched off, cheques count straight away", async () => {
@@ -566,9 +504,15 @@ describe("cheques", () => {
     await setFeature(admin, "cheques", false);
     try {
       const so = await createSalesOrder(exA, clientId, order());
-      const id = await createInvoice(exA, so, { date: today, dueDate: addDays(today, 45) });
+      const id = await createInvoice(exA, so, {
+        date: today,
+        dueDate: addDays(today, 45),
+      });
       await recordPayment(exA, id, pay(1000, { mode: "Cheque", reference: "1" }));
-      expect((await invoiceRows(exA))[0]).toMatchObject({ paid: 1000, pending: 0 });
+      expect((await invoiceRows(exA))[0]).toMatchObject({
+        paid: 1000,
+        pending: 0,
+      });
     } finally {
       await setFeature(admin, "cheques", true);
     }
@@ -580,11 +524,33 @@ describe("credit notes", () => {
     const { createCreditNote, deleteCreditNote, creditNotePdf } = await import("@/server/finance/service");
     const { clientLedger, financialYear } = await import("@/server/finance/ledger");
     const so = await createSalesOrder(exA, clientId, order());
-    const id = await createInvoice(exA, so, { date: today, dueDate: addDays(today, 45) });
-    await expect(createCreditNote(exA, id, { date: today, amount: 1000, reason: "Discount" })).rejects.toThrow(/Admin or the Sales Head/);
-    await expect(createCreditNote(head, id, { date: today, amount: 999999, reason: "Too much" })).rejects.toThrow(/can't be more/);
-    const cn = await createCreditNote(head, id, { date: today, amount: 17000, reason: "5 NUR kits returned" });
-    expect((await invoiceRows(exA))[0]).toMatchObject({ credited: 17000, balance: 180000 });
+    const id = await createInvoice(exA, so, {
+      date: today,
+      dueDate: addDays(today, 45),
+    });
+    await expect(
+      createCreditNote(exA, id, {
+        date: today,
+        amount: 1000,
+        reason: "Discount",
+      }),
+    ).rejects.toThrow(/Admin or the Sales Head/);
+    await expect(
+      createCreditNote(head, id, {
+        date: today,
+        amount: 999999,
+        reason: "Too much",
+      }),
+    ).rejects.toThrow(/can't be more/);
+    const cn = await createCreditNote(head, id, {
+      date: today,
+      amount: 17000,
+      reason: "5 NUR kits returned",
+    });
+    expect((await invoiceRows(exA))[0]).toMatchObject({
+      credited: 17000,
+      balance: 180000,
+    });
     expect((await creditNotePdf(exA, cn)).number).toMatch(/^CN\//);
     const l = await clientLedger(exA, clientId, financialYear(today));
     expect(l.closing).toBe(180000);
@@ -597,8 +563,19 @@ describe("dispatch", () => {
   it("sends kits in lots, numbers challans, and marks the order delivered when all are sent", async () => {
     const { createDispatch, challanPdf, markDispatchReceived } = await import("@/server/finance/dispatch");
     const so = await createSalesOrder(exA, clientId, order()); // 40 PG + 25 NUR
-    const items = await db.salesOrderItem.findMany({ where: { salesOrderId: so }, orderBy: { sortOrder: "asc" } });
-    const lot = (a: number, b: number) => ({ date: today, transporter: "VRL", docketNo: "D1", lines: [{ itemId: items[0].id, qty: a }, { itemId: items[1].id, qty: b }] });
+    const items = await db.salesOrderItem.findMany({
+      where: { salesOrderId: so },
+      orderBy: { sortOrder: "asc" },
+    });
+    const lot = (a: number, b: number) => ({
+      date: today,
+      transporter: "VRL",
+      docketNo: "D1",
+      lines: [
+        { itemId: items[0].id, qty: a },
+        { itemId: items[1].id, qty: b },
+      ],
+    });
     await expect(createDispatch(exA, so, lot(0, 0))).rejects.toThrow(/number of kits/);
     await expect(createDispatch(exA, so, lot(41, 0))).rejects.toThrow(/Only 40/);
     const dc1 = await createDispatch(exA, so, lot(30, 25));
@@ -618,9 +595,31 @@ describe("client documents and contacts", () => {
   it("stores documents and proof of delivery files", async () => {
     const { saveClientFile, clientFile, deleteClientFile } = await import("@/server/files");
     const bytes = new TextEncoder().encode("%PDF-1.4");
-    await expect(saveClientFile(exA, clientId, { category: "Secret", title: "", name: "a.pdf", type: "application/pdf", bytes })).rejects.toThrow(/kind of document/);
-    await expect(saveClientFile(exB, clientId, { category: "Agreement / MOU", title: "", name: "a.pdf", type: "application/pdf", bytes })).rejects.toThrow(/not found/);
-    await saveClientFile(exA, clientId, { category: "Agreement / MOU", title: "Agreement 2026-27", name: "a.pdf", type: "application/pdf", bytes });
+    await expect(
+      saveClientFile(exA, clientId, {
+        category: "Secret",
+        title: "",
+        name: "a.pdf",
+        type: "application/pdf",
+        bytes,
+      }),
+    ).rejects.toThrow(/kind of document/);
+    await expect(
+      saveClientFile(exB, clientId, {
+        category: "Agreement / MOU",
+        title: "",
+        name: "a.pdf",
+        type: "application/pdf",
+        bytes,
+      }),
+    ).rejects.toThrow(/not found/);
+    await saveClientFile(exA, clientId, {
+      category: "Agreement / MOU",
+      title: "Agreement 2026-27",
+      name: "a.pdf",
+      type: "application/pdf",
+      bytes,
+    });
     const f = await db.clientFile.findFirstOrThrow({ where: { clientId } });
     expect((await clientFile(exA, f.id)).title).toBe("Agreement 2026-27");
     await deleteClientFile(exA, f.id);
@@ -630,14 +629,117 @@ describe("client documents and contacts", () => {
   it("keeps extra contacts; one gets payment messages", async () => {
     const { saveContact, deleteContact } = await import("@/server/contacts");
     await expect(saveContact(exA, clientId, null, { name: "Ravi", role: "Accounts" })).rejects.toThrow(/mobile number or an email/);
-    await saveContact(exA, clientId, null, { name: "Ravi", role: "Accounts", mobile: "98989 89898", forPayments: true });
-    await saveContact(exA, clientId, null, { name: "Meera", role: "Principal", email: "p@school.in", forPayments: true });
-    const ks = await db.clientContact.findMany({ where: { clientId }, orderBy: { createdAt: "asc" } });
+    await saveContact(exA, clientId, null, {
+      name: "Ravi",
+      role: "Accounts",
+      mobile: "98989 89898",
+      forPayments: true,
+    });
+    await saveContact(exA, clientId, null, {
+      name: "Meera",
+      role: "Principal",
+      email: "p@school.in",
+      forPayments: true,
+    });
+    const ks = await db.clientContact.findMany({
+      where: { clientId },
+      orderBy: { createdAt: "asc" },
+    });
     expect(ks.map((k) => k.forPayments)).toEqual([false, true]);
     const so = await createSalesOrder(exA, clientId, order());
     await createInvoice(exA, so, { date: today, dueDate: addDays(today, 45) });
-    expect((await invoiceRows(exA))[0].client.payContact).toMatchObject({ name: "Meera", email: "p@school.in" });
+    expect((await invoiceRows(exA))[0].client.payContact).toMatchObject({
+      name: "Meera",
+      email: "p@school.in",
+    });
     await deleteContact(exA, ks[0].id);
     expect(await db.clientContact.count({ where: { clientId } })).toBe(1);
+  });
+});
+
+describe("renewals", () => {
+  it("next academic year starts in June", async () => {
+    const { nextAcademicYear } = await import("@/server/renewals");
+    expect(nextAcademicYear("2026-10-01").label).toBe("2027-28");
+    expect(nextAcademicYear("2027-02-10").label).toBe("2027-28");
+    expect(nextAcademicYear("2027-06-02").label).toBe("2028-29");
+  });
+
+  it("creates one renewal per ordering client, worth last year's order", async () => {
+    const { createRenewals, renewalCandidates } = await import("@/server/renewals");
+    const { convertToClient } = await import("@/server/clients");
+    await expect(createRenewals(head)).rejects.toThrow(/already has a renewal/);
+    await createSalesOrder(exA, clientId, order());
+    expect((await renewalCandidates(head)).clients).toHaveLength(1);
+    await expect(createRenewals(exA)).rejects.toThrow(/Admin or the Sales Head/);
+    expect(await createRenewals(head)).toMatchObject({ count: 1 });
+    const opp = await db.opportunity.findFirstOrThrow({
+      where: { renewalOfId: clientId },
+    });
+    expect(opp).toMatchObject({ ownerId: exA.id, stage: "INTERESTED" });
+    expect(Number(opp.expectedValue)).toBe(197000);
+    expect((await renewalCandidates(head)).clients).toHaveLength(0);
+    await expect(createRenewals(exA, clientId)).rejects.toThrow(/already has a renewal/);
+    // A renewal's quotations can be ordered on the client, and it never becomes a second client.
+    await moveOpportunity(exA, opp.id, { stage: "WON" });
+    await expect(convertToClient(exA, opp.id)).rejects.toThrow(/renewal/);
+  });
+});
+
+describe("targets, ageing and quotation validity", () => {
+  it("targets compare invoiced and cleared money for the month", async () => {
+    const { saveTargets, targetProgress, thisMonth } = await import("@/server/targets");
+    await expect(saveTargets(exA, thisMonth(), [])).rejects.toThrow(/Admin or the Sales Head/);
+    await saveTargets(head, thisMonth(), [{ userId: exA.id, sales: "500000", collection: 200000 }]);
+    const so = await createSalesOrder(exA, clientId, order());
+    const id = await createInvoice(exA, so, {
+      date: today,
+      dueDate: addDays(today, 45),
+    });
+    await recordPayment(exA, id, pay(50000));
+    const mine = await targetProgress(exA);
+    expect(mine.rows).toHaveLength(1);
+    expect(mine.rows[0]).toMatchObject({
+      salesTarget: 500000,
+      collectionTarget: 200000,
+      sales: 197000,
+      collection: 50000,
+    });
+  });
+
+  it("ages overdue money into buckets", async () => {
+    const { ageing } = await import("@/server/finance/money");
+    const b = ageing([
+      { balance: 100, state: "UNPAID", daysOverdue: 0 },
+      { balance: 200, state: "OVERDUE", daysOverdue: 45 },
+      { balance: 300, state: "OVERDUE", daysOverdue: 120 },
+      { balance: 0, state: "PAID", daysOverdue: 0 },
+    ]);
+    expect(b.map((x) => x.amount)).toEqual([100, 0, 200, 0, 300]);
+  });
+
+  it("books a follow-up the day before a sent quotation expires", async () => {
+    const q = await createQuotation(
+      exA,
+      { clientId },
+      {
+        date: today,
+        validityDays: 10,
+        toLine: "The Director",
+        schoolName: "Little Stars",
+        items: [{ description: "PG Academic Kit", mrp: 3700, price: 2800 }],
+      },
+    );
+    await markQuotationSent(exA, q, "download");
+    const t = await db.task.findFirstOrThrow({
+      where: { clientId, title: { startsWith: "Quotation QUO/" } },
+    });
+    expect(fromDbDate(t.dueDate)).toBe(addDays(today, 9));
+    await markQuotationSent(exA, q, "whatsapp"); // sending again doesn't add another
+    expect(
+      await db.task.count({
+        where: { clientId, title: { startsWith: "Quotation QUO/" } },
+      }),
+    ).toBe(1);
   });
 });

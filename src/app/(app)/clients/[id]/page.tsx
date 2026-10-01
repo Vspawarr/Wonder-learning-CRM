@@ -13,6 +13,8 @@ import { getFeatures } from "@/server/features";
 import { seesAllSales } from "@/lib/permissions";
 import { EditClientButton } from "./edit-client";
 import { ContactsCard, DocumentsCard } from "./extras";
+import { RenewalButton } from "@/components/renewals";
+import { renewalCandidates } from "@/server/renewals";
 import { QuotationsPanel } from "../../pipeline/quotations";
 import { ClientActions } from "./client-actions";
 import { InvoicesPanel, PaymentsPanel, SalesOrdersPanel } from "./finance";
@@ -35,6 +37,7 @@ export default async function ClientPage({ params }: { params: Promise<{ id: str
   if (!c0) notFound();
   // With extra contacts switched off, messages go to the main contact only.
   const c = features.contacts ? c0 : { ...c0, people: [] };
+  const renewal = features.renewals ? await renewalCandidates(user, c0.id) : null;
   const today = todayIST();
   const emailReady = isEmailConfigured();
   const me = { name: user.name };
@@ -75,25 +78,35 @@ export default async function ClientPage({ params }: { params: Promise<{ id: str
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <EditClientButton client={c} team={team} locations={locations} canChangeOwner={seesAllSales(user.role)} />
+          {renewal?.clients.length ? <RenewalButton clientId={c.id} ay={renewal.ay.label} /> : null}
           <ClientActions id={c.id} mobile={c.mobile} onboarding={c.status === "ONBOARDING"} />
         </div>
       </div>
 
       {c.status === "ONBOARDING" ? (
-        <div className="note warn">
-          Onboarding in progress. Work through the onboarding follow-ups, then mark onboarding complete.
-        </div>
+        <div className="note warn">Onboarding in progress. Work through the onboarding follow-ups, then mark onboarding complete.</div>
       ) : (
         <div className="note ok">
-          Onboarding completed{c.onboardingCompletedAt ? ` on ${fmtDate(istDate(c.onboardingCompletedAt), today)}` : ""}.
+          Onboarding completed
+          {c.onboardingCompletedAt ? ` on ${fmtDate(istDate(c.onboardingCompletedAt), today)}` : ""}.
         </div>
       )}
 
       <div className="kgrid kgrid-2 my-4">
-        <Kpi label="Invoiced" value={inr(m.invoiced)} sub={`${c.invoices.filter((i) => i.state !== "CANCELLED").length} invoice(s)`} color="#1C86C4" />
+        <Kpi
+          label="Invoiced"
+          value={inr(m.invoiced)}
+          sub={`${c.invoices.filter((i) => i.state !== "CANCELLED").length} invoice(s)`}
+          color="#1C86C4"
+        />
         <Kpi label="Received" value={inr(m.received)} sub={`${c.payments.length} payment(s)`} color="#0E8F79" />
         <Kpi label="Outstanding" value={inr(m.outstanding)} sub="Still to collect" color="#C77A00" />
-        <Kpi label="Overdue" value={inr(m.overdue)} sub={m.overdueCount ? `${m.overdueCount} invoice(s) past due` : "Nothing past due"} color="#D9412D" />
+        <Kpi
+          label="Overdue"
+          value={inr(m.overdue)}
+          sub={m.overdueCount ? `${m.overdueCount} invoice(s) past due` : "Nothing past due"}
+          color="#D9412D"
+        />
       </div>
 
       <div className="grid grid-cols-1 gap-4 min-[1101px]:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
@@ -133,8 +146,7 @@ export default async function ClientPage({ params }: { params: Promise<{ id: str
                 ))}
             </dl>
             <div className="small muted mt-4">
-              From{" "}
-              <Link href={`/opportunities?stage=All&opp=${c.opportunity.id}`}>opportunity {oppCode(c.opportunity.number)}</Link>
+              From <Link href={`/opportunities?stage=All&opp=${c.opportunity.id}`}>opportunity {oppCode(c.opportunity.number)}</Link>
               {c.opportunity.leadId && c.opportunity.lead ? (
                 <>
                   {" "}
@@ -150,7 +162,10 @@ export default async function ClientPage({ params }: { params: Promise<{ id: str
               c.openTasks.map((t) => (
                 <div key={t.id} className="flex items-center justify-between gap-2 border-b border-line py-1.5 last:border-0">
                   <span className="min-w-0">
-                    {t.title} <span className="small faint">· {t.type} · {t.assignee}</span>
+                    {t.title}{" "}
+                    <span className="small faint">
+                      · {t.type} · {t.assignee}
+                    </span>
                   </span>
                   <span className="small whitespace-nowrap">
                     <DueTag date={t.dueDate} today={today} />

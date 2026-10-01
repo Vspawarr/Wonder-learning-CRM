@@ -28,7 +28,12 @@ export const INVOICE_STATE_LABEL: Record<InvoiceState, string> = {
 
 /** Paid / balance / status of an invoice from its total, payments, credit notes and due date. */
 export function invoiceState(
-  inv: { total: number; status: "ISSUED" | "CANCELLED"; dueDate: DateStr; credited?: number },
+  inv: {
+    total: number;
+    status: "ISSUED" | "CANCELLED";
+    dueDate: DateStr;
+    credited?: number;
+  },
   paid: number,
   today: DateStr = todayIST(),
 ): { paid: number; balance: number; state: InvoiceState; daysOverdue: number } {
@@ -37,7 +42,12 @@ export function invoiceState(
   if (balance <= 0) return { paid: r2(paid), balance: 0, state: "PAID", daysOverdue: 0 };
   const late = -daysFrom(inv.dueDate, today);
   if (late > 0) return { paid: r2(paid), balance, state: "OVERDUE", daysOverdue: late };
-  return { paid: r2(paid), balance, state: paid > 0 ? "PARTIAL" : "UNPAID", daysOverdue: 0 };
+  return {
+    paid: r2(paid),
+    balance,
+    state: paid > 0 ? "PARTIAL" : "UNPAID",
+    daysOverdue: 0,
+  };
 }
 
 /** Invoiced / received / outstanding / overdue across a set of invoices (cancelled ones left out). */
@@ -64,3 +74,18 @@ export const receivedOf = (ps: Pay[]) => sumIf(ps, COUNTED_STATUSES);
 /** Cheques in hand or deposited, not yet cleared. */
 export const pendingOf = (ps: Pay[]) => sumIf(ps, PENDING_STATUSES);
 export const creditedOf = (cns: { amount: { toString(): string } | number }[]) => r2(cns.reduce((s, c) => s + Number(c.amount), 0));
+
+export const AGE_BUCKETS = ["Not yet due", "1–30 days", "31–60 days", "61–90 days", "Over 90 days"] as const;
+
+/** Still-owed amounts by how late they are. */
+export function ageing(rows: { balance: number; state: InvoiceState; daysOverdue: number }[]) {
+  const out = AGE_BUCKETS.map((label) => ({ label, amount: 0, count: 0 }));
+  for (const r of rows) {
+    if (r.state === "PAID" || r.state === "CANCELLED" || r.balance <= 0) continue;
+    const d = r.daysOverdue;
+    const i = d <= 0 ? 0 : d <= 30 ? 1 : d <= 60 ? 2 : d <= 90 ? 3 : 4;
+    out[i].amount = r2(out[i].amount + r.balance);
+    out[i].count++;
+  }
+  return out;
+}

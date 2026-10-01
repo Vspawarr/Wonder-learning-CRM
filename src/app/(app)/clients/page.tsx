@@ -7,13 +7,17 @@ import { AvatarName, Empty, PageHeader, Pill, Table } from "@/components/ui";
 import { requireUser } from "@/server/session";
 import { clientsList } from "@/server/queries";
 import { ClientFilterBar } from "./filters";
+import { RenewalsBanner } from "@/components/renewals";
+import { getFeatures } from "@/server/features";
+import { renewalCandidates } from "@/server/renewals";
 
 export const metadata = { title: "Clients" };
 
 export default async function ClientsPage({ searchParams }: { searchParams: Promise<{ q?: string; status?: string }> }) {
   const user = await requireUser();
   const sp = await searchParams;
-  const rows = await clientsList(user, sp);
+  const [rows, features] = await Promise.all([clientsList(user, sp), getFeatures()]);
+  const renewals = features.renewals ? await renewalCandidates(user) : null;
   const today = todayIST();
   const filtered = !!(sp.q || sp.status);
   const empty = filtered ? "No clients match these filters." : "No clients yet. Won opportunities can be converted to clients.";
@@ -26,6 +30,7 @@ export default async function ClientsPage({ searchParams }: { searchParams: Prom
       >
         <ExportButtons report="clients" />
       </PageHeader>
+      {renewals ? <RenewalsBanner ay={renewals.ay.label} count={renewals.clients.length} canCreate={seesAllSales(user.role)} /> : null}
       <ClientFilterBar />
 
       <div className="hidden min-[901px]:block">

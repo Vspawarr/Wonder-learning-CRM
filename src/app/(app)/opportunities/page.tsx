@@ -13,7 +13,13 @@ import { OppFilterBar } from "./filters";
 
 export const metadata = { title: "Opportunities" };
 
-type SP = Promise<{ q?: string; stage?: string; owner?: string; cat?: string; opp?: string }>;
+type SP = Promise<{
+  q?: string;
+  stage?: string;
+  owner?: string;
+  cat?: string;
+  opp?: string;
+}>;
 
 export default async function OpportunitiesPage({ searchParams }: { searchParams: SP }) {
   const user = await requireUser();
@@ -21,7 +27,12 @@ export default async function OpportunitiesPage({ searchParams }: { searchParams
   const all = seesAllSales(user.role);
   const stage = sp.stage ?? "Open";
   const [rows, team, detail, products] = await Promise.all([
-    pipelineCards(user, { q: sp.q, stage: stage === "All" ? undefined : stage, owner: sp.owner, cat: sp.cat }),
+    pipelineCards(user, {
+      q: sp.q,
+      stage: stage === "All" ? undefined : stage,
+      owner: sp.owner,
+      cat: sp.cat,
+    }),
     assignees(user),
     sp.opp ? oppDetail(user, sp.opp) : null,
     sp.opp ? productOptions() : [],
@@ -37,10 +48,7 @@ export default async function OpportunitiesPage({ searchParams }: { searchParams
 
   return (
     <>
-      <PageHeader
-        title="Opportunities"
-        sub={`${all ? "" : "Your opportunities only. "}${rows.length} shown · ${inrS(total)} total value.`}
-      >
+      <PageHeader title="Opportunities" sub={`${all ? "" : "Your opportunities only. "}${rows.length} shown · ${inrS(total)} total value.`}>
         <ExportButtons report="opportunities" />
         <Link className="btn" href="/pipeline">
           Board view
@@ -70,9 +78,7 @@ export default async function OpportunitiesPage({ searchParams }: { searchParams
               <td>
                 <StagePill o={o} />
               </td>
-              <td className="num">
-                {o.noValue ? <span className="faint">No value yet</span> : inrS(o.value)}
-              </td>
+              <td className="num">{o.noValue ? <span className="faint">No value yet</span> : inrS(o.value)}</td>
               <td className="num">{o.probability}%</td>
               <td className="whitespace-nowrap">{fmtDate(o.expectedCloseDate, today)}</td>
               <td className="small">
@@ -116,14 +122,16 @@ export default async function OpportunitiesPage({ searchParams }: { searchParams
         ) : null}
       </div>
 
-      {sp.opp && detail ? <OppDrawer
+      {sp.opp && detail ? (
+        <OppDrawer
           key={detail.id + detail.stage}
           opp={detail}
           products={products}
           team={team}
           emailReady={isEmailConfigured()}
           me={{ name: user.name }}
-        /> : null}
+        />
+      ) : null}
     </>
   );
 }
@@ -133,6 +141,7 @@ function StagePill({ o }: { o: PipelineCard }) {
     <span className="inline-flex flex-wrap items-center gap-1">
       <Pill>{STAGE_LABEL[o.stage]}</Pill>
       <Pill>{TEMPERATURE_LABEL[o.temperature]}</Pill>
+      {o.renewal ? <Pill tone="grape">{`Renewal ${o.renewal}`}</Pill> : null}
       {o.clientId ? <Pill tone="ok">Client</Pill> : null}
     </span>
   );
@@ -140,7 +149,8 @@ function StagePill({ o }: { o: PipelineCard }) {
 
 function NextAction({ o, today }: { o: PipelineCard; today: string }) {
   if (o.stage === "LOST") return <span className="muted">Lost: {o.lostReason}</span>;
-  if (o.stage === "WON") return <span className="muted">{o.clientId ? "Converted to client" : "Won · ready to convert to client"}</span>;
+  if (o.stage === "WON")
+    return <span className="muted">{o.renewal ? "Renewal won" : o.clientId ? "Converted to client" : "Won · ready to convert to client"}</span>;
   if (!o.nextActionDate) return <span className="faint">{o.nextAction ?? "—"}</span>;
   return (
     <>

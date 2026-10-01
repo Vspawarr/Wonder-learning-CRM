@@ -18,7 +18,7 @@ import { renderInvoicePdf, type InvoicePdfData } from "./invoice-pdf";
 import { renderReceiptPdf } from "./receipt-pdf";
 import { renderCreditNotePdf } from "./credit-note-pdf";
 import { rupeesInWords } from "./words";
-import { COUNTED_STATUSES, creditedOf, invoiceState, lineAmount, outstandingSummary, pendingOf, r2, receivedOf, totals } from "./money";
+import { COUNTED_STATUSES, ageing, creditedOf, invoiceState, lineAmount, outstandingSummary, pendingOf, r2, receivedOf, totals } from "./money";
 import { getFeatures } from "../features";
 
 const num = (label: string, min: number) =>
@@ -105,7 +105,11 @@ export const paymentInput = z.object({
 const code = (prefix: string, y: number, m: number, seq: number) => `${prefix}/${y}/${String(m).padStart(2, "0")}/${String(seq).padStart(3, "0")}`;
 
 /** Creates a record with the next running number for this month, retrying on a clash. */
-export async function withNextNumber<T>(model: "salesOrder" | "invoice" | "payment" | "creditNote" | "dispatch", prefix: string, create: (tx: Tx, n: { number: string; year: number; month: number; seq: number }) => Promise<T>) {
+export async function withNextNumber<T>(
+  model: "salesOrder" | "invoice" | "payment" | "creditNote" | "dispatch",
+  prefix: string,
+  create: (tx: Tx, n: { number: string; year: number; month: number; seq: number }) => Promise<T>,
+) {
   const [y, m] = todayIST().split("-").map(Number);
   for (let attempt = 0; attempt < 5; attempt++) {
     try {
@@ -119,10 +123,18 @@ export async function withNextNumber<T>(model: "salesOrder" | "invoice" | "payme
               : model === "payment"
                 ? await tx.payment.aggregate({ where, _max: { seq: true } })
                 : model === "creditNote"
-                  ? await tx.creditNote.aggregate({ where, _max: { seq: true } })
+                  ? await tx.creditNote.aggregate({
+                      where,
+                      _max: { seq: true },
+                    })
                   : await tx.dispatch.aggregate({ where, _max: { seq: true } });
         const seq = (agg._max.seq ?? 0) + 1;
-        return create(tx, { number: code(prefix, y, m, seq), year: y, month: m, seq });
+        return create(tx, {
+          number: code(prefix, y, m, seq),
+          year: y,
+          month: m,
+          seq,
+        });
       });
     } catch (e) {
       if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") continue;
@@ -133,7 +145,9 @@ export async function withNextNumber<T>(model: "salesOrder" | "invoice" | "payme
 }
 
 async function loadClient(user: SessionUser, clientId: string) {
-  const c = await db.client.findFirst({ where: { id: clientId, ...clientScope(user) } });
+  const c = await db.client.findFirst({
+    where: { id: clientId, ...clientScope(user) },
+  });
   if (!c) throw new NotFoundError("Client");
   return c;
 }
@@ -175,8 +189,22 @@ const invoiceInclude = {
 const paidOf = receivedOf;
 
 /** What is still owed and how it stands, from an invoice with its payments and credit notes. */
-const stateOf = (inv: { total: Prisma.Decimal; status: "ISSUED" | "CANCELLED"; dueDate: Date; payments: { amount: Prisma.Decimal; status: string }[]; creditNotes: { amount: Prisma.Decimal }[] }) =>
-  invoiceState({ total: Number(inv.total), status: inv.status, dueDate: fromDbDate(inv.dueDate), credited: creditedOf(inv.creditNotes) }, paidOf(inv.payments));
+const stateOf = (inv: {
+  total: Prisma.Decimal;
+  status: "ISSUED" | "CANCELLED";
+  dueDate: Date;
+  payments: { amount: Prisma.Decimal; status: string }[];
+  creditNotes: { amount: Prisma.Decimal }[];
+}) =>
+  invoiceState(
+    {
+      total: Number(inv.total),
+      status: inv.status,
+      dueDate: fromDbDate(inv.dueDate),
+      credited: creditedOf(inv.creditNotes),
+    },
+    paidOf(inv.payments),
+  );
 
 const assertFinance = (user: SessionUser) => {
   if (!canManageFinance(user.role)) throw new DomainError("Only an Admin or the Sales Head can do this. Please ask them.");
@@ -192,24 +220,46 @@ async function assertFeature(key: "advance" | "cheques" | "creditNotes") {
 export async function orderableQuotations(user: SessionUser, clientId: string) {
   const c = await loadClient(user, clientId);
   const rows = await db.quotation.findMany({
-    where: { status: "SENT", OR: [{ clientId: c.id }, { opportunityId: c.opportunityId }] },
+    where: {
+      status: "SENT",
+      OR: [{ clientId: c.id }, { opportunityId: c.opportunityId }, { opportunity: { renewalOfId: c.id } }],
+    },
     orderBy: { createdAt: "desc" },
     select: { id: true, number: true, createdAt: true },
   });
-  return rows.map((q) => ({ id: q.id, label: `${q.number} · created ${fmtDateTimeIST(q.createdAt)}` }));
+  return rows.map((q) => ({
+    id: q.id,
+    label: `${q.number} · created ${fmtDateTimeIST(q.createdAt)}`,
+  }));
 }
 
 /** Lines for a new order: copied from the chosen quotation (kits left for the user to fill in). */
 export async function salesOrderDefaults(user: SessionUser, clientId: string, quotationId?: string | null) {
   await loadClient(user, clientId);
-  const q = quotationId ? await db.quotation.findUnique({ where: { id: quotationId }, select: { number: true, createdAt: true } }) : null;
+  const q = quotationId
+    ? await db.quotation.findUnique({
+        where: { id: quotationId },
+        select: { number: true, createdAt: true },
+      })
+    : null;
   const items = quotationId
     ? (
         await db.quotationItem.findMany({
-          where: { quotationId, quotation: { OR: [{ clientId }, { opportunity: { client: { id: clientId } } }] } },
+          where: {
+            quotationId,
+            quotation: {
+              OR: [{ clientId }, { opportunity: { client: { id: clientId } } }, { opportunity: { renewalOfId: clientId } }],
+            },
+          },
           orderBy: { sortOrder: "asc" },
         })
-      ).map((i) => ({ productId: i.productId, description: i.description, qty: "", price: String(Number(i.price)), gstRate: "0" }))
+      ).map((i) => ({
+        productId: i.productId,
+        description: i.description,
+        qty: "",
+        price: String(Number(i.price)),
+        gstRate: "0",
+      }))
     : [];
   return {
     date: todayIST(),
@@ -227,7 +277,12 @@ export async function createSalesOrder(user: SessionUser, clientId: string, raw:
   const d = parse(salesOrderInput, raw);
   const c = await loadClient(user, clientId);
   if (d.quotationId) {
-    const ok = await db.quotation.count({ where: { id: d.quotationId, OR: [{ clientId: c.id }, { opportunityId: c.opportunityId }] } });
+    const ok = await db.quotation.count({
+      where: {
+        id: d.quotationId,
+        OR: [{ clientId: c.id }, { opportunityId: c.opportunityId }, { opportunity: { renewalOfId: c.id } }],
+      },
+    });
     if (!ok) throw new DomainError("That quotation doesn't belong to this client.");
   }
   return withNextNumber("salesOrder", "SO", async (tx, n) => {
@@ -246,7 +301,12 @@ export async function createSalesOrder(user: SessionUser, clientId: string, raw:
       },
     });
     await tx.activity.create({
-      data: { type: "SYSTEM", subject: `Sales order ${so.number} created · ${inr(totals(d.items).total)}`, byId: user.id, clientId: c.id },
+      data: {
+        type: "SYSTEM",
+        subject: `Sales order ${so.number} created · ${inr(totals(d.items).total)}`,
+        byId: user.id,
+        clientId: c.id,
+      },
     });
     return so.id;
   });
@@ -298,18 +358,36 @@ export async function markDelivered(user: SessionUser, id: string, date: string)
   const so = await loadOrder(user, id);
   if (so.status === "CANCELLED") throw new DomainError("This order is cancelled.");
   await db.$transaction([
-    db.salesOrder.update({ where: { id }, data: { status: "DELIVERED", deliveredOn: toDbDate(date) } }),
-    db.activity.create({ data: { type: "SYSTEM", subject: `Sales order ${so.number} delivered`, byId: user.id, clientId: so.clientId } }),
+    db.salesOrder.update({
+      where: { id },
+      data: { status: "DELIVERED", deliveredOn: toDbDate(date) },
+    }),
+    db.activity.create({
+      data: {
+        type: "SYSTEM",
+        subject: `Sales order ${so.number} delivered`,
+        byId: user.id,
+        clientId: so.clientId,
+      },
+    }),
   ]);
 }
 
 export async function cancelSalesOrder(user: SessionUser, id: string) {
   const so = await loadOrder(user, id);
   if (so.invoices.some((i) => i.status === "ISSUED")) throw new DomainError("Cancel the order's invoice first.");
-  if (so.advances.some((a) => a.status !== "BOUNCED")) throw new DomainError("This order has an advance payment. Ask an Admin to delete it (or refund it) first.");
+  if (so.advances.some((a) => a.status !== "BOUNCED"))
+    throw new DomainError("This order has an advance payment. Ask an Admin to delete it (or refund it) first.");
   await db.$transaction([
     db.salesOrder.update({ where: { id }, data: { status: "CANCELLED" } }),
-    db.activity.create({ data: { type: "SYSTEM", subject: `Sales order ${so.number} cancelled`, byId: user.id, clientId: so.clientId } }),
+    db.activity.create({
+      data: {
+        type: "SYSTEM",
+        subject: `Sales order ${so.number} cancelled`,
+        byId: user.id,
+        clientId: so.clientId,
+      },
+    }),
   ]);
 }
 
@@ -330,7 +408,11 @@ export async function createInvoice(user: SessionUser, salesOrderId: string, raw
   const so = await loadOrder(user, salesOrderId);
   if (so.status === "CANCELLED") throw new DomainError("This order is cancelled.");
   if (so.invoices.some((i) => i.status === "ISSUED")) throw new DomainError("This order already has an invoice.");
-  const lines = so.items.map((i) => ({ qty: i.qty, price: Number(i.price), gstRate: Number(i.gstRate) }));
+  const lines = so.items.map((i) => ({
+    qty: i.qty,
+    price: Number(i.price),
+    gstRate: Number(i.gstRate),
+  }));
   const t = totals(lines);
   return withNextNumber("invoice", "INV", async (tx, n) => {
     const inv = await tx.invoice.create({
@@ -373,7 +455,10 @@ export async function createInvoice(user: SessionUser, salesOrderId: string, raw
       },
     });
     // Advances taken on the order now count toward this invoice.
-    const adv = await tx.payment.updateMany({ where: { salesOrderId: so.id, invoiceId: null }, data: { invoiceId: inv.id } });
+    const adv = await tx.payment.updateMany({
+      where: { salesOrderId: so.id, invoiceId: null },
+      data: { invoiceId: inv.id },
+    });
     if (adv.count) await syncCollectionTask(tx, user, inv.id);
     await tx.activity.create({
       data: {
@@ -394,8 +479,22 @@ export async function cancelInvoice(user: SessionUser, id: string) {
   if (inv.payments.length) throw new DomainError("This invoice has payments; delete them first if they were recorded by mistake.");
   await db.$transaction([
     db.invoice.update({ where: { id }, data: { status: "CANCELLED" } }),
-    db.task.updateMany({ where: { invoiceId: id, status: "OPEN" }, data: { status: "CANCELLED", outcome: "Invoice cancelled", completedAt: new Date() } }),
-    db.activity.create({ data: { type: "SYSTEM", subject: `Invoice ${inv.number} cancelled`, byId: user.id, clientId: inv.clientId } }),
+    db.task.updateMany({
+      where: { invoiceId: id, status: "OPEN" },
+      data: {
+        status: "CANCELLED",
+        outcome: "Invoice cancelled",
+        completedAt: new Date(),
+      },
+    }),
+    db.activity.create({
+      data: {
+        type: "SYSTEM",
+        subject: `Invoice ${inv.number} cancelled`,
+        byId: user.id,
+        clientId: inv.clientId,
+      },
+    }),
   ]);
 }
 
@@ -403,15 +502,29 @@ export async function cancelInvoice(user: SessionUser, id: string) {
 
 /** Keeps the invoice's open "Collect …" follow-up in step with what is still owed. */
 async function syncCollectionTask(tx: Tx, user: SessionUser, invoiceId: string) {
-  const inv = await tx.invoice.findUniqueOrThrow({ where: { id: invoiceId }, include: { payments: true, creditNotes: true, client: true } });
+  const inv = await tx.invoice.findUniqueOrThrow({
+    where: { id: invoiceId },
+    include: { payments: true, creditNotes: true, client: true },
+  });
   const s = stateOf(inv);
   const open = await tx.task.findMany({ where: { invoiceId, status: "OPEN" } });
   if (s.balance <= 0) {
-    await tx.task.updateMany({ where: { invoiceId, status: "OPEN" }, data: { status: "DONE", outcome: "Paid in full", completedAt: new Date() } });
+    await tx.task.updateMany({
+      where: { invoiceId, status: "OPEN" },
+      data: {
+        status: "DONE",
+        outcome: "Paid in full",
+        completedAt: new Date(),
+      },
+    });
     return s;
   }
   const title = collectTitle(s.balance, inv.number, inv.client.schoolName);
-  if (open.length) await tx.task.updateMany({ where: { invoiceId, status: "OPEN" }, data: { title } });
+  if (open.length)
+    await tx.task.updateMany({
+      where: { invoiceId, status: "OPEN" },
+      data: { title },
+    });
   else {
     const today = todayIST();
     const due = fromDbDate(inv.dueDate);
@@ -437,7 +550,13 @@ type PaymentData = z.output<typeof paymentInput>;
 /** Creates a payment (with its receipt number) and, for a cheque, a "deposit cheque" reminder. */
 async function createPayment(
   user: SessionUser,
-  target: { clientId: string; invoiceId: string | null; salesOrderId: string; school: string; ownerId: string },
+  target: {
+    clientId: string;
+    invoiceId: string | null;
+    salesOrderId: string;
+    school: string;
+    ownerId: string;
+  },
   d: PaymentData,
 ) {
   const cheque = CHEQUE_MODES.includes(d.mode) && (await getFeatures()).cheques;
@@ -497,7 +616,13 @@ export async function recordPayment(user: SessionUser, invoiceId: string, raw: u
   {
     const { p, cheque } = await createPayment(
       user,
-      { clientId: inv.clientId, invoiceId, salesOrderId: inv.salesOrderId, school: inv.client.schoolName, ownerId: inv.client.ownerId },
+      {
+        clientId: inv.clientId,
+        invoiceId,
+        salesOrderId: inv.salesOrderId,
+        school: inv.client.schoolName,
+        ownerId: inv.client.ownerId,
+      },
       d,
     );
     const s = await db.$transaction((tx) => syncCollectionTask(tx, user, invoiceId));
@@ -505,7 +630,10 @@ export async function recordPayment(user: SessionUser, invoiceId: string, raw: u
     if (promised)
       await db.task.updateMany({
         where: { invoiceId, status: "OPEN" },
-        data: { dueDate: toDbDate(promised), remark: `School promised to pay the balance on ${dmy(toDbDate(promised)).replace(/-/g, "/")}.` },
+        data: {
+          dueDate: toDbDate(promised),
+          remark: `School promised to pay the balance on ${dmy(toDbDate(promised)).replace(/-/g, "/")}.`,
+        },
       });
     await db.activity.create({
       data: {
@@ -515,7 +643,13 @@ export async function recordPayment(user: SessionUser, invoiceId: string, raw: u
         clientId: inv.clientId,
       },
     });
-    return { ...s, paymentId: p.id, receiptNumber: p.number, shareToken: p.shareToken, amount: d.amount };
+    return {
+      ...s,
+      paymentId: p.id,
+      receiptNumber: p.number,
+      shareToken: p.shareToken,
+      amount: d.amount,
+    };
   }
 }
 
@@ -526,14 +660,26 @@ export async function recordAdvance(user: SessionUser, salesOrderId: string, raw
   const so = await loadOrder(user, salesOrderId);
   if (so.status === "CANCELLED") throw new DomainError("This order is cancelled.");
   if (so.invoices.some((i) => i.status === "ISSUED")) throw new DomainError("This order is invoiced; record the payment on its invoice.");
-  const total = totals(so.items.map((i) => ({ qty: i.qty, price: Number(i.price), gstRate: Number(i.gstRate) }))).total;
+  const total = totals(
+    so.items.map((i) => ({
+      qty: i.qty,
+      price: Number(i.price),
+      gstRate: Number(i.gstRate),
+    })),
+  ).total;
   const taken = r2(receivedOf(so.advances) + pendingOf(so.advances));
   const available = r2(total - taken);
   if (available <= 0) throw new DomainError("Advances already cover the whole order.");
   if (d.amount > available + 0.001) throw new DomainError(`That's more than the order's remaining ${inr(available)}.`);
   const { p, cheque } = await createPayment(
     user,
-    { clientId: so.clientId, invoiceId: null, salesOrderId: so.id, school: so.client.schoolName, ownerId: so.client.ownerId },
+    {
+      clientId: so.clientId,
+      invoiceId: null,
+      salesOrderId: so.id,
+      school: so.client.schoolName,
+      ownerId: so.client.ownerId,
+    },
     d,
   );
   await db.activity.create({
@@ -544,37 +690,72 @@ export async function recordAdvance(user: SessionUser, salesOrderId: string, raw
       clientId: so.clientId,
     },
   });
-  return { balance: r2(available - d.amount), paymentId: p.id, receiptNumber: p.number, shareToken: p.shareToken, amount: d.amount };
+  return {
+    balance: r2(available - d.amount),
+    paymentId: p.id,
+    receiptNumber: p.number,
+    shareToken: p.shareToken,
+    amount: d.amount,
+  };
 }
 
 /** Cheque progress: In hand → Deposited → Cleared, or Bounced. Clearing and bouncing are for Admin / Sales Head. */
 export async function setChequeStatus(user: SessionUser, paymentId: string, status: "DEPOSITED" | "CLEARED" | "BOUNCED") {
-  const p = await db.payment.findFirst({ where: { id: paymentId, client: clientScope(user) }, include: { client: true } });
+  const p = await db.payment.findFirst({
+    where: { id: paymentId, client: clientScope(user) },
+    include: { client: true },
+  });
   if (!p) throw new NotFoundError("Payment");
   if (p.status !== "IN_HAND" && p.status !== "DEPOSITED") throw new DomainError("This cheque is already settled.");
   if (status === "DEPOSITED" && p.status !== "IN_HAND") throw new DomainError("This cheque is already deposited.");
   if (status !== "DEPOSITED") assertFinance(user);
-  const label = { DEPOSITED: "deposited", CLEARED: "cleared", BOUNCED: "BOUNCED" }[status];
+  const label = {
+    DEPOSITED: "deposited",
+    CLEARED: "cleared",
+    BOUNCED: "BOUNCED",
+  }[status];
   await db.$transaction(async (tx) => {
-    await tx.payment.update({ where: { id: paymentId }, data: { status, statusAt: new Date() } });
-    await tx.task.updateMany({ where: { paymentId, status: "OPEN" }, data: { status: "DONE", outcome: `Cheque ${label}`, completedAt: new Date() } });
+    await tx.payment.update({
+      where: { id: paymentId },
+      data: { status, statusAt: new Date() },
+    });
+    await tx.task.updateMany({
+      where: { paymentId, status: "OPEN" },
+      data: {
+        status: "DONE",
+        outcome: `Cheque ${label}`,
+        completedAt: new Date(),
+      },
+    });
     if (p.invoiceId) {
       await syncCollectionTask(tx, user, p.invoiceId);
       if (status === "BOUNCED")
         await tx.task.updateMany({
           where: { invoiceId: p.invoiceId, status: "OPEN" },
-          data: { dueDate: toDbDate(todayIST()), priority: "CRITICAL", remark: `Cheque ${p.reference ?? ""} bounced. Collect again.` },
+          data: {
+            dueDate: toDbDate(todayIST()),
+            priority: "CRITICAL",
+            remark: `Cheque ${p.reference ?? ""} bounced. Collect again.`,
+          },
         });
     }
     await tx.activity.create({
-      data: { type: "SYSTEM", subject: `Cheque ${p.reference ?? ""} for ${inr(Number(p.amount))} ${label} · receipt ${p.number}`, byId: user.id, clientId: p.clientId },
+      data: {
+        type: "SYSTEM",
+        subject: `Cheque ${p.reference ?? ""} for ${inr(Number(p.amount))} ${label} · receipt ${p.number}`,
+        byId: user.id,
+        clientId: p.clientId,
+      },
     });
   });
 }
 
 export async function deletePayment(user: SessionUser, paymentId: string) {
   assertFinance(user);
-  const p = await db.payment.findFirst({ where: { id: paymentId, client: clientScope(user) }, include: { invoice: true, salesOrder: true } });
+  const p = await db.payment.findFirst({
+    where: { id: paymentId, client: clientScope(user) },
+    include: { invoice: true, salesOrder: true },
+  });
   if (!p) throw new NotFoundError("Payment");
   await db.$transaction(async (tx) => {
     await tx.payment.delete({ where: { id: paymentId } });
@@ -609,11 +790,24 @@ export async function createCreditNote(user: SessionUser, invoiceId: string, raw
   if (d.amount > s0.balance + 0.001) throw new DomainError(`A credit note can't be more than the ${inr(s0.balance)} still due.`);
   return withNextNumber("creditNote", "CN", async (tx, n) => {
     const cn = await tx.creditNote.create({
-      data: { ...n, clientId: inv.clientId, invoiceId, date: toDbDate(d.date), amount: d.amount, reason: d.reason, createdById: user.id },
+      data: {
+        ...n,
+        clientId: inv.clientId,
+        invoiceId,
+        date: toDbDate(d.date),
+        amount: d.amount,
+        reason: d.reason,
+        createdById: user.id,
+      },
     });
     const s = await syncCollectionTask(tx, user, invoiceId);
     await tx.activity.create({
-      data: { type: "SYSTEM", subject: `Credit note ${cn.number} for ${inr(d.amount)} on ${inv.number}: ${d.reason} · ${s.balance > 0 ? `${inr(s.balance)} still due` : "nothing due now"}`, byId: user.id, clientId: inv.clientId },
+      data: {
+        type: "SYSTEM",
+        subject: `Credit note ${cn.number} for ${inr(d.amount)} on ${inv.number}: ${d.reason} · ${s.balance > 0 ? `${inr(s.balance)} still due` : "nothing due now"}`,
+        byId: user.id,
+        clientId: inv.clientId,
+      },
     });
     return cn.id;
   });
@@ -621,12 +815,22 @@ export async function createCreditNote(user: SessionUser, invoiceId: string, raw
 
 export async function deleteCreditNote(user: SessionUser, id: string) {
   assertFinance(user);
-  const cn = await db.creditNote.findFirst({ where: { id, client: clientScope(user) }, include: { invoice: true } });
+  const cn = await db.creditNote.findFirst({
+    where: { id, client: clientScope(user) },
+    include: { invoice: true },
+  });
   if (!cn) throw new NotFoundError("Credit note");
   await db.$transaction(async (tx) => {
     await tx.creditNote.delete({ where: { id } });
     await syncCollectionTask(tx, user, cn.invoiceId);
-    await tx.activity.create({ data: { type: "SYSTEM", subject: `Credit note ${cn.number} on ${cn.invoice.number} deleted`, byId: user.id, clientId: cn.clientId } });
+    await tx.activity.create({
+      data: {
+        type: "SYSTEM",
+        subject: `Credit note ${cn.number} on ${cn.invoice.number} deleted`,
+        byId: user.id,
+        clientId: cn.clientId,
+      },
+    });
   });
 }
 
@@ -647,7 +851,12 @@ export async function logReminder(user: SessionUser, invoiceId: string, via: "wh
 export async function logInvoiceShared(user: SessionUser, invoiceId: string) {
   const inv = await loadInvoice(user, invoiceId);
   await db.activity.create({
-    data: { type: "WHATSAPP", subject: `Invoice ${inv.number} shared on WhatsApp`, byId: user.id, clientId: inv.clientId },
+    data: {
+      type: "WHATSAPP",
+      subject: `Invoice ${inv.number} shared on WhatsApp`,
+      byId: user.id,
+      clientId: inv.clientId,
+    },
   });
 }
 
@@ -671,7 +880,13 @@ async function pdfFor(inv: Awaited<ReturnType<typeof loadInvoice>>) {
     contactName: c.contactName,
     address: [c.address, c.area, c.city].filter(Boolean).join(", ") || null,
     cancelled: inv.status === "CANCELLED",
-    items: inv.items.map((i) => ({ description: i.description, qty: i.qty, price: Number(i.price), gstRate: Number(i.gstRate), amount: Number(i.amount) })),
+    items: inv.items.map((i) => ({
+      description: i.description,
+      qty: i.qty,
+      price: Number(i.price),
+      gstRate: Number(i.gstRate),
+      amount: Number(i.amount),
+    })),
     subtotal: Number(inv.subtotal),
     gstAmount: Number(inv.gstAmount),
     total: Number(inv.total),
@@ -681,7 +896,12 @@ async function pdfFor(inv: Awaited<ReturnType<typeof loadInvoice>>) {
     payments: inv.payments
       .filter((p) => (COUNTED_STATUSES as readonly string[]).includes(p.status))
       .sort((a, b) => a.date.getTime() - b.date.getTime())
-      .map((p) => ({ date: dmy(p.date), amount: Number(p.amount), mode: p.mode, reference: p.reference })),
+      .map((p) => ({
+        date: dmy(p.date),
+        amount: Number(p.amount),
+        mode: p.mode,
+        reference: p.reference,
+      })),
     footerLines: content.footerLines,
     company: content.company,
   };
@@ -697,7 +917,10 @@ export async function invoicePdf(user: SessionUser, id: string) {
 /** For the WhatsApp link: anyone with the secret link may view that one invoice. */
 export async function invoicePdfByToken(token: string) {
   if (!/^[A-Za-z0-9_-]{20,}$/.test(token)) return null;
-  const inv = await db.invoice.findUnique({ where: { shareToken: token }, include: invoiceInclude });
+  const inv = await db.invoice.findUnique({
+    where: { shareToken: token },
+    include: invoiceInclude,
+  });
   if (!inv || inv.status === "CANCELLED") return null;
   return pdfFor(inv);
 }
@@ -716,7 +939,13 @@ export async function emailInvoice(user: SessionUser, id: string, raw: unknown, 
       replyTo: user.email,
       subject: kind === "reminder" ? `Payment reminder: Invoice ${inv.number} – Wonder Learning` : `Invoice ${inv.number} – Wonder Learning`,
       text: d.message,
-      attachments: [{ filename: invoiceFileName(inv.number), content: pdf, contentType: "application/pdf" }],
+      attachments: [
+        {
+          filename: invoiceFileName(inv.number),
+          content: pdf,
+          contentType: "application/pdf",
+        },
+      ],
     });
   } catch (e) {
     console.error(e);
@@ -725,21 +954,43 @@ export async function emailInvoice(user: SessionUser, id: string, raw: unknown, 
   if (kind === "reminder") await logReminder(user, id, "email", d.to);
   else
     await db.activity.create({
-      data: { type: "EMAIL", subject: `Invoice ${inv.number} emailed to ${d.to}`, byId: user.id, clientId: inv.clientId },
+      data: {
+        type: "EMAIL",
+        subject: `Invoice ${inv.number} emailed to ${d.to}`,
+        byId: user.id,
+        clientId: inv.clientId,
+      },
     });
 }
 
 /* ---------- payment receipts ---------- */
 
 const receiptInclude = {
-  invoice: { include: { payments: { select: { id: true, amount: true, status: true, createdAt: true } }, creditNotes: { select: { amount: true } } } },
-  salesOrder: { include: { items: true, advances: { select: { id: true, amount: true, status: true, createdAt: true } } } },
+  invoice: {
+    include: {
+      payments: {
+        select: { id: true, amount: true, status: true, createdAt: true },
+      },
+      creditNotes: { select: { amount: true } },
+    },
+  },
+  salesOrder: {
+    include: {
+      items: true,
+      advances: {
+        select: { id: true, amount: true, status: true, createdAt: true },
+      },
+    },
+  },
   client: true,
   recordedBy: { select: { name: true } },
 } as const;
 
 async function loadPayment(user: SessionUser, id: string) {
-  const p = await db.payment.findFirst({ where: { id, client: clientScope(user) }, include: receiptInclude });
+  const p = await db.payment.findFirst({
+    where: { id, client: clientScope(user) },
+    include: receiptInclude,
+  });
   if (!p) throw new NotFoundError("Payment");
   return p;
 }
@@ -753,7 +1004,13 @@ async function receiptFor(p: Awaited<ReturnType<typeof loadPayment>>) {
   const receivedToDate = r2(receivedOf(before) + (p.status === "BOUNCED" ? 0 : amount));
   const total = p.invoice
     ? Number(p.invoice.total) - creditedOf(p.invoice.creditNotes)
-    : totals((p.salesOrder?.items ?? []).map((i) => ({ qty: i.qty, price: Number(i.price), gstRate: Number(i.gstRate) }))).total;
+    : totals(
+        (p.salesOrder?.items ?? []).map((i) => ({
+          qty: i.qty,
+          price: Number(i.price),
+          gstRate: Number(i.gstRate),
+        })),
+      ).total;
   const c = p.client;
   const so = p.salesOrder;
   const pdf = await renderReceiptPdf({
@@ -798,14 +1055,22 @@ export async function receiptPdf(user: SessionUser, paymentId: string) {
 /** For the WhatsApp link: anyone with the secret link may view that one receipt. */
 export async function receiptPdfByToken(token: string) {
   if (!/^[A-Za-z0-9_-]{20,}$/.test(token)) return null;
-  const p = await db.payment.findUnique({ where: { shareToken: token }, include: receiptInclude });
+  const p = await db.payment.findUnique({
+    where: { shareToken: token },
+    include: receiptInclude,
+  });
   return p ? receiptFor(p) : null;
 }
 
 export async function logReceiptShared(user: SessionUser, paymentId: string) {
   const p = await loadPayment(user, paymentId);
   await db.activity.create({
-    data: { type: "WHATSAPP", subject: `Receipt ${p.number} (${inr(Number(p.amount))}) shared on WhatsApp`, byId: user.id, clientId: p.clientId },
+    data: {
+      type: "WHATSAPP",
+      subject: `Receipt ${p.number} (${inr(Number(p.amount))}) shared on WhatsApp`,
+      byId: user.id,
+      clientId: p.clientId,
+    },
   });
 }
 
@@ -821,19 +1086,33 @@ export async function emailReceipt(user: SessionUser, paymentId: string, raw: un
       replyTo: user.email,
       subject: `Payment receipt ${p.number} – Wonder Learning`,
       text: d.message,
-      attachments: [{ filename: receiptFileName(p.number), content: pdf, contentType: "application/pdf" }],
+      attachments: [
+        {
+          filename: receiptFileName(p.number),
+          content: pdf,
+          contentType: "application/pdf",
+        },
+      ],
     });
   } catch (e) {
     console.error(e);
     throw new DomainError("The email couldn't be sent. Check the address and try again, or download the PDF instead.");
   }
   await db.activity.create({
-    data: { type: "EMAIL", subject: `Receipt ${p.number} emailed to ${d.to}`, byId: user.id, clientId: p.clientId },
+    data: {
+      type: "EMAIL",
+      subject: `Receipt ${p.number} emailed to ${d.to}`,
+      byId: user.id,
+      clientId: p.clientId,
+    },
   });
 }
 
 export async function creditNotePdf(user: SessionUser, id: string) {
-  const cn = await db.creditNote.findFirst({ where: { id, client: clientScope(user) }, include: { invoice: true, client: true } });
+  const cn = await db.creditNote.findFirst({
+    where: { id, client: clientScope(user) },
+    include: { invoice: true, client: true },
+  });
   if (!cn) throw new NotFoundError("Credit note");
   const content = await getQuotationContent();
   const c = cn.client;
@@ -867,10 +1146,17 @@ async function ensureProformaNumber(so: { id: string; proformaNumber: string | n
   for (let attempt = 0; attempt < 5; attempt++) {
     try {
       return await db.$transaction(async (tx) => {
-        const last = await tx.salesOrder.findFirst({ where: { proformaNumber: { startsWith: prefix } }, orderBy: { proformaNumber: "desc" }, select: { proformaNumber: true } });
+        const last = await tx.salesOrder.findFirst({
+          where: { proformaNumber: { startsWith: prefix } },
+          orderBy: { proformaNumber: "desc" },
+          select: { proformaNumber: true },
+        });
         const seq = last?.proformaNumber ? Number(last.proformaNumber.slice(prefix.length)) + 1 : 1;
         const number = `${prefix}${String(seq).padStart(3, "0")}`;
-        await tx.salesOrder.update({ where: { id: so.id }, data: { proformaNumber: number, proformaDate: toDbDate(todayIST()) } });
+        await tx.salesOrder.update({
+          where: { id: so.id },
+          data: { proformaNumber: number, proformaDate: toDbDate(todayIST()) },
+        });
         return number;
       });
     } catch (e) {
@@ -889,7 +1175,11 @@ export async function proformaPdf(user: SessionUser, salesOrderId: string) {
   const number = await ensureProformaNumber(so0);
   const so = await loadOrder(user, salesOrderId);
   const content = await getQuotationContent();
-  const lines = so.items.map((i) => ({ qty: i.qty, price: Number(i.price), gstRate: Number(i.gstRate) }));
+  const lines = so.items.map((i) => ({
+    qty: i.qty,
+    price: Number(i.price),
+    gstRate: Number(i.gstRate),
+  }));
   const t = totals(lines);
   const paid = receivedOf(so.advances);
   const c = so.client;
@@ -906,7 +1196,13 @@ export async function proformaPdf(user: SessionUser, salesOrderId: string) {
     contactName: c.contactName,
     address: [c.address, c.area, c.city].filter(Boolean).join(", ") || null,
     cancelled: false,
-    items: so.items.map((i, idx) => ({ description: i.description, qty: i.qty, price: Number(i.price), gstRate: Number(i.gstRate), amount: lineAmount(lines[idx]) })),
+    items: so.items.map((i, idx) => ({
+      description: i.description,
+      qty: i.qty,
+      price: Number(i.price),
+      gstRate: Number(i.gstRate),
+      amount: lineAmount(lines[idx]),
+    })),
     subtotal: t.subtotal,
     gstAmount: t.gstAmount,
     total: t.total,
@@ -915,7 +1211,12 @@ export async function proformaPdf(user: SessionUser, salesOrderId: string) {
     balance: r2(Math.max(0, t.total - paid)),
     payments: so.advances
       .filter((p) => (COUNTED_STATUSES as readonly string[]).includes(p.status))
-      .map((p) => ({ date: dmy(p.date), amount: Number(p.amount), mode: p.mode, reference: p.reference })),
+      .map((p) => ({
+        date: dmy(p.date),
+        amount: Number(p.amount),
+        mode: p.mode,
+        reference: p.reference,
+      })),
     paymentTerms: content.payment,
     footerLines: content.footerLines,
     company: content.company,
@@ -951,13 +1252,25 @@ export type InvoiceRow = {
     email: string | null;
     owner: { id: string; name: string };
     /** The person marked for payments (Accounts etc.), if any. */
-    payContact: { name: string; mobile: string | null; email: string | null } | null;
+    payContact: {
+      name: string;
+      mobile: string | null;
+      email: string | null;
+    } | null;
   };
 };
 
 export async function invoiceRows(user: SessionUser, where: Prisma.InvoiceWhereInput = {}): Promise<InvoiceRow[]> {
   const rows = await db.invoice.findMany({
-    where: { ...where, client: { is: { ...clientScope(user), ...((where.client as Prisma.ClientWhereInput) ?? {}) } } },
+    where: {
+      ...where,
+      client: {
+        is: {
+          ...clientScope(user),
+          ...((where.client as Prisma.ClientWhereInput) ?? {}),
+        },
+      },
+    },
     include: {
       payments: { select: { amount: true, status: true } },
       creditNotes: { select: { amount: true } },
@@ -969,7 +1282,11 @@ export async function invoiceRows(user: SessionUser, where: Prisma.InvoiceWhereI
           mobile: true,
           email: true,
           owner: { select: { id: true, name: true } },
-          contacts: { where: { forPayments: true }, select: { name: true, mobile: true, email: true }, take: 1 },
+          contacts: {
+            where: { forPayments: true },
+            select: { name: true, mobile: true, email: true },
+            take: 1,
+          },
         },
       },
     },
@@ -986,7 +1303,11 @@ export async function invoiceRows(user: SessionUser, where: Prisma.InvoiceWhereI
     ...stateOf(r),
     shareToken: r.shareToken,
     salesOrder: r.salesOrder,
-    client: { ...r.client, contacts: undefined, payContact: r.client.contacts[0] ?? null },
+    client: {
+      ...r.client,
+      contacts: undefined,
+      payContact: r.client.contacts[0] ?? null,
+    },
   }));
 }
 
@@ -999,12 +1320,20 @@ export async function collectionsSummary(user: SessionUser, f: { exec?: string; 
   const [rows, collected] = await Promise.all([
     invoiceRows(user, { client }),
     db.payment.aggregate({
-      where: { date: { gte: toDbDate(from), lte: toDbDate(to) }, status: { in: [...COUNTED_STATUSES] }, client: { ...clientScope(user), ...client } },
+      where: {
+        date: { gte: toDbDate(from), lte: toDbDate(to) },
+        status: { in: [...COUNTED_STATUSES] },
+        client: { ...clientScope(user), ...client },
+      },
       _sum: { amount: true },
       _count: { _all: true },
     }),
   ]);
-  return { ...outstandingSummary(rows), collected: Number(collected._sum.amount ?? 0), collectedCount: collected._count._all };
+  return {
+    ...outstandingSummary(rows),
+    collected: Number(collected._sum.amount ?? 0),
+    collectedCount: collected._count._all,
+  };
 }
 
 export type OutstandingFilters = { q?: string; show?: string; owner?: string };
@@ -1020,5 +1349,46 @@ export async function outstandingList(user: SessionUser, f: OutstandingFilters) 
     if (f.show === "all") return true;
     return r.state === "UNPAID" || r.state === "PARTIAL" || r.state === "OVERDUE";
   });
-  return { all: rows, shown, summary: outstandingSummary(rows) };
+  return {
+    all: rows,
+    shown,
+    summary: outstandingSummary(rows),
+    ageing: ageing(rows),
+    forecast: await collectionForecast(rows),
+  };
+}
+
+/**
+ * When money is expected: each open invoice on its payment follow-up date (which
+ * moves with the school's promised date), or its due date.
+ */
+async function collectionForecast(rows: InvoiceRow[]) {
+  const open = rows.filter((r) => r.balance > 0 && r.state !== "CANCELLED");
+  const tasks = await db.task.findMany({
+    where: { invoiceId: { in: open.map((r) => r.id) }, status: "OPEN" },
+    select: { invoiceId: true, dueDate: true },
+    orderBy: { dueDate: "asc" },
+  });
+  const when = new Map<string, string>();
+  for (const t of tasks) if (t.invoiceId && !when.has(t.invoiceId)) when.set(t.invoiceId, fromDbDate(t.dueDate));
+  const today = todayIST();
+  const weekEnd = addDays(today, 6);
+  const [y, m] = today.split("-").map(Number);
+  const monthEnd = addDays(`${m === 12 ? y + 1 : y}-${String((m % 12) + 1).padStart(2, "0")}-01`, -1);
+  const buckets = [
+    { label: "Late: chase now", amount: 0, count: 0 },
+    { label: "This week", amount: 0, count: 0 },
+    { label: "Rest of this month", amount: 0, count: 0 },
+    { label: "Later", amount: 0, count: 0 },
+  ];
+  for (const r of open) {
+    const on = when.get(r.id) ?? r.dueDate;
+    const i = on < today ? 0 : on <= weekEnd ? 1 : on <= monthEnd ? 2 : 3;
+    buckets[i].amount = r2(buckets[i].amount + r.balance);
+    buckets[i].count++;
+  }
+  return {
+    buckets,
+    chequesPending: r2(open.reduce((t, r) => t + r.pending, 0)),
+  };
 }

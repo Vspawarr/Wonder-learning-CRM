@@ -1,13 +1,5 @@
 // Every exportable report, built with the same filters and access rules as its screen.
-import {
-  CLIENT_STATUS_LABEL,
-  LEAD_STATUS_LABEL,
-  STAGE_LABEL,
-  TEMPERATURE_LABEL,
-  clientCode,
-  leadCode,
-  oppCode,
-} from "@/lib/constants";
+import { CLIENT_STATUS_LABEL, LEAD_STATUS_LABEL, STAGE_LABEL, TEMPERATURE_LABEL, clientCode, leadCode, oppCode } from "@/lib/constants";
 import { daysFrom, istDate, todayIST } from "@/lib/dates";
 import { seesAllSales, type SessionUser } from "@/lib/permissions";
 import { salesDashboard } from "../dashboard";
@@ -20,7 +12,12 @@ import type { Report } from "./types";
 
 type Params = Record<string, string | undefined>;
 const dmy = (s: string | null | undefined) => (s ? s.split("-").reverse().join("/") : "");
-const PRIORITY: Record<string, string> = { LOW: "Low", MEDIUM: "Medium", HIGH: "High", CRITICAL: "Critical" };
+const PRIORITY: Record<string, string> = {
+  LOW: "Low",
+  MEDIUM: "Medium",
+  HIGH: "High",
+  CRITICAL: "Critical",
+};
 const time12 = (t: string | null) => {
   if (!t) return "";
   const [h, m] = t.split(":").map(Number);
@@ -32,7 +29,12 @@ async function leads(user: SessionUser, p: Params): Promise<Report> {
   const rows = await leadsList(user, { q: p.q, status: p.status, src: p.src });
   return {
     title: "Leads",
-    subtitle: filtersLine([`Status: ${p.status ?? "Active"}`, p.src && `Source: ${p.src}`, p.q && `Search: "${p.q}"`, !seesAllSales(user.role) && "My leads only"]),
+    subtitle: filtersLine([
+      `Status: ${p.status ?? "Active"}`,
+      p.src && `Source: ${p.src}`,
+      p.q && `Search: "${p.q}"`,
+      !seesAllSales(user.role) && "My leads only",
+    ]),
     sections: [
       {
         columns: [
@@ -65,11 +67,20 @@ async function leads(user: SessionUser, p: Params): Promise<Report> {
 
 async function opportunities(user: SessionUser, p: Params): Promise<Report> {
   const stage = p.stage ?? "Open";
-  const rows = await pipelineCards(user, { q: p.q, stage: stage === "All" ? undefined : stage, owner: p.owner, cat: p.cat });
+  const rows = await pipelineCards(user, {
+    q: p.q,
+    stage: stage === "All" ? undefined : stage,
+    owner: p.owner,
+    cat: p.cat,
+  });
   const total = rows.reduce((s, o) => s + o.value, 0);
   return {
     title: "Opportunities",
-    subtitle: filtersLine([`Stage: ${STAGE_LABEL[stage as keyof typeof STAGE_LABEL] ?? stage}`, p.cat && `Category: ${TEMPERATURE_LABEL[p.cat as "HOT"] ?? p.cat}`, p.q && `Search: "${p.q}"`]),
+    subtitle: filtersLine([
+      `Stage: ${STAGE_LABEL[stage as keyof typeof STAGE_LABEL] ?? stage}`,
+      p.cat && `Category: ${TEMPERATURE_LABEL[p.cat as "HOT"] ?? p.cat}`,
+      p.q && `Search: "${p.q}"`,
+    ]),
     sections: [
       {
         columns: [
@@ -140,7 +151,7 @@ async function clients(user: SessionUser, p: Params): Promise<Report> {
 }
 
 async function outstanding(user: SessionUser, p: Params): Promise<Report> {
-  const { shown, summary } = await outstandingList(user, p);
+  const { shown, summary, ageing, forecast } = await outstandingList(user, p);
   const sum = (k: "total" | "paid" | "balance") => shown.reduce((s, r) => s + r[k], 0);
   const show = { overdue: "Overdue", paid: "Paid", all: "All invoices" }[p.show ?? ""] ?? "To collect";
   return {
@@ -157,7 +168,35 @@ async function outstanding(user: SessionUser, p: Params): Promise<Report> {
           { k: "Invoiced", v: summary.invoiced },
           { k: "Received", v: summary.received },
           { k: "Outstanding", v: summary.outstanding },
-          { k: `Overdue (${summary.overdueCount} invoices)`, v: summary.overdue },
+          {
+            k: `Overdue (${summary.overdueCount} invoices)`,
+            v: summary.overdue,
+          },
+        ],
+      },
+      {
+        heading: "How late is the money?",
+        columns: [
+          { key: "k", header: "", width: 2 },
+          { key: "n", header: "Invoices", kind: "number" },
+          { key: "v", header: "Amount", kind: "money" },
+        ],
+        rows: ageing.map((b) => ({ k: b.label, n: b.count, v: b.amount })),
+      },
+      {
+        heading: "Expected collections",
+        columns: [
+          { key: "k", header: "", width: 2 },
+          { key: "n", header: "Invoices", kind: "number" },
+          { key: "v", header: "Amount", kind: "money" },
+        ],
+        rows: [
+          ...forecast.buckets.map((b) => ({
+            k: b.label,
+            n: b.count,
+            v: b.amount,
+          })),
+          { k: "Cheques awaiting clearance", v: forecast.chequesPending },
         ],
       },
       {
@@ -186,7 +225,12 @@ async function outstanding(user: SessionUser, p: Params): Promise<Report> {
           state: r.state === "OVERDUE" ? `Overdue ${r.daysOverdue} days` : INVOICE_STATE_LABEL[r.state],
           owner: r.client.owner.name,
         })),
-        totals: { inv: `${shown.length} invoices`, total: sum("total"), paid: sum("paid"), balance: sum("balance") },
+        totals: {
+          inv: `${shown.length} invoices`,
+          total: sum("total"),
+          paid: sum("paid"),
+          balance: sum("balance"),
+        },
         empty: "No invoices match these filters.",
       },
     ],
@@ -212,9 +256,21 @@ async function ledger(user: SessionUser, p: Params): Promise<Report> {
           ],
           rows: [
             { date: dmy(period.from), part: "Opening balance", bal: l.opening },
-            ...l.entries.map((e) => ({ date: dmy(e.date), ref: e.ref, part: e.particulars, debit: e.debit || null, credit: e.credit || null, bal: e.balance })),
+            ...l.entries.map((e) => ({
+              date: dmy(e.date),
+              ref: e.ref,
+              part: e.particulars,
+              debit: e.debit || null,
+              credit: e.credit || null,
+              bal: e.balance,
+            })),
           ],
-          totals: { part: "Closing balance", debit: l.debit, credit: l.credit, bal: l.closing },
+          totals: {
+            part: "Closing balance",
+            debit: l.debit,
+            credit: l.credit,
+            bal: l.closing,
+          },
         },
       ],
     };
@@ -260,7 +316,10 @@ async function todo(user: SessionUser, p: Params): Promise<Report> {
   const when = (d: string) => (daysFrom(d, today) < 0 ? "Overdue" : daysFrom(d, today) === 0 ? "Today" : "Upcoming");
   return {
     title: "To-do",
-    subtitle: filtersLine([team ? "Whole team" : `For ${user.name}`, kind === "todos" ? "Own to-dos" : kind === "followups" ? "School follow-ups" : "Everything"]),
+    subtitle: filtersLine([
+      team ? "Whole team" : `For ${user.name}`,
+      kind === "todos" ? "Own to-dos" : kind === "followups" ? "School follow-ups" : "Everything",
+    ]),
     sections: [
       {
         columns: [
@@ -293,13 +352,23 @@ async function todo(user: SessionUser, p: Params): Promise<Report> {
 
 async function dashboard(user: SessionUser, p: Params): Promise<Report> {
   const all = seesAllSales(user.role);
-  const f = { period: p.period, from: p.from, to: p.to, exec: all ? p.exec : undefined, state: p.state } as Parameters<typeof salesDashboard>[1];
+  const f = {
+    period: p.period,
+    from: p.from,
+    to: p.to,
+    exec: all ? p.exec : undefined,
+    state: p.state,
+  } as Parameters<typeof salesDashboard>[1];
   const d = await salesDashboard(user, f);
   const cash = await collectionsSummary(user, { exec: f.exec, state: f.state }, d.range.from, d.range.to);
   const k = d.kpis;
   return {
     title: "Sales dashboard",
-    subtitle: filtersLine([`${dmy(d.range.from)} – ${dmy(d.range.to)}`, all ? (f.exec ? "One salesperson" : "Whole team") : `For ${user.name}`, f.state && `State: ${f.state}`]),
+    subtitle: filtersLine([
+      `${dmy(d.range.from)} – ${dmy(d.range.to)}`,
+      all ? (f.exec ? "One salesperson" : "Whole team") : `For ${user.name}`,
+      f.state && `State: ${f.state}`,
+    ]),
     sections: [
       {
         heading: "Key numbers",
@@ -329,7 +398,11 @@ async function dashboard(user: SessionUser, p: Params): Promise<Report> {
           { key: "c", header: "Deals", kind: "number" },
           { key: "v", header: "Value", kind: "money" },
         ],
-        rows: d.byStage.map((b) => ({ s: STAGE_LABEL[b.stage], c: b.count, v: b.value })),
+        rows: d.byStage.map((b) => ({
+          s: STAGE_LABEL[b.stage],
+          c: b.count,
+          v: b.value,
+        })),
       },
       {
         heading: "Lead sources",
@@ -338,7 +411,11 @@ async function dashboard(user: SessionUser, p: Params): Promise<Report> {
           { key: "l", header: "Leads", kind: "number" },
           { key: "c", header: "Converted", kind: "number" },
         ],
-        rows: d.sources.map((s) => ({ s: s.source, l: s.leads, c: s.converted })),
+        rows: d.sources.map((s) => ({
+          s: s.source,
+          l: s.leads,
+          c: s.converted,
+        })),
         empty: "No leads in this period.",
       },
       {
@@ -350,7 +427,13 @@ async function dashboard(user: SessionUser, p: Params): Promise<Report> {
           { key: "o", header: "Open pipeline", kind: "money" },
           { key: "w", header: "Won", kind: "money" },
         ],
-        rows: d.team.map((t) => ({ n: t.name, l: t.leads, i: t.interactions, o: t.open, w: t.won })),
+        rows: d.team.map((t) => ({
+          n: t.name,
+          l: t.leads,
+          i: t.interactions,
+          o: t.open,
+          w: t.won,
+        })),
       },
       {
         heading: "Lost reasons",
@@ -365,7 +448,15 @@ async function dashboard(user: SessionUser, p: Params): Promise<Report> {
   };
 }
 
-export const REPORTS = { leads, opportunities, clients, outstanding, ledger, todo, dashboard } as const;
+export const REPORTS = {
+  leads,
+  opportunities,
+  clients,
+  outstanding,
+  ledger,
+  todo,
+  dashboard,
+} as const;
 export type ReportName = keyof typeof REPORTS;
 
 export async function buildReport(user: SessionUser, name: string, params: Params): Promise<Report> {

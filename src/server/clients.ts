@@ -17,6 +17,7 @@ export async function convertToClient(user: SessionUser, opportunityId: string) 
     if (!opp) throw new NotFoundError("Opportunity");
     if (opp.stage !== "WON") throw new DomainError("Only a won deal can be converted to a client.");
     if (opp.client) throw new DomainError("This deal is already a client.");
+    if (opp.renewalOfId) throw new DomainError("This is a renewal of an existing client; create its sales order on the client page.");
     const lead = opp.lead;
     if (!lead) throw new DomainError("This deal has no lead details to create the client from.");
 
@@ -68,11 +69,23 @@ export async function convertToClient(user: SessionUser, opportunityId: string) 
 
 export async function completeOnboarding(user: SessionUser, clientId: string) {
   return db.$transaction(async (tx) => {
-    const client = await tx.client.findFirst({ where: { id: clientId, ...clientScope(user) } });
+    const client = await tx.client.findFirst({
+      where: { id: clientId, ...clientScope(user) },
+    });
     if (!client) throw new NotFoundError("Client");
     if (client.status !== "ONBOARDING") throw new DomainError("Onboarding is already complete.");
-    await tx.client.update({ where: { id: clientId }, data: { status: "ACTIVE", onboardingCompletedAt: new Date() } });
-    await tx.activity.create({ data: { type: "SYSTEM", subject: "Onboarding completed", byId: user.id, clientId } });
+    await tx.client.update({
+      where: { id: clientId },
+      data: { status: "ACTIVE", onboardingCompletedAt: new Date() },
+    });
+    await tx.activity.create({
+      data: {
+        type: "SYSTEM",
+        subject: "Onboarding completed",
+        byId: user.id,
+        clientId,
+      },
+    });
   });
 }
 
@@ -95,7 +108,9 @@ const FIELD_LABEL: Record<string, string> = {
 export async function updateClient(user: SessionUser, id: string, raw: unknown) {
   const d = parse(clientInput, raw);
   return db.$transaction(async (tx) => {
-    const c = await tx.client.findFirst({ where: { id, ...clientScope(user) } });
+    const c = await tx.client.findFirst({
+      where: { id, ...clientScope(user) },
+    });
     if (!c) throw new NotFoundError("Client");
     await assertLocation(tx, d.state, d.city, c);
     const { ownerId, ...details } = d;
@@ -108,11 +123,25 @@ export async function updateClient(user: SessionUser, id: string, raw: unknown) 
     await tx.client.update({ where: { id }, data: { ...details, ownerId } });
     const notes = changed.length ? [`Details updated: ${changed.map((k) => FIELD_LABEL[k]).join(", ")}`] : [];
     if (ownerChanged) {
-      const to = await tx.user.findUniqueOrThrow({ where: { id: ownerId }, select: { name: true } });
+      const to = await tx.user.findUniqueOrThrow({
+        where: { id: ownerId },
+        select: { name: true },
+      });
       notes.push(`Account owner changed to ${to.name}`);
       // Their open follow-ups (incl. payment collection) move with the account.
-      await tx.task.updateMany({ where: { clientId: id, status: "OPEN", assigneeId: c.ownerId }, data: { assigneeId: ownerId } });
+      await tx.task.updateMany({
+        where: { clientId: id, status: "OPEN", assigneeId: c.ownerId },
+        data: { assigneeId: ownerId },
+      });
     }
-    if (notes.length) await tx.activity.create({ data: { type: "SYSTEM", subject: notes.join(" · "), byId: user.id, clientId: id } });
+    if (notes.length)
+      await tx.activity.create({
+        data: {
+          type: "SYSTEM",
+          subject: notes.join(" · "),
+          byId: user.id,
+          clientId: id,
+        },
+      });
   });
 }

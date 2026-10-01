@@ -8,6 +8,8 @@ import { AvatarName, Card, DueTag, Empty, HBars, Kpi, PageHeader, Table, VBars }
 import { requireUser } from "@/server/session";
 import { salesDashboard, type DashFilters } from "@/server/dashboard";
 import { collectionsSummary } from "@/server/finance/service";
+import { getFeatures } from "@/server/features";
+import { targetProgress } from "@/server/targets";
 import { assignees } from "@/server/queries";
 import { DashFilterBar } from "./filters";
 import { getLocations } from "@/server/locations";
@@ -29,13 +31,11 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   const user = await requireUser();
   const f = await searchParams;
   const all = seesAllSales(user.role);
-  const [d, team, locations] = await Promise.all([
-    salesDashboard(user, f),
-    all ? assignees(user) : Promise.resolve([]),
-    getLocations(),
-  ]);
+  const [d, team, locations] = await Promise.all([salesDashboard(user, f), all ? assignees(user) : Promise.resolve([]), getLocations()]);
   const today = todayIST();
   const k = d.kpis;
+  const features = await getFeatures();
+  const targets = features.targets ? await targetProgress(user) : null;
   const cash = await collectionsSummary(user, { exec: all ? f.exec : undefined, state: f.state }, d.range.from, d.range.to);
   const first = user.name.split(" ")[0];
 
@@ -53,17 +53,54 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
         <Kpi label="Leads created" value={k.leads} sub={<Delta now={k.leads} prev={k.leadsPrev} />} color="#1C86C4" href="/leads?status=All" />
         <Kpi label="Hot opportunities" value={k.hot} sub="Open, category Hot" color="#D9412D" href="/opportunities?cat=HOT" />
         <Kpi label="Converted" value={k.converted} sub="Leads converted in period" color="#0E8F79" href="/leads?status=Converted" />
-        <Kpi label="Open pipeline" value={inrS(k.openValue)} sub={`${k.openCount} opportunit${k.openCount === 1 ? "y" : "ies"}`} color="#7A48B8" href="/pipeline" />
+        <Kpi
+          label="Open pipeline"
+          value={inrS(k.openValue)}
+          sub={`${k.openCount} opportunit${k.openCount === 1 ? "y" : "ies"}`}
+          color="#7A48B8"
+          href="/pipeline"
+        />
         <Kpi label="Weighted forecast" value={inrS(k.weighted)} sub="Value × probability" color="#C77A00" href="/pipeline" />
         <Kpi label="Won" value={inrS(k.wonValue)} sub={`${k.wonCount} deal(s)`} color="#0E8F79" />
         <Kpi label="Lost" value={inrS(k.lostValue)} sub={`${k.lostCount} deal(s)`} color="#8B88A6" />
         <Kpi label="Win rate" value={k.winRate === null ? "–" : `${k.winRate}%`} sub="Won ÷ (won + lost)" color="#3D3BA8" />
       </div>
       <div className="kgrid kgrid-2 mb-4">
-        <Kpi label="Collected" value={inrS(cash.collected)} sub={`${cash.collectedCount} payment(s) in period`} color="#0E8F79" href="/outstanding?show=all" />
+        <Kpi
+          label="Collected"
+          value={inrS(cash.collected)}
+          sub={`${cash.collectedCount} payment(s) in period`}
+          color="#0E8F79"
+          href="/outstanding?show=all"
+        />
         <Kpi label="Outstanding" value={inrS(cash.outstanding)} sub="Invoiced, not yet received" color="#C77A00" href="/outstanding" />
-        <Kpi label="Overdue" value={inrS(cash.overdue)} sub={`${cash.overdueCount} invoice(s) past due`} color="#D9412D" href="/outstanding?show=overdue" />
+        <Kpi
+          label="Overdue"
+          value={inrS(cash.overdue)}
+          sub={`${cash.overdueCount} invoice(s) past due`}
+          color="#D9412D"
+          href="/outstanding?show=overdue"
+        />
       </div>
+      {targets && targets.rows.some((r) => r.salesTarget || r.collectionTarget) ? (
+        <Card
+          title={`Targets · ${new Date(`${targets.month}-01T00:00:00Z`).toLocaleDateString("en-IN", { month: "long", year: "numeric", timeZone: "UTC" })}`}
+          className="mb-4"
+        >
+          {targets.rows
+            .filter((r) => r.salesTarget || r.collectionTarget)
+            .map((r) => (
+              <div
+                key={r.userId}
+                className="grid grid-cols-1 gap-2 border-b border-line py-2 last:border-0 min-[701px]:grid-cols-[160px_minmax(0,1fr)_minmax(0,1fr)] min-[701px]:items-center"
+              >
+                <b>{r.name}</b>
+                <Progress label="Sales" done={r.sales} target={r.salesTarget} />
+                <Progress label="Collection" done={r.collection} target={r.collectionTarget} />
+              </div>
+            ))}
+        </Card>
+      ) : null}
       {k.noValue ? (
         <div className="note warn">
           {k.noValue} open opportunit{k.noValue === 1 ? "y has" : "ies have"} no expected value yet, so rupee totals are understated.
@@ -77,7 +114,12 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
         </Card>
         <Card title="Pipeline by stage">
           <HBars
-            data={d.byStage.map((s) => ({ label: `${STAGE_LABEL[s.stage]} (${s.count})`, value: s.value, color: STAGE_COLOR[s.stage], href: "/pipeline" }))}
+            data={d.byStage.map((s) => ({
+              label: `${STAGE_LABEL[s.stage]} (${s.count})`,
+              value: s.value,
+              color: STAGE_COLOR[s.stage],
+              href: "/pipeline",
+            }))}
             format={inrS}
           />
         </Card>
@@ -103,7 +145,10 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
           </Table>
         </Card>
         <Card title={all ? "Sales team" : "My numbers"}>
-          <Table head={["Person", ["Leads", "num"], ["Interactions", "num"], ["Open pipeline", "num"], ["Won", "num"]]} empty="No sales team members yet.">
+          <Table
+            head={["Person", ["Leads", "num"], ["Interactions", "num"], ["Open pipeline", "num"], ["Won", "num"]]}
+            empty="No sales team members yet."
+          >
             {d.team.map((r) => (
               <tr key={r.id}>
                 <td>
@@ -123,7 +168,11 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
 
       <div className="mt-4 grid grid-cols-1 gap-4 min-[1101px]:grid-cols-4 min-[901px]:grid-cols-2">
         <Card title="Why deals were lost">
-          {d.lostReasons.length ? <HBars data={d.lostReasons.map((r) => ({ ...r, color: "#D9412D" }))} /> : <Empty>No lost deals in this period.</Empty>}
+          {d.lostReasons.length ? (
+            <HBars data={d.lostReasons.map((r) => ({ ...r, color: "#D9412D" }))} />
+          ) : (
+            <Empty>No lost deals in this period.</Empty>
+          )}
         </Card>
         <Card title="Competitors met">
           {d.competitors.length ? <HBars data={d.competitors.map((r) => ({ ...r, color: "#E8930C" }))} /> : <Empty>None recorded.</Empty>}
@@ -131,7 +180,11 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
         <Card title="Biggest open deals">
           {d.biggest.length ? (
             d.biggest.map((o) => (
-              <Link key={o.id} href={`/opportunities?opp=${o.id}`} className="flex items-center justify-between gap-2 border-b border-line py-1.5 text-ink no-underline last:border-0">
+              <Link
+                key={o.id}
+                href={`/opportunities?opp=${o.id}`}
+                className="flex items-center justify-between gap-2 border-b border-line py-1.5 text-ink no-underline last:border-0"
+              >
                 <span className="min-w-0">
                   <b className="block truncate">{o.school}</b>
                   <span className="small muted">
@@ -167,5 +220,29 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
         </Card>
       </div>
     </>
+  );
+}
+
+function Progress({ label, done, target }: { label: string; done: number; target: number }) {
+  if (!target) return <span className="small faint">{label}: no target</span>;
+  const pct = Math.round((done / target) * 100);
+  return (
+    <div className="small">
+      <div className="flex justify-between gap-2">
+        <span>
+          {label} {inrS(done)} of {inrS(target)}
+        </span>
+        <b className={pct >= 100 ? "text-mint" : ""}>{pct}%</b>
+      </div>
+      <div className="mt-1 h-2 overflow-hidden rounded-full bg-surf2">
+        <div
+          className="h-full rounded-full"
+          style={{
+            width: `${Math.min(100, pct)}%`,
+            background: pct >= 100 ? "var(--mint)" : "var(--brand)",
+          }}
+        />
+      </div>
+    </div>
   );
 }

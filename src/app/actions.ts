@@ -21,6 +21,8 @@ import * as po from "@/server/finance/po";
 import * as dispatch from "@/server/finance/dispatch";
 import * as files from "@/server/files";
 import * as contacts from "@/server/contacts";
+import * as renewals from "@/server/renewals";
+import * as targets from "@/server/targets";
 import { contentSchema, resetQuotationContent, saveQuotationContent } from "@/server/quotation/content";
 import { canManageSettings } from "@/lib/permissions";
 import { parse } from "@/server/validation";
@@ -109,6 +111,7 @@ export const convertToClient = async (opportunityId: string) => run((u) => clien
 export const updateClient = async (id: string, data: unknown) => run((u) => clients.updateClient(u, id, data));
 export const saveContact = async (clientId: string, id: string | null, data: unknown) => run((u) => contacts.saveContact(u, clientId, id, data));
 export const deleteContact = async (id: string) => run((u) => contacts.deleteContact(u, id));
+export const createRenewals = async (clientId?: string) => run((u) => renewals.createRenewals(u, clientId));
 export const completeOnboarding = async (id: string) => run((u) => clients.completeOnboarding(u, id));
 
 /* quotations */
@@ -134,7 +137,8 @@ export const resetQuotationSettings = async () =>
 
 /* sales orders, invoices & payments */
 export const orderableQuotations = async (clientId: string) => run((u) => fin.orderableQuotations(u, clientId));
-export const salesOrderDefaults = async (clientId: string, quotationId: string | null) => run((u) => fin.salesOrderDefaults(u, clientId, quotationId));
+export const salesOrderDefaults = async (clientId: string, quotationId: string | null) =>
+  run((u) => fin.salesOrderDefaults(u, clientId, quotationId));
 export const salesOrderForEdit = async (id: string) => run((u) => fin.salesOrderForEdit(u, id));
 export const createSalesOrder = async (clientId: string, data: unknown) => run((u) => fin.createSalesOrder(u, clientId, data));
 export const updateSalesOrder = async (id: string, data: unknown) => run((u) => fin.updateSalesOrder(u, id, data));
@@ -152,7 +156,8 @@ export const recordPayment = async (invoiceId: string, data: unknown) => run((u)
 export const logReceiptShared = async (paymentId: string) => run((u) => fin.logReceiptShared(u, paymentId));
 export const emailReceipt = async (paymentId: string, data: unknown) => run((u) => fin.emailReceipt(u, paymentId, data));
 export const recordAdvance = async (salesOrderId: string, data: unknown) => run((u) => fin.recordAdvance(u, salesOrderId, data));
-export const setChequeStatus = async (paymentId: string, status: "DEPOSITED" | "CLEARED" | "BOUNCED") => run((u) => fin.setChequeStatus(u, paymentId, status));
+export const setChequeStatus = async (paymentId: string, status: "DEPOSITED" | "CLEARED" | "BOUNCED") =>
+  run((u) => fin.setChequeStatus(u, paymentId, status));
 export const createCreditNote = async (invoiceId: string, data: unknown) => run((u) => fin.createCreditNote(u, invoiceId, data));
 export const deleteCreditNote = async (id: string) => run((u) => fin.deleteCreditNote(u, id));
 export const deletePayment = async (id: string) => run((u) => fin.deletePayment(u, id));
@@ -169,6 +174,7 @@ export const completeTask = async (id: string, data: unknown) => run((u) => task
 export const logActivity = async (data: unknown) => run((u) => activities.logActivity(u, data));
 
 /* settings */
+export const saveTargets = async (month: string, rows: unknown) => run((u) => targets.saveTargets(u, month, rows));
 export const setFeature = async (key: string, on: boolean) => run((u) => features.setFeature(u, key, on));
 export const createUser = async (data: unknown) => run((u) => settings.createUser(u, data));
 export const openWorkOf = async (userId: string) =>

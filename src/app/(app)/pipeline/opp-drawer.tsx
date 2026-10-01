@@ -54,7 +54,6 @@ export function OppDrawer({
   const today = todayIST();
   const owners = team.some((t) => t.id === opp.owner.id) ? team : [opp.owner, ...team];
 
-
   const move = (stage: Stage) => {
     if (stage === opp.stage) return;
     if (stage === "LOST") return setLost(true);
@@ -102,7 +101,11 @@ export function OppDrawer({
             <button
               className="btn pri"
               disabled={!dirty || pending}
-              onClick={() => run(() => updateOpportunity(opp.id, v), { success: "Opportunity saved." })}
+              onClick={() =>
+                run(() => updateOpportunity(opp.id, v), {
+                  success: "Opportunity saved.",
+                })
+              }
             >
               Save changes
             </button>
@@ -116,7 +119,13 @@ export function OppDrawer({
           {opp.competitor ? ` (went with ${opp.competitor})` : ""}
         </div>
       ) : null}
-      {opp.stage === "WON" ? (
+      {opp.renewalOf ? (
+        <div className="note">
+          Renewal for AY {opp.academicYear} of client <Link href={`/clients/${opp.renewalOf.id}`}>{opp.renewalOf.schoolName}</Link>.
+          {opp.stage === "WON" ? " Won: create the sales order on the client page." : ""}
+        </div>
+      ) : null}
+      {opp.stage === "WON" && !opp.renewalOf ? (
         opp.client ? (
           <div className="note ok">
             Won and converted to <Link href={`/clients/${opp.client.id}`}>client {clientCode(opp.client.number)}</Link>.
@@ -172,7 +181,13 @@ export function OppDrawer({
 
       <div className="fg2">
         <Field label="Category" htmlFor="op-cat">
-          <select className="sel" id="op-cat" disabled={opp.closed} value={v.temperature} onChange={(e) => setV({ ...v, temperature: e.target.value })}>
+          <select
+            className="sel"
+            id="op-cat"
+            disabled={opp.closed}
+            value={v.temperature}
+            onChange={(e) => setV({ ...v, temperature: e.target.value })}
+          >
             <Options list={Object.entries(TEMPERATURE_LABEL) as [string, string][]} />
           </select>
         </Field>
@@ -188,24 +203,53 @@ export function OppDrawer({
           />
         </Field>
         <Field label="Expected close date" htmlFor="op-close">
-          <DateInput id="op-close" disabled={opp.closed} value={v.expectedCloseDate} onChange={(expectedCloseDate) => setV({ ...v, expectedCloseDate })} />
+          <DateInput
+            id="op-close"
+            disabled={opp.closed}
+            value={v.expectedCloseDate}
+            onChange={(expectedCloseDate) => setV({ ...v, expectedCloseDate })}
+          />
         </Field>
         <Field label="Competitor" htmlFor="op-comp">
-          <select className="sel" id="op-comp" disabled={opp.closed} value={v.competitor} onChange={(e) => setV({ ...v, competitor: e.target.value })}>
+          <select
+            className="sel"
+            id="op-comp"
+            disabled={opp.closed}
+            value={v.competitor}
+            onChange={(e) => setV({ ...v, competitor: e.target.value })}
+          >
             <Options list={COMPETITORS} blank="None known" />
           </select>
         </Field>
         <Field label="Next action" htmlFor="op-next">
-          <input className="in" id="op-next" disabled={opp.closed} value={v.nextAction} onChange={(e) => setV({ ...v, nextAction: e.target.value })} />
+          <input
+            className="in"
+            id="op-next"
+            disabled={opp.closed}
+            value={v.nextAction}
+            onChange={(e) => setV({ ...v, nextAction: e.target.value })}
+          />
         </Field>
         <Field label="Next action date" htmlFor="op-nextd">
           <DateInput id="op-nextd" disabled={opp.closed} value={v.nextActionDate} onChange={(nextActionDate) => setV({ ...v, nextActionDate })} />
         </Field>
         <Field label="Decision maker" htmlFor="op-dm">
-          <input className="in" id="op-dm" disabled={opp.closed} value={v.decisionMaker} onChange={(e) => setV({ ...v, decisionMaker: e.target.value })} />
+          <input
+            className="in"
+            id="op-dm"
+            disabled={opp.closed}
+            value={v.decisionMaker}
+            onChange={(e) => setV({ ...v, decisionMaker: e.target.value })}
+          />
         </Field>
         <Field label="Owner" htmlFor="op-owner">
-          <select className="sel" id="op-owner" disabled={opp.closed || owners.length === 1} value={v.ownerId} onChange={(e) => setV({ ...v, ownerId: e.target.value })}>
+          <select
+            className="sel"
+            id="op-owner"
+            disabled={opp.closed || owners.length === 1}
+            value={v.ownerId}
+            onChange={(e) => setV({ ...v, ownerId: e.target.value })}
+          >
             <Options list={owners.map((t) => [t.id, t.name] as const)} />
           </select>
         </Field>
