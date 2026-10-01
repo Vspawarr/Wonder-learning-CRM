@@ -457,3 +457,21 @@ describe("duplicate leads", () => {
     expect((await findDuplicateLeads(exA, { mobile: "98765 43210" }))[0].href).toMatch(/^\/leads\//);
   });
 });
+
+describe("hand over work", () => {
+  it("moves open leads, deals, clients and to-dos to a colleague", async () => {
+    const { handOverWork, openWorkOf } = await import("@/server/settings");
+    await createLead(exA, leadData(exA.id));
+    const oppId = await convertLead(exA, await createLead(exA, leadData(exA.id, { schoolName: "Two" })), { temperature: "WARM" });
+    await moveOpportunity(exA, oppId, { stage: "WON" });
+    await convertToClient(exA, oppId);
+    const before = await openWorkOf(exA.id);
+    expect(before).toMatchObject({ leads: 1, opportunities: 0, clients: 1 });
+    expect(before.tasks).toBeGreaterThan(0);
+    await expect(handOverWork(exA, exA.id, exB.id)).rejects.toThrow(/Admin or the Sales Head/);
+    await expect(handOverWork(head, exA.id, exA.id)).rejects.toThrow(/different person/);
+    const moved = await handOverWork(head, exA.id, exB.id);
+    expect(moved).toMatchObject({ leads: 1, clients: 1 });
+    expect(await openWorkOf(exA.id)).toEqual({ leads: 0, opportunities: 0, clients: 0, tasks: 0 });
+  });
+});

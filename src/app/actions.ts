@@ -158,6 +158,12 @@ export const logActivity = async (data: unknown) => run((u) => activities.logAct
 /* settings */
 export const setFeature = async (key: string, on: boolean) => run((u) => features.setFeature(u, key, on));
 export const createUser = async (data: unknown) => run((u) => settings.createUser(u, data));
+export const openWorkOf = async (userId: string) =>
+  run(async (u) => {
+    if (!canManageSettings(u.role) && u.role !== "SALES_HEAD") throw new DomainError("Not allowed.");
+    return settings.openWorkOf(userId);
+  });
+export const handOverWork = async (fromId: string, toId: string) => run((u) => settings.handOverWork(u, fromId, toId));
 export const updateUser = async (id: string, data: unknown) => run((u) => settings.updateUser(u, id, data));
 export const deleteProduct = async (id: string) => run((u) => settings.deleteProduct(u, id));
 export const saveProduct = async (id: string | null, data: unknown) => run((u) => settings.saveProduct(u, id, data));

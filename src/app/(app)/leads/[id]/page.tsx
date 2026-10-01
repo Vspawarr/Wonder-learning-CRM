@@ -44,7 +44,7 @@ export default async function LeadPage({ params }: { params: Promise<{ id: strin
             <Pill>{LEAD_STATUS_LABEL[lead.status]}</Pill>
             <span className="tag">{lead.source}</span>
             <span className="tag">{leadCode(lead.number)}</span>
-            <span className="small faint">
+            <span className="small faint min-w-0 break-words">
               Added {fmtDate(istDate(lead.createdAt), today)} by {lead.createdBy}
             </span>
           </div>

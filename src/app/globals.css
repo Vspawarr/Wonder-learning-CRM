@@ -324,3 +324,10 @@
   .kgrid.kgrid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
   .kgrid.kgrid-2 .kpi .v { font-size: 20px; }
 }
+
+/* Pipeline on phones: narrower columns that snap into place while swiping */
+@media (max-width: 600px) {
+  .board { grid-auto-columns: 78vw; scroll-snap-type: x mandatory; gap: 10px; }
+  .board > * { scroll-snap-align: start; }
+  .col { min-height: 180px; }
+}

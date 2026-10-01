@@ -35,7 +35,8 @@ export function PageHeader({ title, sub, children }: { title: string; sub?: Reac
   return (
     <div className="mb-[18px] flex flex-wrap items-end justify-between gap-4">
       <div>
-        <h1>{title}</h1>
+        {/* On phones the top bar already shows the page name. */}
+        <h1 className="max-[900px]:hidden">{title}</h1>
         {sub ? <p className="mt-1 text-ink2">{sub}</p> : null}
       </div>
       {children ? <div className="flex flex-wrap items-center gap-2.5">{children}</div> : null}

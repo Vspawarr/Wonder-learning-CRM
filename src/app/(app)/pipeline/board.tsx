@@ -87,6 +87,7 @@ export function Board({ cards: initial }: { cards: PipelineCard[] }) {
         onDragCancel={() => setDragging(null)}
         onDragEnd={onDragEnd}
       >
+        <p className="small muted mb-2 min-[601px]:hidden">Swipe sideways to see each stage. To move a deal, open it and change its Stage.</p>
         <div className="board">
           {STAGES.map((s) => {
             let cs = cards.filter((c) => c.stage === s);

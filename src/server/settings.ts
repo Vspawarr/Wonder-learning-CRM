@@ -2,7 +2,7 @@
 import bcrypt from "bcryptjs";
 import { Prisma } from "@/generated/prisma/client";
 import { db } from "@/lib/db";
-import { canManageProducts, canManageSettings, type SessionUser } from "@/lib/permissions";
+import { SALES_ROLES, canAssignOthers, canManageProducts, canManageSettings, type SessionUser } from "@/lib/permissions";
 import { DomainError, NotFoundError } from "./errors";
 import { cityInput, parse, productInput, stateInput, userInput } from "./validation";
 
@@ -155,4 +155,36 @@ export async function addCity(actor: SessionUser, raw: unknown) {
 export async function setCityActive(actor: SessionUser, id: string, active: boolean) {
   assertSettings(actor);
   await db.city.update({ where: { id }, data: { active } });
+}
+
+/** What a person currently has open, for the hand-over screen. */
+export async function openWorkOf(userId: string) {
+  const [leads, opportunities, clients, tasks] = await Promise.all([
+    db.lead.count({ where: { assignedToId: userId, status: { in: ["NEW", "CONTACTED", "QUALIFIED"] } } }),
+    db.opportunity.count({ where: { ownerId: userId, stage: { notIn: ["WON", "LOST"] } } }),
+    db.client.count({ where: { ownerId: userId } }),
+    db.task.count({ where: { assigneeId: userId, status: "OPEN" } }),
+  ]);
+  return { leads, opportunities, clients, tasks };
+}
+
+/** Moves someone's open leads, deals, clients and to-dos to a colleague (e.g. when they leave). */
+export async function handOverWork(actor: SessionUser, fromId: string, toId: string) {
+  if (!canAssignOthers(actor.role)) throw new DomainError("Only an Admin or the Sales Head can hand over work.");
+  if (fromId === toId) throw new DomainError("Choose a different person to hand over to.");
+  const [from, to] = await Promise.all([db.user.findUnique({ where: { id: fromId } }), db.user.findUnique({ where: { id: toId } })]);
+  if (!from) throw new DomainError("User not found.");
+  if (!to || !to.active || !SALES_ROLES.includes(to.role)) throw new DomainError("Hand over to an active member of the sales team.");
+  return db.$transaction(async (tx) => {
+    const leads = await tx.lead.updateMany({ where: { assignedToId: fromId, status: { in: ["NEW", "CONTACTED", "QUALIFIED"] } }, data: { assignedToId: toId } });
+    const opportunities = await tx.opportunity.updateMany({ where: { ownerId: fromId, stage: { notIn: ["WON", "LOST"] } }, data: { ownerId: toId } });
+    const clientIds = (await tx.client.findMany({ where: { ownerId: fromId }, select: { id: true } })).map((c) => c.id);
+    const clients = await tx.client.updateMany({ where: { ownerId: fromId }, data: { ownerId: toId } });
+    const tasks = await tx.task.updateMany({ where: { assigneeId: fromId, status: "OPEN" }, data: { assigneeId: toId } });
+    if (clientIds.length)
+      await tx.activity.createMany({
+        data: clientIds.map((clientId) => ({ type: "SYSTEM" as const, subject: `Account handed over from ${from.name} to ${to.name}`, byId: actor.id, clientId })),
+      });
+    return { leads: leads.count, opportunities: opportunities.count, clients: clients.count, tasks: tasks.count };
+  });
 }
