@@ -105,7 +105,7 @@ export const paymentInput = z.object({
 const code = (prefix: string, y: number, m: number, seq: number) => `${prefix}/${y}/${String(m).padStart(2, "0")}/${String(seq).padStart(3, "0")}`;
 
 /** Creates a record with the next running number for this month, retrying on a clash. */
-async function withNextNumber<T>(model: "salesOrder" | "invoice" | "payment" | "creditNote", prefix: string, create: (tx: Tx, n: { number: string; year: number; month: number; seq: number }) => Promise<T>) {
+export async function withNextNumber<T>(model: "salesOrder" | "invoice" | "payment" | "creditNote" | "dispatch", prefix: string, create: (tx: Tx, n: { number: string; year: number; month: number; seq: number }) => Promise<T>) {
   const [y, m] = todayIST().split("-").map(Number);
   for (let attempt = 0; attempt < 5; attempt++) {
     try {
@@ -118,7 +118,9 @@ async function withNextNumber<T>(model: "salesOrder" | "invoice" | "payment" | "
               ? await tx.invoice.aggregate({ where, _max: { seq: true } })
               : model === "payment"
                 ? await tx.payment.aggregate({ where, _max: { seq: true } })
-                : await tx.creditNote.aggregate({ where, _max: { seq: true } });
+                : model === "creditNote"
+                  ? await tx.creditNote.aggregate({ where, _max: { seq: true } })
+                  : await tx.dispatch.aggregate({ where, _max: { seq: true } });
         const seq = (agg._max.seq ?? 0) + 1;
         return create(tx, { number: code(prefix, y, m, seq), year: y, month: m, seq });
       });
@@ -942,7 +944,15 @@ export type InvoiceRow = {
   daysOverdue: number;
   shareToken: string;
   salesOrder: { id: string; number: string; poNumber: string | null };
-  client: { id: string; schoolName: string; mobile: string; email: string | null; owner: { id: string; name: string } };
+  client: {
+    id: string;
+    schoolName: string;
+    mobile: string;
+    email: string | null;
+    owner: { id: string; name: string };
+    /** The person marked for payments (Accounts etc.), if any. */
+    payContact: { name: string; mobile: string | null; email: string | null } | null;
+  };
 };
 
 export async function invoiceRows(user: SessionUser, where: Prisma.InvoiceWhereInput = {}): Promise<InvoiceRow[]> {
@@ -952,7 +962,16 @@ export async function invoiceRows(user: SessionUser, where: Prisma.InvoiceWhereI
       payments: { select: { amount: true, status: true } },
       creditNotes: { select: { amount: true } },
       salesOrder: { select: { id: true, number: true, poNumber: true } },
-      client: { select: { id: true, schoolName: true, mobile: true, email: true, owner: { select: { id: true, name: true } } } },
+      client: {
+        select: {
+          id: true,
+          schoolName: true,
+          mobile: true,
+          email: true,
+          owner: { select: { id: true, name: true } },
+          contacts: { where: { forPayments: true }, select: { name: true, mobile: true, email: true }, take: 1 },
+        },
+      },
     },
     orderBy: [{ dueDate: "asc" }, { createdAt: "asc" }],
   });
@@ -967,7 +986,7 @@ export async function invoiceRows(user: SessionUser, where: Prisma.InvoiceWhereI
     ...stateOf(r),
     shareToken: r.shareToken,
     salesOrder: r.salesOrder,
-    client: r.client,
+    client: { ...r.client, contacts: undefined, payContact: r.client.contacts[0] ?? null },
   }));
 }
 

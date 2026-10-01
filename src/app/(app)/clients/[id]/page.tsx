@@ -9,8 +9,10 @@ import { isEmailConfigured } from "@/server/mailer";
 import { requireUser } from "@/server/session";
 import { assignees, clientDetail, productOptions } from "@/server/queries";
 import { getLocations } from "@/server/locations";
+import { getFeatures } from "@/server/features";
 import { seesAllSales } from "@/lib/permissions";
 import { EditClientButton } from "./edit-client";
+import { ContactsCard, DocumentsCard } from "./extras";
 import { QuotationsPanel } from "../../pipeline/quotations";
 import { ClientActions } from "./client-actions";
 import { InvoicesPanel, PaymentsPanel, SalesOrdersPanel } from "./finance";
@@ -23,8 +25,16 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
 
 export default async function ClientPage({ params }: { params: Promise<{ id: string }> }) {
   const user = await requireUser();
-  const [c, products, team, locations] = await Promise.all([clientDetail(user, (await params).id), productOptions(), assignees(user), getLocations()]);
-  if (!c) notFound();
+  const [c0, products, team, locations, features] = await Promise.all([
+    clientDetail(user, (await params).id),
+    productOptions(),
+    assignees(user),
+    getLocations(),
+    getFeatures(),
+  ]);
+  if (!c0) notFound();
+  // With extra contacts switched off, messages go to the main contact only.
+  const c = features.contacts ? c0 : { ...c0, people: [] };
   const today = todayIST();
   const emailReady = isEmailConfigured();
   const me = { name: user.name };
@@ -154,6 +164,16 @@ export default async function ClientPage({ params }: { params: Promise<{ id: str
               Open follow-ups →
             </Link>
           </Card>
+          {features.contacts ? (
+            <Card title="Contacts">
+              <ContactsCard client={c} />
+            </Card>
+          ) : null}
+          {features.documents ? (
+            <Card title="Documents">
+              <DocumentsCard client={c} />
+            </Card>
+          ) : null}
           <Card title="Payments received">
             <PaymentsPanel client={c} emailReady={emailReady} me={me} />
           </Card>

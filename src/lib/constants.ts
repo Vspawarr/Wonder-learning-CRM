@@ -160,6 +160,13 @@ export const CLIENT_STATUS_LABEL = { ONBOARDING: "Onboarding", ACTIVE: "Active" 
 export const PAYMENT_MODES = ["NEFT/RTGS", "UPI", "Cheque", "CDC (Current Dated Cheque)", "PDC (Post Dated Cheque)", "Cash", "Other"] as const;
 
 /** Days after the invoice date when payment is due, unless changed on the invoice. */
+/** Kinds of papers kept on a client (Settings → Features → Client documents). */
+export const DOCUMENT_CATEGORIES = ["Agreement / MOU", "GST certificate", "PAN card", "Cheque copy", "School registration", "Other"] as const;
+export const POD_CATEGORY = "Proof of delivery";
+
+/** People at a school besides the main contact. */
+export const CONTACT_ROLES = ["Owner", "Director", "Principal", "Coordinator", "Accounts", "Teacher", "Other"] as const;
+
 /** Payment modes that are cheques (tracked In hand → Deposited → Cleared when cheque tracking is on). */
 export const CHEQUE_MODES: readonly string[] = ["Cheque", "CDC (Current Dated Cheque)", "PDC (Post Dated Cheque)"];
 

@@ -18,6 +18,9 @@ import * as quotes from "@/server/quotation/service";
 import * as fin from "@/server/finance/service";
 import * as features from "@/server/features";
 import * as po from "@/server/finance/po";
+import * as dispatch from "@/server/finance/dispatch";
+import * as files from "@/server/files";
+import * as contacts from "@/server/contacts";
 import { contentSchema, resetQuotationContent, saveQuotationContent } from "@/server/quotation/content";
 import { canManageSettings } from "@/lib/permissions";
 import { parse } from "@/server/validation";
@@ -104,6 +107,8 @@ export const moveOpportunity = async (id: string, data: unknown) => run((u) => o
 /* clients */
 export const convertToClient = async (opportunityId: string) => run((u) => clients.convertToClient(u, opportunityId));
 export const updateClient = async (id: string, data: unknown) => run((u) => clients.updateClient(u, id, data));
+export const saveContact = async (clientId: string, id: string | null, data: unknown) => run((u) => contacts.saveContact(u, clientId, id, data));
+export const deleteContact = async (id: string) => run((u) => contacts.deleteContact(u, id));
 export const completeOnboarding = async (id: string) => run((u) => clients.completeOnboarding(u, id));
 
 /* quotations */
@@ -134,6 +139,10 @@ export const salesOrderForEdit = async (id: string) => run((u) => fin.salesOrder
 export const createSalesOrder = async (clientId: string, data: unknown) => run((u) => fin.createSalesOrder(u, clientId, data));
 export const updateSalesOrder = async (id: string, data: unknown) => run((u) => fin.updateSalesOrder(u, id, data));
 export const setPurchaseOrder = async (salesOrderId: string, data: unknown) => run((u) => po.setPurchaseOrder(u, salesOrderId, data));
+export const createDispatch = async (salesOrderId: string, data: unknown) => run((u) => dispatch.createDispatch(u, salesOrderId, data));
+export const markDispatchReceived = async (id: string, date: string) => run((u) => dispatch.markDispatchReceived(u, id, date));
+export const deleteDispatch = async (id: string) => run((u) => dispatch.deleteDispatch(u, id));
+export const deleteClientFile = async (id: string) => run((u) => files.deleteClientFile(u, id));
 export const markDelivered = async (id: string, date: string) => run((u) => fin.markDelivered(u, id, date));
 export const cancelSalesOrder = async (id: string) => run((u) => fin.cancelSalesOrder(u, id));
 export const invoiceDefaults = async (salesOrderId: string) => run((u) => fin.invoiceDefaults(u, salesOrderId));

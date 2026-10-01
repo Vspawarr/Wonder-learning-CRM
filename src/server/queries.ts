@@ -407,10 +407,21 @@ export async function clientDetail(user: SessionUser, id: string) {
       activities: { include: { by: { select: { id: true, name: true } } }, orderBy: { occurredAt: "desc" }, take: 100 },
       tasks: { where: { status: "OPEN" }, include: { assignee: { select: { name: true } } }, orderBy: { dueDate: "asc" } },
       salesOrders: {
-        include: { items: true, invoices: { select: { id: true, number: true, status: true } }, quotation: { select: { number: true, createdAt: true } }, poFile: { select: { fileName: true } }, advances: { where: { invoiceId: null }, select: { amount: true, status: true } } },
+        include: { items: true, invoices: { select: { id: true, number: true, status: true } }, quotation: { select: { number: true, createdAt: true } }, poFile: { select: { fileName: true } }, advances: { where: { invoiceId: null }, select: { amount: true, status: true } },
+          dispatches: {
+            include: { items: { select: { salesOrderItemId: true, qty: true } }, files: { select: { id: true, fileName: true } } },
+            orderBy: { createdAt: "asc" },
+          },
+        },
         orderBy: { createdAt: "desc" },
       },
       creditNotes: { include: { invoice: { select: { number: true } }, createdBy: { select: { name: true } } }, orderBy: { createdAt: "desc" } },
+      files: {
+        where: { dispatchId: null },
+        select: { id: true, category: true, title: true, fileName: true, size: true, uploadedAt: true, uploadedBy: { select: { name: true } } },
+        orderBy: { uploadedAt: "desc" },
+      },
+      contacts: { orderBy: { createdAt: "asc" } },
       payments: { include: { invoice: { select: { number: true } }, salesOrder: { select: { number: true } }, recordedBy: { select: { name: true } } }, orderBy: [{ date: "desc" }, { createdAt: "desc" }] },
     },
   });
@@ -458,6 +469,24 @@ export async function clientDetail(user: SessionUser, id: string) {
       poDate: so.poDate ? fromDbDate(so.poDate) : null,
       poFileName: so.poFile?.fileName ?? null,
       proformaNumber: so.proformaNumber,
+      items: so.items
+        .sort((a, b) => a.sortOrder - b.sortOrder)
+        .map((i) => ({
+          id: i.id,
+          description: i.description,
+          qty: i.qty,
+          sent: so.dispatches.reduce((t, d) => t + d.items.filter((x) => x.salesOrderItemId === i.id).reduce((n, x) => n + x.qty, 0), 0),
+        })),
+      dispatches: so.dispatches.map((d) => ({
+        id: d.id,
+        number: d.number,
+        date: fromDbDate(d.date),
+        transporter: d.transporter,
+        docketNo: d.docketNo,
+        kits: d.items.reduce((t, x) => t + x.qty, 0),
+        receivedOn: d.receivedOn ? fromDbDate(d.receivedOn) : null,
+        pod: d.files[0] ?? null,
+      })),
       advanceReceived: receivedOf(so.advances),
       advancePending: pendingOf(so.advances),
       createdAt: fmtDateTimeIST(so.createdAt),
@@ -484,6 +513,18 @@ export async function clientDetail(user: SessionUser, id: string) {
       recordedBy: p.recordedBy.name,
     })),
     money: outstandingSummary(invoices),
+    documents: c.files.map((f) => ({
+      id: f.id,
+      category: f.category,
+      title: f.title,
+      fileName: f.fileName,
+      size: f.size,
+      uploadedAt: f.uploadedAt.toISOString(),
+      by: f.uploadedBy.name,
+    })),
+    contacts: c.contacts.map((k) => ({ id: k.id, name: k.name, role: k.role, mobile: k.mobile, email: k.email, forPayments: k.forPayments })),
+    /** For "Send to" choices on reminders and receipts. */
+    people: c.contacts.map((k) => ({ name: k.name, role: k.role, mobile: k.mobile, email: k.email, forPayments: k.forPayments })),
     creditNotes: c.creditNotes.map((n) => ({
       id: n.id,
       number: n.number,

@@ -592,3 +592,52 @@ describe("credit notes", () => {
     expect((await invoiceRows(exA))[0].balance).toBe(197000);
   });
 });
+
+describe("dispatch", () => {
+  it("sends kits in lots, numbers challans, and marks the order delivered when all are sent", async () => {
+    const { createDispatch, challanPdf, markDispatchReceived } = await import("@/server/finance/dispatch");
+    const so = await createSalesOrder(exA, clientId, order()); // 40 PG + 25 NUR
+    const items = await db.salesOrderItem.findMany({ where: { salesOrderId: so }, orderBy: { sortOrder: "asc" } });
+    const lot = (a: number, b: number) => ({ date: today, transporter: "VRL", docketNo: "D1", lines: [{ itemId: items[0].id, qty: a }, { itemId: items[1].id, qty: b }] });
+    await expect(createDispatch(exA, so, lot(0, 0))).rejects.toThrow(/number of kits/);
+    await expect(createDispatch(exA, so, lot(41, 0))).rejects.toThrow(/Only 40/);
+    const dc1 = await createDispatch(exA, so, lot(30, 25));
+    expect((await db.salesOrder.findUniqueOrThrow({ where: { id: so } })).status).toBe("CONFIRMED");
+    await expect(createDispatch(exA, so, lot(11, 0))).rejects.toThrow(/Only 10/);
+    await createDispatch(exA, so, lot(10, 0));
+    expect((await db.salesOrder.findUniqueOrThrow({ where: { id: so } })).status).toBe("DELIVERED");
+    const { number, pdf } = await challanPdf(exA, dc1);
+    expect(number).toMatch(/^DC\//);
+    expect(pdf.subarray(0, 4).toString()).toBe("%PDF");
+    await markDispatchReceived(exA, dc1, today);
+    await expect(challanPdf(exB, dc1)).rejects.toThrow(/not found/);
+  });
+});
+
+describe("client documents and contacts", () => {
+  it("stores documents and proof of delivery files", async () => {
+    const { saveClientFile, clientFile, deleteClientFile } = await import("@/server/files");
+    const bytes = new TextEncoder().encode("%PDF-1.4");
+    await expect(saveClientFile(exA, clientId, { category: "Secret", title: "", name: "a.pdf", type: "application/pdf", bytes })).rejects.toThrow(/kind of document/);
+    await expect(saveClientFile(exB, clientId, { category: "Agreement / MOU", title: "", name: "a.pdf", type: "application/pdf", bytes })).rejects.toThrow(/not found/);
+    await saveClientFile(exA, clientId, { category: "Agreement / MOU", title: "Agreement 2026-27", name: "a.pdf", type: "application/pdf", bytes });
+    const f = await db.clientFile.findFirstOrThrow({ where: { clientId } });
+    expect((await clientFile(exA, f.id)).title).toBe("Agreement 2026-27");
+    await deleteClientFile(exA, f.id);
+    expect(await db.clientFile.count({ where: { clientId } })).toBe(0);
+  });
+
+  it("keeps extra contacts; one gets payment messages", async () => {
+    const { saveContact, deleteContact } = await import("@/server/contacts");
+    await expect(saveContact(exA, clientId, null, { name: "Ravi", role: "Accounts" })).rejects.toThrow(/mobile number or an email/);
+    await saveContact(exA, clientId, null, { name: "Ravi", role: "Accounts", mobile: "98989 89898", forPayments: true });
+    await saveContact(exA, clientId, null, { name: "Meera", role: "Principal", email: "p@school.in", forPayments: true });
+    const ks = await db.clientContact.findMany({ where: { clientId }, orderBy: { createdAt: "asc" } });
+    expect(ks.map((k) => k.forPayments)).toEqual([false, true]);
+    const so = await createSalesOrder(exA, clientId, order());
+    await createInvoice(exA, so, { date: today, dueDate: addDays(today, 45) });
+    expect((await invoiceRows(exA))[0].client.payContact).toMatchObject({ name: "Meera", email: "p@school.in" });
+    await deleteContact(exA, ks[0].id);
+    expect(await db.clientContact.count({ where: { clientId } })).toBe(1);
+  });
+});

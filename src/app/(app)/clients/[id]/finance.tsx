@@ -42,6 +42,7 @@ import type { InvoiceState } from "@/server/finance/money";
 import type { InvoiceRow } from "@/server/finance/service";
 import type { ClientDetail, ProductOption } from "@/server/queries";
 import { PoTemplateModal, type QuoteTarget } from "../../pipeline/quotations";
+import { DispatchSection } from "./dispatch";
 
 const money = inrExact;
 
@@ -341,6 +342,9 @@ export function SalesOrdersPanel({
                       {so.notes}
                     </div>
                   ) : null}
+                  {features.dispatch && so.items.length ? (
+                    <DispatchSection so={so} clientId={client.id} />
+                  ) : null}
                 </div>
                 {so.status !== "CANCELLED" ? (
                   <div className="flex flex-wrap gap-1.5">
@@ -387,7 +391,7 @@ export function SalesOrdersPanel({
                       <Icon name="upload" size={14} />{" "}
                       {so.poNumber ? "PO" : "Add PO"}
                     </button>
-                    {so.status === "CONFIRMED" ? (
+                    {so.status === "CONFIRMED" && !features.dispatch ? (
                       <button
                         className="btn sm"
                         onClick={() => setDelivering(so)}
@@ -962,11 +966,62 @@ function DeliverModal({ so, onClose }: { so: SO; onClose: () => void }) {
 
 /* ---------- invoices ---------- */
 
+export type Person = {
+  name: string;
+  role?: string;
+  mobile: string | null;
+  email: string | null;
+  forPayments?: boolean;
+};
+
 export type Contact = {
   schoolName: string;
   mobile: string;
   email: string | null;
+  /** Other people at the school; the one marked for payments is picked by default. */
+  people?: Person[];
 };
+
+function peopleOf(c: Contact): Person[] {
+  return [
+    { name: "Main contact", mobile: c.mobile, email: c.email },
+    ...(c.people ?? []),
+  ];
+}
+const defaultPerson = (c: Contact) =>
+  peopleOf(c).find((p) => p.forPayments) ?? peopleOf(c)[0];
+
+/** "Send to" chooser shown when the school has more than one contact. */
+function RecipientPicker({
+  contact,
+  value,
+  onChange,
+}: {
+  contact: Contact;
+  value: Person;
+  onChange: (p: Person) => void;
+}) {
+  const people = peopleOf(contact);
+  if (people.length < 2) return null;
+  return (
+    <Field label="Send to" htmlFor="rcpt-who">
+      <select
+        className="sel"
+        id="rcpt-who"
+        value={people.indexOf(value)}
+        onChange={(e) => onChange(people[Number(e.target.value)])}
+      >
+        {people.map((p, i) => (
+          <option key={i} value={i}>
+            {p.name}
+            {p.role ? ` (${p.role})` : ""}
+            {p.mobile ? ` · ${p.mobile}` : ""}
+          </option>
+        ))}
+      </select>
+    </Field>
+  );
+}
 
 /** Record payment + send/remind buttons for one invoice (client page and Outstanding page). */
 export function InvoiceButtons({
@@ -990,6 +1045,9 @@ export function InvoiceButtons({
   const { canFinance, features } = useApp();
   const live = row.state !== "CANCELLED";
   const owed = live && row.balance > 0;
+  // Reminders go to the school's payments contact (e.g. Accounts) when one is set.
+  const pay = row.client.payContact;
+  const to: Contact = pay && !contact.people ? { ...contact, people: [{ ...pay, forPayments: true }] } : contact;
   // Cheques not yet cleared already cover part of the balance.
   const payable = Math.round((row.balance - row.pending) * 100) / 100;
   return (
@@ -1066,7 +1124,7 @@ export function InvoiceButtons({
       {receipt ? (
         <SendReceipt
           r={receipt}
-          contact={contact}
+          contact={to}
           emailReady={emailReady}
           me={me}
           justRecorded
@@ -1077,7 +1135,7 @@ export function InvoiceButtons({
         <SendInvoice
           row={row}
           kind={sending}
-          contact={contact}
+          contact={to}
           emailReady={emailReady}
           me={me}
           onClose={() => setSending(null)}
@@ -1435,12 +1493,13 @@ function SendInvoice({
       }. Kindly arrange the payment at the earliest. Please ignore this if already paid.`
     : `Please find invoice ${row.number} for ${contact.schoolName}, amount ${money(row.total)}, due on ${dmy(row.dueDate)}.`;
   const sign = `Regards,\n${me.name}\nWonder Learning India Pvt. Ltd.`;
-  const [to, setTo] = useState(contact.email ?? "");
+  const [person, setPerson] = useState(() => defaultPerson(contact));
+  const [to, setTo] = useState(person.email ?? "");
   const [cc, setCc] = useState("");
   const [message, setMessage] = useState(
     `Dear Sir/Madam,\n\n${body} The invoice PDF is attached.\n\n${sign}`,
   );
-  const mobile = contact.mobile
+  const mobile = (person.mobile ?? "")
     .replace(/\D/g, "")
     .replace(/^(\d{10})$/, "91$1");
 
@@ -1474,6 +1533,14 @@ function SendInvoice({
         </button>
       }
     >
+      <RecipientPicker
+        contact={contact}
+        value={person}
+        onChange={(p) => {
+          setPerson(p);
+          setTo(p.email ?? "");
+        }}
+      />
       <div className="grid grid-cols-1 gap-2 min-[701px]:grid-cols-3">
         <a
           className="btn justify-center"
@@ -1499,8 +1566,8 @@ function SendInvoice({
         </button>
       </div>
       <p className="small muted mt-2">
-        WhatsApp opens a message to {contact.mobile} with a private link to the
-        invoice PDF.
+        WhatsApp opens a message to {person.mobile ?? "nobody (no mobile)"} with
+        a private link to the invoice PDF.
       </p>
 
       <h3 className="mt-4">Email from the CRM</h3>
@@ -1793,12 +1860,13 @@ function SendReceipt({
           : ""
   }.`;
   const sign = `Regards,\n${me.name}\nWonder Learning India Pvt. Ltd.`;
-  const [to, setTo] = useState(contact.email ?? "");
+  const [person, setPerson] = useState(() => defaultPerson(contact));
+  const [to, setTo] = useState(person.email ?? "");
   const [cc, setCc] = useState("");
   const [message, setMessage] = useState(
     `Dear Sir/Madam,\n\n${body} The receipt PDF is attached.\n\n${sign}`,
   );
-  const mobile = contact.mobile
+  const mobile = (person.mobile ?? "")
     .replace(/\D/g, "")
     .replace(/^(\d{10})$/, "91$1");
   const pdf = `/api/payments/${r.paymentId}/receipt`;
@@ -1833,6 +1901,14 @@ function SendReceipt({
         </button>
       }
     >
+      <RecipientPicker
+        contact={contact}
+        value={person}
+        onChange={(p) => {
+          setPerson(p);
+          setTo(p.email ?? "");
+        }}
+      />
       <div className="grid grid-cols-1 gap-2 min-[701px]:grid-cols-3">
         <a
           className="btn justify-center"
@@ -1854,8 +1930,8 @@ function SendReceipt({
         </button>
       </div>
       <p className="small muted mt-2">
-        WhatsApp opens a message to {contact.mobile} with a private link to the
-        receipt PDF.
+        WhatsApp opens a message to {person.mobile ?? "nobody (no mobile)"} with
+        a private link to the receipt PDF.
       </p>
 
       <h3 className="mt-4">Email from the CRM</h3>
