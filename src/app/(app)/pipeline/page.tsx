@@ -2,6 +2,7 @@ import { seesAllSales } from "@/lib/permissions";
 import { inrS } from "@/lib/format";
 import { PageHeader } from "@/components/ui";
 import { requireUser } from "@/server/session";
+import { isEmailConfigured } from "@/server/mailer";
 import { assignees, oppDetail, pipelineCards, productOptions } from "@/server/queries";
 import { Board } from "./board";
 import { OppDrawer } from "./opp-drawer";
@@ -49,7 +50,14 @@ export default async function PipelinePage({ searchParams }: { searchParams: Pro
         </div>
       ) : null}
       <Board cards={cards} />
-      {sp.opp && detail ? <OppDrawer key={detail.id + detail.stage} opp={detail} products={products} team={team} /> : null}
+      {sp.opp && detail ? <OppDrawer
+          key={detail.id + detail.stage}
+          opp={detail}
+          products={products}
+          team={team}
+          emailReady={isEmailConfigured()}
+          me={{ name: user.name }}
+        /> : null}
     </>
   );
 }

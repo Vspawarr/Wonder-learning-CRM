@@ -49,8 +49,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       return session;
     },
     authorized({ auth, request }) {
-      const isLogin = request.nextUrl.pathname.startsWith("/login");
-      if (isLogin) return true;
+      const path = request.nextUrl.pathname;
+      // /q/<secret> is the shareable quotation PDF link sent on WhatsApp.
+      if (path.startsWith("/login") || path.startsWith("/q/")) return true;
       return !!auth?.user;
     },
   },

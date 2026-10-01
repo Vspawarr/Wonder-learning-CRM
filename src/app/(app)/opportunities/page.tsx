@@ -5,6 +5,7 @@ import { inrS } from "@/lib/format";
 import { seesAllSales } from "@/lib/permissions";
 import { AvatarName, DueTag, Empty, PageHeader, Pill, Table } from "@/components/ui";
 import { requireUser } from "@/server/session";
+import { isEmailConfigured } from "@/server/mailer";
 import { assignees, oppDetail, pipelineCards, productOptions, type PipelineCard } from "@/server/queries";
 import { OppDrawer } from "../pipeline/opp-drawer";
 import { OppFilterBar } from "./filters";
@@ -115,7 +116,14 @@ export default async function OpportunitiesPage({ searchParams }: { searchParams
         ) : null}
       </div>
 
-      {sp.opp && detail ? <OppDrawer key={detail.id + detail.stage} opp={detail} products={products} team={team} /> : null}
+      {sp.opp && detail ? <OppDrawer
+          key={detail.id + detail.stage}
+          opp={detail}
+          products={products}
+          team={team}
+          emailReady={isEmailConfigured()}
+          me={{ name: user.name }}
+        /> : null}
     </>
   );
 }

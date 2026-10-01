@@ -55,6 +55,12 @@ const PATHS = {
   ),
   plus: <path d="M12 5v14M5 12h14" />,
   download: <path d="M12 4v11M7 10l5 5 5-5M5 20h14" />,
+  doc: (
+    <>
+      <path d="M6 3h9l4 4v14H6z" />
+      <path d="M14 3v5h5M9 13h6M9 17h6" />
+    </>
+  ),
   upload: <path d="M12 16V5M7 10l5-5 5 5M5 20h14" />,
   phone: <path d="M5 4h4l2 5-2 1a11 11 0 005 5l1-2 5 2v4a2 2 0 01-2 2A16 16 0 013 6a2 2 0 012-2z" />,
   chat: <path d="M4 5h16v11H9l-5 4z" />,

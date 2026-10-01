@@ -13,8 +13,21 @@ import { fmtDate, istDate, todayIST } from "@/lib/dates";
 import { inr, inrS } from "@/lib/format";
 import type { OppDetail, Option, ProductOption } from "@/server/queries";
 import { LostModal, WonModal } from "./close-modals";
+import { QuotationsPanel } from "./quotations";
 
-export function OppDrawer({ opp, products, team }: { opp: OppDetail; products: ProductOption[]; team: Option[] }) {
+export function OppDrawer({
+  opp,
+  products,
+  team,
+  emailReady,
+  me,
+}: {
+  opp: OppDetail;
+  products: ProductOption[];
+  team: Option[];
+  emailReady: boolean;
+  me: { name: string };
+}) {
   const router = useRouter();
   const path = usePathname();
   const sp = useSearchParams();
@@ -146,6 +159,8 @@ export function OppDrawer({ opp, products, team }: { opp: OppDetail; products: P
           <LogInteractionButton opportunityId={opp.id} />
         </div>
       </div>
+
+      <QuotationsPanel opp={opp} products={products} emailReady={emailReady} me={me} />
 
       <h3 className="mt-2">Items of interest</h3>
       <div className="tw mt-2 mb-3">

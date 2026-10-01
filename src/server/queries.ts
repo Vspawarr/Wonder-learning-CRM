@@ -212,7 +212,11 @@ export async function oppDetail(user: SessionUser, id: string) {
     include: {
       items: { include: { product: { select: { name: true } } } },
       owner: { select: { id: true, name: true } },
-      lead: { select: { id: true, number: true, contactName: true, mobile: true, city: true, state: true } },
+      lead: { select: { id: true, number: true, contactName: true, mobile: true, email: true, city: true, state: true } },
+      quotations: {
+        include: { _count: { select: { items: true } }, preparedBy: { select: { name: true } } },
+        orderBy: { createdAt: "desc" },
+      },
       stageChanges: { include: { changedBy: { select: { name: true } } }, orderBy: { changedAt: "desc" } },
       activities: { include: { by: { select: { id: true, name: true } } }, orderBy: { occurredAt: "desc" }, take: 50 },
       tasks: { where: { status: "OPEN" }, orderBy: { dueDate: "asc" } },
@@ -237,6 +241,17 @@ export async function oppDetail(user: SessionUser, id: string) {
     owner: o.owner,
     lead: o.lead,
     client: o.client,
+    quotations: o.quotations.map((q) => ({
+      id: q.id,
+      number: q.number,
+      date: fromDbDate(q.date),
+      status: q.status,
+      sentVia: q.sentVia,
+      sentAt: q.sentAt?.toISOString() ?? null,
+      lines: q._count.items,
+      preparedBy: q.preparedBy.name,
+      shareToken: q.shareToken,
+    })),
     items: o.items.map((i) => ({
       productId: i.productId,
       name: i.product.name,

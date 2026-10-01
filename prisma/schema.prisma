@@ -40,16 +40,17 @@ model User {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  leadsAssigned  Lead[]                   @relation("LeadAssignedTo")
-  leadsCreated   Lead[]                   @relation("LeadCreatedBy")
-  oppsOwned      Opportunity[]            @relation("OpportunityOwner")
-  clientsOwned   Client[]                 @relation("ClientOwner")
-  clientsCreated Client[]                 @relation("ClientCreatedBy")
-  oppsCreated    Opportunity[]            @relation("OpportunityCreatedBy")
-  tasksAssigned  Task[]                   @relation("TaskAssignee")
-  tasksCreated   Task[]                   @relation("TaskCreatedBy")
-  activities     Activity[]
-  stageChanges   OpportunityStageChange[]
+  leadsAssigned      Lead[]                   @relation("LeadAssignedTo")
+  leadsCreated       Lead[]                   @relation("LeadCreatedBy")
+  oppsOwned          Opportunity[]            @relation("OpportunityOwner")
+  clientsOwned       Client[]                 @relation("ClientOwner")
+  clientsCreated     Client[]                 @relation("ClientCreatedBy")
+  oppsCreated        Opportunity[]            @relation("OpportunityCreatedBy")
+  tasksAssigned      Task[]                   @relation("TaskAssignee")
+  tasksCreated       Task[]                   @relation("TaskCreatedBy")
+  quotationsPrepared Quotation[]
+  activities         Activity[]
+  stageChanges       OpportunityStageChange[]
 }
 
 // ───────────────────────── Masters ─────────────────────────
@@ -74,6 +75,7 @@ model Product {
 
   leadInterests    LeadInterest[]
   opportunityItems OpportunityItem[]
+  quotationItems   QuotationItem[]
 }
 
 // States and cities are managed in-app (Settings → Locations). They are the single
@@ -222,6 +224,7 @@ model Opportunity {
 
   items        OpportunityItem[]
   stageChanges OpportunityStageChange[]
+  quotations   Quotation[]
   tasks        Task[]
   activities   Activity[]
 
@@ -384,4 +387,65 @@ model Client {
   activities Activity[]
 
   @@index([ownerId, status])
+}
+
+// ───────────────────────── Quotations ─────────────────────────
+
+enum QuotationStatus {
+  DRAFT // editable
+  SENT // locked; revise by creating a new quotation
+}
+
+model Quotation {
+  id     String @id @default(cuid())
+  number String @unique // QUO/2026/07/005 — running number per month
+  year   Int
+  month  Int
+  seq    Int
+
+  opportunityId String
+  opportunity   Opportunity @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+
+  date         DateTime @db.Date
+  validityDays Int
+  toLine       String // "The Director"
+  schoolName   String
+  address      String?
+
+  status     QuotationStatus @default(DRAFT)
+  sentAt     DateTime?
+  sentVia    String? // download | whatsapp | email
+  emailedTo  String?
+  shareToken String          @unique // secret for the WhatsApp link to the PDF
+
+  preparedById String
+  preparedBy   User   @relation(fields: [preparedById], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  items QuotationItem[]
+
+  @@unique([year, month, seq])
+  @@index([opportunityId])
+}
+
+model QuotationItem {
+  id          String    @id @default(cuid())
+  quotationId String
+  quotation   Quotation @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+  productId   String?
+  product     Product?  @relation(fields: [productId], references: [id])
+  description String
+  mrp         Decimal   @db.Decimal(12, 2) // typed on each quotation
+  price       Decimal   @db.Decimal(12, 2) // typed on each quotation
+  sortOrder   Int
+}
+
+// Small editable settings, e.g. the quotation's standard pages ("quotation.content").
+model AppSetting {
+  key         String   @id
+  value       Json
+  updatedAt   DateTime @updatedAt
+  updatedById String?
 }

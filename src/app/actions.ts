@@ -14,6 +14,10 @@ import * as tasks from "@/server/tasks";
 import * as activities from "@/server/activities";
 import * as settings from "@/server/settings";
 import * as clients from "@/server/clients";
+import * as quotes from "@/server/quotation/service";
+import { contentSchema, resetQuotationContent, saveQuotationContent } from "@/server/quotation/content";
+import { canManageSettings } from "@/lib/permissions";
+import { parse } from "@/server/validation";
 
 export type ActionResult<T = undefined> = { ok: true; data?: T } | { ok: false; error: string };
 
@@ -65,6 +69,27 @@ export const moveOpportunity = async (id: string, data: unknown) => run((u) => o
 /* clients */
 export const convertToClient = async (opportunityId: string) => run((u) => clients.convertToClient(u, opportunityId));
 export const completeOnboarding = async (id: string) => run((u) => clients.completeOnboarding(u, id));
+
+/* quotations */
+export const quotationDefaults = async (opportunityId: string) => run((u) => quotes.quotationDefaults(u, opportunityId));
+export const quotationForEdit = async (id: string) => run((u) => quotes.quotationForEdit(u, id));
+export const createQuotation = async (opportunityId: string, data: unknown) => run((u) => quotes.createQuotation(u, opportunityId, data));
+export const updateQuotation = async (id: string, data: unknown) => run((u) => quotes.updateQuotation(u, id, data));
+export const deleteQuotation = async (id: string) => run((u) => quotes.deleteQuotation(u, id));
+export const reviseQuotation = async (id: string) => run((u) => quotes.reviseQuotation(u, id));
+export const markQuotationSent = async (id: string, via: "download" | "whatsapp") =>
+  run((u) => quotes.markQuotationSent(u, id, via === "whatsapp" ? "whatsapp" : "download"));
+export const emailQuotation = async (id: string, data: unknown) => run((u) => quotes.emailQuotation(u, id, data));
+export const saveQuotationSettings = async (data: unknown) =>
+  run(async (u) => {
+    if (!canManageSettings(u.role)) throw new DomainError("Only a Director or Admin can change the quotation text.");
+    await saveQuotationContent(u.id, parse(contentSchema, data));
+  });
+export const resetQuotationSettings = async () =>
+  run(async (u) => {
+    if (!canManageSettings(u.role)) throw new DomainError("Only a Director or Admin can change the quotation text.");
+    await resetQuotationContent();
+  });
 
 /* tasks & activity */
 export const createTask = async (data: unknown) => run((u) => tasks.createTask(u, data));

@@ -81,6 +81,32 @@ included.
 
 ---
 
+## Optional: send quotations by email
+
+The CRM can email quotations (with the PDF attached) from your own email account.
+Until this is set up, the email option is switched off and quotations are shared
+by Download or WhatsApp.
+
+With Gmail or Google Workspace:
+
+1. Turn on 2-Step Verification for the account that will send the emails.
+2. Create an **App Password** (Google Account → Security → App passwords) and copy it.
+3. In Vercel, open the project → **Settings → Environment Variables** and add:
+
+| Name | What to put |
+|---|---|
+| `SMTP_HOST` | `smtp.gmail.com` |
+| `SMTP_PORT` | `465` |
+| `SMTP_USER` | the sending email address |
+| `SMTP_PASS` | the App Password from step 2 |
+| `MAIL_FROM` | e.g. `Wonder Learning <wonderlearningindia@gmail.com>` |
+
+4. Go to **Deployments**, click **⋯** on the latest one and choose **Redeploy**.
+
+Replies go to the person who prepared the quotation.
+
+---
+
 ## Good to know
 
 - **Updates go live automatically.** Every time new code is pushed to GitHub, Vercel rebuilds the site
