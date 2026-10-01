@@ -1,3 +1,5 @@
+import Image from "next/image";
+
 // Line icons from the prototype (24×24, stroke-based).
 const PATHS = {
   grid: (
@@ -103,12 +105,16 @@ export function Icon({ name, size = 18, className }: { name: IconName; size?: nu
   );
 }
 
-export function Logo({ size = 34 }: { size?: number }) {
+/** Wonder Learning logo (from the quotation format), transparent background. 600×266 source. */
+export function BrandLogo({ width = 160, className, priority }: { width?: number; className?: string; priority?: boolean }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 34 34" aria-hidden="true">
-      <path d="M4 26a13 13 0 0126 0" stroke="#F4A62A" strokeWidth="4" fill="none" strokeLinecap="round" />
-      <path d="M9 26a8 8 0 0116 0" stroke="#2E9BDA" strokeWidth="4" fill="none" strokeLinecap="round" />
-      <path d="M14 26a3 3 0 016 0" stroke="#E5533F" strokeWidth="4" fill="none" strokeLinecap="round" />
-    </svg>
+    <Image
+      src="/brand/wonder-logo.png"
+      alt="Wonder Learning – Empowering Child Education"
+      width={width}
+      height={Math.round((width * 266) / 600)}
+      className={className}
+      priority={priority}
+    />
   );
 }

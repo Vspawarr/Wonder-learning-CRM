@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { Icon, Logo, type IconName } from "@/components/icons";
+import { BrandLogo, Icon, type IconName } from "@/components/icons";
 import { Avatar } from "@/components/ui";
 import { DownloadAppLink } from "@/components/app-download";
 import { logout } from "@/app/actions";
@@ -32,12 +32,9 @@ export function Shell({
           open ? "left-0" : "-left-[290px]"
         }`}
       >
-        <div className="flex items-center gap-2.5 px-2 pt-1 pb-4">
-          <Logo />
-          <div>
-            <b className="block font-head text-[17px] leading-tight text-white">Wonder Learning</b>
-            <span className="text-[11.5px] text-[#9e9bd0]">Sales &amp; leads</span>
-          </div>
+        <div className="px-2 pt-1 pb-4">
+          <BrandLogo width={176} priority />
+          <span className="mt-1 block pl-1 text-[11.5px] text-[#9e9bd0]">Sales CRM</span>
         </div>
         {nav.map((g) => (
           <div key={g.group}>
