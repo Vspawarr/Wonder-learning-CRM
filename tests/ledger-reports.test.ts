@@ -1,6 +1,5 @@
 import ExcelJS from "exceljs";
 import { beforeEach, describe, expect, it } from "vitest";
-import { db } from "@/lib/db";
 import { addDays, todayIST } from "@/lib/dates";
 import type { SessionUser } from "@/lib/permissions";
 import { convertToClient } from "@/server/clients";
