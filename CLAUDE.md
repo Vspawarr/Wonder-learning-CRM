@@ -20,7 +20,7 @@ See README.md for setup, roles and the code map.
 
 The owner chose to finish the web version first, then do these together:
 
-1. Leads list: switch to a card list on phones (school, contact, status, temperature, next follow-up).
+1. ~~Leads list: switch to a card list on phones (school, contact, status, temperature, next follow-up).~~ Done.
 2. Pipeline: narrower columns on phones, plus a hint to use the Stage dropdown instead of dragging.
 3. ~~Dashboard: show KPI tiles two per row on phones.~~ Done (`.kgrid-2`).
 4. Remove the duplicated page title on phones (top bar and page heading both show it).

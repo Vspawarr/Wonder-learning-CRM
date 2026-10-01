@@ -13,6 +13,11 @@ const prisma = new PrismaClient({
 });
 
 async function seedProducts() {
+  // Only on a brand-new database: after that, products are managed (and may be deleted) in the app.
+  if (await prisma.product.count()) {
+    console.log("Products: already set up, left unchanged");
+    return;
+  }
   for (const [i, p] of INITIAL_PRODUCTS.entries()) {
     await prisma.product.upsert({
       where: { code: p.code },

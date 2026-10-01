@@ -200,3 +200,28 @@ describe("collection follow-ups", () => {
     expect(await db.task.count({ where: { invoiceId: id, status: "OPEN" } })).toBe(0);
   });
 });
+
+describe("payment receipts", () => {
+  it("numbers each payment RCPT/YYYY/MM/NNN and renders a shareable receipt", async () => {
+    const { receiptPdf, receiptPdfByToken, emailReceipt } = await import("@/server/finance/service");
+    const so = await createSalesOrder(exA, clientId, order());
+    const id = await createInvoice(exA, so, { date: today, dueDate: addDays(today, 45) });
+    const a = await recordPayment(exA, id, pay(50000));
+    const b = await recordPayment(exA, id, pay(47000));
+    expect([a.receiptNumber, b.receiptNumber]).toEqual([`RCPT/${Y}/${M}/001`, `RCPT/${Y}/${M}/002`]);
+    const { pdf, number } = await receiptPdf(exA, b.paymentId);
+    expect(number).toBe(b.receiptNumber);
+    expect(pdf.subarray(0, 4).toString()).toBe("%PDF");
+    await expect(receiptPdf(exB, b.paymentId)).rejects.toThrow(/not found/);
+    expect((await receiptPdfByToken(a.shareToken))?.number).toBe(a.receiptNumber);
+    expect(await receiptPdfByToken("not-a-real-token-at-all-xyz")).toBeNull();
+    await expect(emailReceipt(exA, a.paymentId, { to: "school@example.com", message: "Hi" })).rejects.toThrow(/isn't set up/);
+  });
+
+  it("writes amounts in words, Indian style", async () => {
+    const { rupeesInWords } = await import("@/server/finance/words");
+    expect(rupeesInWords(197000)).toBe("Rupees One Lakh Ninety-Seven Thousand Only");
+    expect(rupeesInWords(12345678.5)).toBe("Rupees One Crore Twenty-Three Lakh Forty-Five Thousand Six Hundred Seventy-Eight and Fifty Paise Only");
+    expect(rupeesInWords(1000)).toBe("Rupees One Thousand Only");
+  });
+});

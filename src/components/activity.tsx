@@ -4,7 +4,8 @@ import { DateInput } from "./date-input";
 import { useState } from "react";
 import { Field, Modal, Options, useAction } from "./client";
 import { Icon } from "./icons";
-import { logActivity } from "@/app/actions";
+import { useRouter } from "next/navigation";
+import { convertLead, logActivity } from "@/app/actions";
 import { fmtDate, todayIST } from "@/lib/dates";
 
 export type ActivityItem = {
@@ -84,17 +85,23 @@ export function LogInteractionButton({
   opportunityId,
   clientId,
   disabled,
+  canConvert,
 }: {
   leadId?: string;
   opportunityId?: string;
   clientId?: string;
   disabled?: boolean;
+  /** Offer "convert this lead to an opportunity" after logging. */
+  canConvert?: boolean;
 }) {
   const [open, setOpen] = useState(false);
+  const [convert, setConvert] = useState(false);
+  const router = useRouter();
   const [v, setV] = useState({ type: "PHONE", subject: "", summary: "", nextAction: "", followUpDate: "" });
   const { pending, run } = useAction();
   const close = () => {
     setOpen(false);
+    setConvert(false);
     setV({ type: "PHONE", subject: "", summary: "", nextAction: "", followUpDate: "" });
   };
   return (
@@ -116,10 +123,24 @@ export function LogInteractionButton({
                 className="btn pri"
                 disabled={pending}
                 onClick={() =>
-                  run(() => logActivity({ ...v, leadId, opportunityId, clientId }), {
-                    success: v.followUpDate ? "Interaction logged and follow-up booked." : "Interaction logged.",
-                    onDone: close,
-                  })
+                  run(
+                    async () => {
+                      const r = await logActivity({ ...v, leadId, opportunityId, clientId });
+                      if (!r.ok || !(convert && leadId)) return { ...r, data: undefined as string | undefined };
+                      return convertLead(leadId);
+                    },
+                    {
+                      success: convert
+                        ? "Interaction logged and lead converted to an opportunity."
+                        : v.followUpDate
+                          ? "Interaction logged and follow-up booked."
+                          : "Interaction logged.",
+                      onDone: (oppId) => {
+                        close();
+                        if (oppId) router.push(`/opportunities?opp=${oppId}`);
+                      },
+                    },
+                  )
                 }
               >
                 Save
@@ -148,6 +169,15 @@ export function LogInteractionButton({
               <DateInput id="li-date" min={todayIST()} value={v.followUpDate} onChange={(followUpDate) => setV({ ...v, followUpDate })} />
             </Field>
           </div>
+          {canConvert && leadId ? (
+            <label className="mt-1 flex items-start gap-2.5 rounded-lg border border-line p-3">
+              <input type="checkbox" className="mt-1" checked={convert} onChange={(e) => setConvert(e.target.checked)} />
+              <span>
+                <b>Convert to opportunity</b>
+                <span className="small muted block">The school is interested: after saving, it moves to the Pipeline as Interested.</span>
+              </span>
+            </label>
+          ) : null}
         </Modal>
       ) : null}
     </>

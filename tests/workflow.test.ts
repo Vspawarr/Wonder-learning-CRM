@@ -322,6 +322,17 @@ describe("products", () => {
     await saveProduct(head, p.id, data);
     expect(Number((await db.product.findUniqueOrThrow({ where: { id: p.id } })).price)).toBe(12000);
   });
+
+  it("admins delete a product; leads lose the link but keep everything else", async () => {
+    const { deleteProduct } = await import("@/server/settings");
+    const p = await makeProduct("Old Kit");
+    const leadId = await createLead(exA, leadData(exA.id, { interests: [p.id] }));
+    await expect(deleteProduct(mgr, p.id)).rejects.toThrow(/Sales Head/);
+    await deleteProduct(admin, p.id);
+    expect(await db.product.count({ where: { id: p.id } })).toBe(0);
+    expect(await db.lead.count({ where: { id: leadId } })).toBe(1);
+    await expect(deleteProduct(admin, p.id)).rejects.toThrow(/already deleted/);
+  });
 });
 
 describe("user management", () => {

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { Field, Modal, Options, useAction } from "@/components/client";
 import { Icon } from "@/components/icons";
+import { ConvertLeadButton } from "@/components/convert-lead";
 import { LogInteractionButton } from "@/components/activity";
 import { disqualifyLead, updateLead } from "@/app/actions";
 import { LOST_REASONS } from "@/lib/constants";
@@ -84,7 +85,8 @@ export function LeadActions({ lead }: { lead: LeadDetail }) {
       <a className="btn" href={`https://wa.me/${wa}`} target="_blank" rel="noreferrer">
         <Icon name="chat" size={16} /> WhatsApp
       </a>
-      <LogInteractionButton leadId={lead.id} />
+      <LogInteractionButton leadId={lead.id} canConvert={active && !lead.opportunity} />
+      {active && !lead.opportunity ? <ConvertLeadButton leadId={lead.id} schoolName={lead.schoolName} /> : null}
       {active ? (
         <button className="btn" onClick={() => setDisq(true)}>
           Disqualify

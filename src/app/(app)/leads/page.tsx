@@ -2,7 +2,8 @@ import Link from "next/link";
 import { LEAD_STATUS_LABEL, TEMPERATURE_LABEL, leadCode } from "@/lib/constants";
 import { todayIST } from "@/lib/dates";
 import { seesAllSales } from "@/lib/permissions";
-import { AvatarName, FollowUp, PageHeader, Pill, Table } from "@/components/ui";
+import { AvatarName, Empty, FollowUp, PageHeader, Pill, Table } from "@/components/ui";
+import { ConvertLeadButton } from "@/components/convert-lead";
 import { requireUser } from "@/server/session";
 import { assignees, leadsList } from "@/server/queries";
 import { getLocations } from "@/server/locations";
@@ -23,6 +24,9 @@ export default async function LeadsPage({ searchParams }: { searchParams: SP }) 
     getLocations(),
   ]);
   const today = todayIST();
+  const empty = sp.q || sp.temp || sp.src || (sp.status && sp.status !== "Active") ? "No leads match these filters." : "No leads yet. Add your first lead.";
+  // Leads that haven't become an opportunity yet (Qualified ones convert automatically).
+  const convertible = (status: string) => status === "NEW" || status === "CONTACTED";
 
   return (
     <>
@@ -34,40 +38,72 @@ export default async function LeadsPage({ searchParams }: { searchParams: SP }) 
         <NewLeadButton team={team} locations={locations} defaultAssignee={team.some((t) => t.id === user.id) ? user.id : ""} />
       </PageHeader>
       <LeadFilters />
-      <Table
-        head={["Lead", "School", "City", "Source", "Status", "Category", "Owner", "Next follow-up"]}
-        empty={sp.q || sp.temp || sp.src || (sp.status && sp.status !== "Active") ? "No leads match these filters." : "No leads yet. Add your first lead."}
-      >
+      <div className="hidden min-[901px]:block">
+        <Table head={["Lead", "School", "City", "Source", "Status", "Category", "Owner", "Next follow-up", ""]} empty={empty}>
+          {rows.map((l) => (
+            <tr key={l.id} className="click">
+              <td className="faint">
+                <Link href={`/leads/${l.id}`} className="text-inherit no-underline">
+                  {leadCode(l.number)}
+                </Link>
+              </td>
+              <td>
+                <Link href={`/leads/${l.id}`} className="font-bold text-ink no-underline hover:underline">
+                  {l.schoolName}
+                </Link>
+                <div className="small muted">{l.contactName}</div>
+              </td>
+              <td>{l.city}</td>
+              <td>{l.source}</td>
+              <td>
+                <Pill>{LEAD_STATUS_LABEL[l.status]}</Pill>
+              </td>
+              <td>
+                <Pill>{TEMPERATURE_LABEL[l.temperature]}</Pill>
+              </td>
+              <td>
+                <AvatarName id={l.owner.id} name={l.owner.name} />
+              </td>
+              <td className="whitespace-nowrap">
+                <FollowUp date={l.nextFollowUpDate} today={today} />
+              </td>
+              <td className="whitespace-nowrap">{convertible(l.status) ? <ConvertLeadButton leadId={l.id} schoolName={l.schoolName} small /> : null}</td>
+            </tr>
+          ))}
+        </Table>
+      </div>
+
+      <div className="flex flex-col gap-2.5 min-[901px]:hidden">
         {rows.map((l) => (
-          <tr key={l.id} className="click">
-            <td className="faint">
-              <Link href={`/leads/${l.id}`} className="text-inherit no-underline">
-                {leadCode(l.number)}
-              </Link>
-            </td>
-            <td>
-              <Link href={`/leads/${l.id}`} className="font-bold text-ink no-underline hover:underline">
-                {l.schoolName}
-              </Link>
-              <div className="small muted">{l.contactName}</div>
-            </td>
-            <td>{l.city}</td>
-            <td>{l.source}</td>
-            <td>
-              <Pill>{LEAD_STATUS_LABEL[l.status]}</Pill>
-            </td>
-            <td>
-              <Pill>{TEMPERATURE_LABEL[l.temperature]}</Pill>
-            </td>
-            <td>
-              <AvatarName id={l.owner.id} name={l.owner.name} />
-            </td>
-            <td className="whitespace-nowrap">
-              <FollowUp date={l.nextFollowUpDate} today={today} />
-            </td>
-          </tr>
+          <div key={l.id} className="card p-3.5">
+            <Link href={`/leads/${l.id}`} className="block text-ink no-underline">
+              <div className="flex items-start justify-between gap-2">
+                <b className="min-w-0">{l.schoolName}</b>
+                <Pill>{LEAD_STATUS_LABEL[l.status]}</Pill>
+              </div>
+              <div className="small muted mt-0.5">
+                {l.contactName} · {l.city}
+              </div>
+              <div className="small mt-1.5 flex flex-wrap items-center gap-2">
+                <Pill>{TEMPERATURE_LABEL[l.temperature]}</Pill>
+                <span>
+                  Next: <FollowUp date={l.nextFollowUpDate} today={today} />
+                </span>
+              </div>
+            </Link>
+            {convertible(l.status) ? (
+              <div className="mt-2.5">
+                <ConvertLeadButton leadId={l.id} schoolName={l.schoolName} small />
+              </div>
+            ) : null}
+          </div>
         ))}
-      </Table>
+        {!rows.length ? (
+          <div className="card">
+            <Empty>{empty}</Empty>
+          </div>
+        ) : null}
+      </div>
     </>
   );
 }

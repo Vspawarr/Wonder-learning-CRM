@@ -15,6 +15,8 @@ import { getQuotationContent } from "../quotation/content";
 import { emailInput } from "../quotation/service";
 import { parse } from "../validation";
 import { renderInvoicePdf, type InvoicePdfData } from "./invoice-pdf";
+import { renderReceiptPdf } from "./receipt-pdf";
+import { rupeesInWords } from "./words";
 import { invoiceState, lineAmount, outstandingSummary, r2, totals } from "./money";
 
 const num = (label: string, min: number) =>
@@ -84,15 +86,18 @@ export const paymentInput = z.object({
 const code = (prefix: string, y: number, m: number, seq: number) => `${prefix}/${y}/${String(m).padStart(2, "0")}/${String(seq).padStart(3, "0")}`;
 
 /** Creates a record with the next running number for this month, retrying on a clash. */
-async function withNextNumber<T>(model: "salesOrder" | "invoice", prefix: string, create: (tx: Tx, n: { number: string; year: number; month: number; seq: number }) => Promise<T>) {
+async function withNextNumber<T>(model: "salesOrder" | "invoice" | "payment", prefix: string, create: (tx: Tx, n: { number: string; year: number; month: number; seq: number }) => Promise<T>) {
   const [y, m] = todayIST().split("-").map(Number);
   for (let attempt = 0; attempt < 5; attempt++) {
     try {
       return await db.$transaction(async (tx) => {
+        const where = { year: y, month: m };
         const agg =
           model === "salesOrder"
-            ? await tx.salesOrder.aggregate({ where: { year: y, month: m }, _max: { seq: true } })
-            : await tx.invoice.aggregate({ where: { year: y, month: m }, _max: { seq: true } });
+            ? await tx.salesOrder.aggregate({ where, _max: { seq: true } })
+            : model === "invoice"
+              ? await tx.invoice.aggregate({ where, _max: { seq: true } })
+              : await tx.payment.aggregate({ where, _max: { seq: true } });
         const seq = (agg._max.seq ?? 0) + 1;
         return create(tx, { number: code(prefix, y, m, seq), year: y, month: m, seq });
       });
@@ -356,9 +361,11 @@ export async function recordPayment(user: SessionUser, invoiceId: string, raw: u
   const balance = r2(Number(inv.total) - paidOf(inv.payments));
   if (balance <= 0) throw new DomainError("This invoice is already fully paid.");
   if (d.amount > balance + 0.001) throw new DomainError(`That's more than the ${inr(balance)} still due on ${inv.number}.`);
-  return db.$transaction(async (tx) => {
-    await tx.payment.create({
+  return withNextNumber("payment", "RCPT", async (tx, n) => {
+    const p = await tx.payment.create({
       data: {
+        ...n,
+        shareToken: randomBytes(24).toString("base64url"),
         invoiceId,
         clientId: inv.clientId,
         amount: d.amount,
@@ -373,12 +380,12 @@ export async function recordPayment(user: SessionUser, invoiceId: string, raw: u
     await tx.activity.create({
       data: {
         type: "SYSTEM",
-        subject: `Payment ${inr(d.amount)} received for ${inv.number} (${d.mode}${d.reference ? ` ${d.reference}` : ""}) · ${s.balance > 0 ? `${inr(s.balance)} still due` : "paid in full"}`,
+        subject: `Payment ${inr(d.amount)} received for ${inv.number} (${d.mode}${d.reference ? ` ${d.reference}` : ""}) · receipt ${p.number} · ${s.balance > 0 ? `${inr(s.balance)} still due` : "paid in full"}`,
         byId: user.id,
         clientId: inv.clientId,
       },
     });
-    return s;
+    return { ...s, paymentId: p.id, receiptNumber: p.number, shareToken: p.shareToken, amount: d.amount };
   });
 }
 
@@ -489,6 +496,93 @@ export async function emailInvoice(user: SessionUser, id: string, raw: unknown, 
     await db.activity.create({
       data: { type: "EMAIL", subject: `Invoice ${inv.number} emailed to ${d.to}`, byId: user.id, clientId: inv.clientId },
     });
+}
+
+/* ---------- payment receipts ---------- */
+
+const receiptInclude = {
+  invoice: { include: { payments: { select: { id: true, amount: true, date: true, createdAt: true } } } },
+  client: true,
+  recordedBy: { select: { name: true } },
+} as const;
+
+async function loadPayment(user: SessionUser, id: string) {
+  const p = await db.payment.findFirst({ where: { id, client: clientScope(user) }, include: receiptInclude });
+  if (!p) throw new NotFoundError("Payment");
+  return p;
+}
+
+async function receiptFor(p: Awaited<ReturnType<typeof loadPayment>>) {
+  const content = await getQuotationContent();
+  // "Received so far" counts this payment and the ones recorded before it.
+  const upTo = p.invoice.payments.filter((x) => x.createdAt.getTime() <= p.createdAt.getTime());
+  const receivedToDate = paidOf(upTo);
+  const c = p.client;
+  const amount = Number(p.amount);
+  const pdf = await renderReceiptPdf({
+    number: p.number,
+    date: dmy(p.date),
+    schoolName: c.schoolName,
+    contactName: c.contactName,
+    address: [c.address, c.area, c.city].filter(Boolean).join(", ") || null,
+    amount,
+    amountWords: rupeesInWords(amount),
+    mode: p.mode,
+    reference: p.reference,
+    note: p.note,
+    invoiceNumber: p.invoice.number,
+    invoiceDate: dmy(p.invoice.date),
+    invoiceTotal: Number(p.invoice.total),
+    receivedToDate,
+    balance: r2(Math.max(0, Number(p.invoice.total) - receivedToDate)),
+    receivedBy: p.recordedBy.name,
+    footerLines: content.footerLines,
+    company: content.company,
+  });
+  return { number: p.number, pdf };
+}
+
+export const receiptFileName = (number: string) => `Receipt-${number.replace(/\//g, "-")}.pdf`;
+
+export async function receiptPdf(user: SessionUser, paymentId: string) {
+  return receiptFor(await loadPayment(user, paymentId));
+}
+
+/** For the WhatsApp link: anyone with the secret link may view that one receipt. */
+export async function receiptPdfByToken(token: string) {
+  if (!/^[A-Za-z0-9_-]{20,}$/.test(token)) return null;
+  const p = await db.payment.findUnique({ where: { shareToken: token }, include: receiptInclude });
+  return p ? receiptFor(p) : null;
+}
+
+export async function logReceiptShared(user: SessionUser, paymentId: string) {
+  const p = await loadPayment(user, paymentId);
+  await db.activity.create({
+    data: { type: "WHATSAPP", subject: `Receipt ${p.number} (${inr(Number(p.amount))}) shared on WhatsApp`, byId: user.id, clientId: p.clientId },
+  });
+}
+
+export async function emailReceipt(user: SessionUser, paymentId: string, raw: unknown) {
+  if (!isEmailConfigured()) throw new DomainError("Email sending isn't set up yet. Use WhatsApp or download the PDF instead.");
+  const d = parse(emailInput, raw);
+  const p = await loadPayment(user, paymentId);
+  const { pdf } = await receiptFor(p);
+  try {
+    await sendMail({
+      to: d.to,
+      cc: d.cc ?? undefined,
+      replyTo: user.email,
+      subject: `Payment receipt ${p.number} – Wonder Learning`,
+      text: d.message,
+      attachments: [{ filename: receiptFileName(p.number), content: pdf, contentType: "application/pdf" }],
+    });
+  } catch (e) {
+    console.error(e);
+    throw new DomainError("The email couldn't be sent. Check the address and try again, or download the PDF instead.");
+  }
+  await db.activity.create({
+    data: { type: "EMAIL", subject: `Receipt ${p.number} emailed to ${d.to}`, byId: user.id, clientId: p.clientId },
+  });
 }
 
 /* ---------- reading ---------- */

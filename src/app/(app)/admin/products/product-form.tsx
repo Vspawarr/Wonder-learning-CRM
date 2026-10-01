@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Field, Modal, useAction } from "@/components/client";
 import { Icon } from "@/components/icons";
-import { saveProduct } from "@/app/actions";
+import { deleteProduct, saveProduct } from "@/app/actions";
 
 type P = { id: string; name: string; category: string | null; price: number | null; gstRate: number | null; active: boolean };
 
@@ -70,6 +70,44 @@ export function ProductButton({ product }: { product?: P }) {
               <input className="in" id="p-gst" type="number" min={0} max={100} step="0.01" placeholder="Not set" value={v.gstRate} onChange={(e) => setV({ ...v, gstRate: e.target.value })} />
             </Field>
           </div>
+        </Modal>
+      ) : null}
+    </>
+  );
+}
+
+export function DeleteProductButton({ product }: { product: { id: string; name: string } }) {
+  const [open, setOpen] = useState(false);
+  const { pending, run } = useAction();
+  return (
+    <>
+      <button className="btn sm ghost" onClick={() => setOpen(true)} aria-label={`Delete ${product.name}`}>
+        Delete
+      </button>
+      {open ? (
+        <Modal
+          title={`Delete ${product.name}?`}
+          onClose={() => setOpen(false)}
+          footer={
+            <>
+              <button className="btn" onClick={() => setOpen(false)}>
+                Cancel
+              </button>
+              <button
+                className="btn bad"
+                disabled={pending}
+                onClick={() => run(() => deleteProduct(product.id), { success: `${product.name} deleted.`, onDone: () => setOpen(false) })}
+              >
+                {pending ? "Deleting…" : "Delete product"}
+              </button>
+            </>
+          }
+        >
+          <p>It will no longer appear in product lists.</p>
+          <p className="small muted mt-2">
+            Quotations, sales orders and invoices that already include it are not changed. If you may sell it again later, use Edit →
+            Inactive instead.
+          </p>
         </Modal>
       ) : null}
     </>

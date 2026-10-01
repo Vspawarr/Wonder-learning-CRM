@@ -52,8 +52,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       const path = request.nextUrl.pathname;
       // /q/<secret> is the shareable quotation PDF link sent on WhatsApp.
       // /i/<secret> is the same for an invoice.
-      // /download-app is the public page with the Android app.
-      if (["/login", "/q/", "/i/", "/download-app"].some((p) => path.startsWith(p))) return true;
+      // /r/<secret> is a payment receipt; /download-app is the public page with the Android app.
+      if (["/login", "/q/", "/i/", "/r/", "/download-app"].some((p) => path.startsWith(p))) return true;
       return !!auth?.user;
     },
   },

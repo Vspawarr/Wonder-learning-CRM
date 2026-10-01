@@ -149,7 +149,7 @@ export default async function ClientPage({ params }: { params: Promise<{ id: str
             </Link>
           </Card>
           <Card title="Payments received">
-            <PaymentsPanel client={c} />
+            <PaymentsPanel client={c} emailReady={emailReady} me={me} />
           </Card>
           <Card title="Activity">
             <ActivityLog items={c.activities} />

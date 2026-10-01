@@ -63,6 +63,8 @@ export const createLead = async (data: unknown) => run((u) => leads.createLead(u
 export const updateLead = async (id: string, data: unknown) => run((u) => leads.updateLead(u, id, data));
 export const disqualifyLead = async (id: string, data: unknown) => run((u) => leads.disqualifyLead(u, id, data));
 
+export const convertLead = async (id: string) => run((u) => leads.convertLead(u, id));
+
 /* opportunities */
 export const updateOpportunity = async (id: string, data: unknown) => run((u) => opps.updateOpportunity(u, id, data));
 export const moveOpportunity = async (id: string, data: unknown) => run((u) => opps.moveOpportunity(u, id, data));
@@ -104,6 +106,8 @@ export const invoiceDefaults = async (salesOrderId: string) => run((u) => fin.in
 export const createInvoice = async (salesOrderId: string, data: unknown) => run((u) => fin.createInvoice(u, salesOrderId, data));
 export const cancelInvoice = async (id: string) => run((u) => fin.cancelInvoice(u, id));
 export const recordPayment = async (invoiceId: string, data: unknown) => run((u) => fin.recordPayment(u, invoiceId, data));
+export const logReceiptShared = async (paymentId: string) => run((u) => fin.logReceiptShared(u, paymentId));
+export const emailReceipt = async (paymentId: string, data: unknown) => run((u) => fin.emailReceipt(u, paymentId, data));
 export const deletePayment = async (id: string) => run((u) => fin.deletePayment(u, id));
 export const logInvoiceWhatsApp = async (id: string, kind: "invoice" | "reminder") =>
   run(async (u) => (kind === "reminder" ? fin.logReminder(u, id, "whatsapp") : fin.logInvoiceShared(u, id)));
@@ -118,6 +122,7 @@ export const logActivity = async (data: unknown) => run((u) => activities.logAct
 /* settings */
 export const createUser = async (data: unknown) => run((u) => settings.createUser(u, data));
 export const updateUser = async (id: string, data: unknown) => run((u) => settings.updateUser(u, id, data));
+export const deleteProduct = async (id: string) => run((u) => settings.deleteProduct(u, id));
 export const saveProduct = async (id: string | null, data: unknown) => run((u) => settings.saveProduct(u, id, data));
 export const addState = async (data: unknown) => run((u) => settings.addState(u, data));
 export const setStateActive = async (id: string, active: boolean) => run((u) => settings.setStateActive(u, id, active));

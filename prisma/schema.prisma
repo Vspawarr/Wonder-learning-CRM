@@ -572,21 +572,29 @@ model InvoiceItem {
 }
 
 model Payment {
-  id        String   @id @default(cuid())
-  invoiceId String
-  invoice   Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
-  clientId  String
-  client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  amount    Decimal  @db.Decimal(14, 2)
-  date      DateTime @db.Date
-  mode      String // PAYMENT_MODES
-  reference String? // cheque no., UTR…
-  note      String?
+  id         String   @id @default(cuid())
+  /// Receipt number RCPT/YYYY/MM/NNN, running per month.
+  number     String   @unique
+  year       Int
+  month      Int
+  seq        Int
+  /// Secret for the shareable receipt link /r/<token>.
+  shareToken String   @unique
+  invoiceId  String
+  invoice    Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  clientId   String
+  client     Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  amount     Decimal  @db.Decimal(14, 2)
+  date       DateTime @db.Date
+  mode       String // PAYMENT_MODES
+  reference  String? // cheque no., UTR…
+  note       String?
 
   recordedById String
   recordedBy   User     @relation(fields: [recordedById], references: [id])
   createdAt    DateTime @default(now())
 
+  @@unique([year, month, seq])
   @@index([invoiceId])
   @@index([clientId, date])
 }

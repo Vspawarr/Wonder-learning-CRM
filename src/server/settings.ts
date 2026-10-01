@@ -86,6 +86,38 @@ export async function saveProduct(actor: SessionUser, id: string | null, raw: un
   return p.id;
 }
 
+/** How many records mention a product, for the delete confirmation. */
+export async function productUsage(id: string) {
+  const [leads, opps, lines] = await Promise.all([
+    db.leadInterest.count({ where: { productId: id } }),
+    db.opportunityItem.count({ where: { productId: id } }),
+    Promise.all([
+      db.quotationItem.count({ where: { productId: id } }),
+      db.salesOrderItem.count({ where: { productId: id } }),
+      db.invoiceItem.count({ where: { productId: id } }),
+    ]).then((n) => n.reduce((a, b) => a + b, 0)),
+  ]);
+  return { leads, opps, lines };
+}
+
+/**
+ * Removes a product from the catalogue. Leads/opportunities lose the link; quotation,
+ * order and invoice lines keep their own description and price, so documents are unchanged.
+ */
+export async function deleteProduct(actor: SessionUser, id: string) {
+  if (!canManageProducts(actor.role)) throw new DomainError("Only a Director, Admin or the Sales Head can change products.");
+  const p = await db.product.findUnique({ where: { id } });
+  if (!p) throw new DomainError("This product was already deleted.");
+  await db.$transaction([
+    db.leadInterest.deleteMany({ where: { productId: id } }),
+    db.opportunityItem.deleteMany({ where: { productId: id } }),
+    db.quotationItem.updateMany({ where: { productId: id }, data: { productId: null } }),
+    db.salesOrderItem.updateMany({ where: { productId: id }, data: { productId: null } }),
+    db.invoiceItem.updateMany({ where: { productId: id }, data: { productId: null } }),
+    db.product.delete({ where: { id } }),
+  ]);
+}
+
 export async function addState(actor: SessionUser, raw: unknown) {
   assertSettings(actor);
   const d = parse(stateInput, raw);

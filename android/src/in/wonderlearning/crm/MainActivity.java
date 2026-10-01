@@ -151,7 +151,7 @@ public class MainActivity extends Activity {
         if (scheme.equals("https") && isCrmHost(u.getHost())) {
             String path = u.getPath() == null ? "" : u.getPath();
             // PDFs and Excel files can't be shown in the app view: save them to Downloads.
-            if (path.startsWith("/api/") || path.startsWith("/q/") || path.startsWith("/i/")) {
+            if (path.startsWith("/api/") || path.startsWith("/q/") || path.startsWith("/i/") || path.startsWith("/r/")) {
                 download(url, null, null);
                 return true;
             }

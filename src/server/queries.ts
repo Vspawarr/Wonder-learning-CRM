@@ -440,6 +440,8 @@ export async function clientDetail(user: SessionUser, id: string) {
     invoices,
     payments: c.payments.map((p) => ({
       id: p.id,
+      number: p.number,
+      shareToken: p.shareToken,
       invoiceNumber: p.invoice.number,
       amount: Number(p.amount),
       date: fromDbDate(p.date),
