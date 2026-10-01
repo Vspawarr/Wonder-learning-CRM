@@ -26,14 +26,12 @@ export function planStageMove(from: Stage, to: Stage, school: string): StagePlan
 export function activityTypeForTask(type: string): ActivityType {
   switch (type) {
     case "Call":
-    case "Proposal Follow-up":
       return "PHONE";
-    case "WhatsApp":
+    case "WhatsApp/Message":
       return "WHATSAPP";
     case "Email":
       return "EMAIL";
-    case "Meeting":
-    case "Demo":
+    case "Online Demo":
       return "MEETING";
     case "School Visit":
       return "SITE_VISIT";
@@ -46,11 +44,11 @@ export function activityTypeForTask(type: string): ActivityType {
 export function taskTypeForActivity(type: ActivityType): string {
   switch (type) {
     case "WHATSAPP":
-      return "WhatsApp";
+      return "WhatsApp/Message";
     case "EMAIL":
       return "Email";
     case "MEETING":
-      return "Meeting";
+      return "Online Demo";
     case "SITE_VISIT":
       return "School Visit";
     default:

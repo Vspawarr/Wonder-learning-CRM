@@ -1,5 +1,6 @@
 "use client";
 
+import { DateInput } from "@/components/date-input";
 import { useState } from "react";
 import { Field, Options } from "@/components/client";
 import {
@@ -7,13 +8,12 @@ import {
   FOLLOWUP_TYPES,
   LEAD_STATUS_LABEL,
   MANUAL_LEAD_STATUSES,
-  PUBLICATIONS,
   REF_SOURCES,
   SOURCES,
   STATES,
   TEMPERATURE_LABEL,
 } from "@/lib/constants";
-import type { Option, ProductOption } from "@/server/queries";
+import type { Option } from "@/server/queries";
 
 export type LeadValues = {
   schoolName: string;
@@ -30,8 +30,6 @@ export type LeadValues = {
   branches: string;
   source: string;
   referenceName: string;
-  interests: string[];
-  remarks: string;
   status: string;
   temperature: string;
   assignedToId: string;
@@ -45,14 +43,12 @@ const TYPE_CITY = "__type__";
 export function LeadForm({
   value,
   onChange,
-  products,
   team,
   cities,
   idPrefix = "lf",
 }: {
   value: LeadValues;
   onChange: (v: LeadValues) => void;
-  products: ProductOption[];
   team: Option[];
   cities: Record<string, string[]>;
   idPrefix?: string;
@@ -64,8 +60,6 @@ export function LeadForm({
   const [typing, setTyping] = useState(!cityListed && (value.city !== "" || stateCities.length === 0));
   const showTyped = typing || stateCities.length === 0;
 
-  // Keep inactive products visible only if already chosen.
-  const shownProducts = products.filter((p) => p.active || value.interests.includes(p.id));
 
   return (
     <>
@@ -141,9 +135,13 @@ export function LeadForm({
       <h3 className="mt-4">School details</h3>
       <div className="fg2 mt-2">
         <Field label="Current publication / curriculum" htmlFor={id("curr")}>
-          <select className="sel" id={id("curr")} value={value.currentCurriculum} onChange={(e) => set("currentCurriculum", e.target.value)}>
-            <Options list={PUBLICATIONS} blank="Not specified" />
-          </select>
+          <input
+            className="in"
+            id={id("curr")}
+            placeholder="e.g. Oxford, own books"
+            value={value.currentCurriculum}
+            onChange={(e) => set("currentCurriculum", e.target.value)}
+          />
         </Field>
         <Field label="Current student strength" htmlFor={id("strength")}>
           <input className="in" id={id("strength")} type="number" min={0} value={value.studentStrength} onChange={(e) => set("studentStrength", e.target.value)} />
@@ -174,27 +172,6 @@ export function LeadForm({
           </Field>
         ) : null}
       </div>
-      <Field label="Interested in">
-        <div className="flex flex-wrap gap-1.5" role="group" aria-label="Interested in">
-          {shownProducts.map((p) => {
-            const on = value.interests.includes(p.id);
-            return (
-              <button
-                type="button"
-                key={p.id}
-                className={`chip ${on ? "on" : ""}`}
-                aria-pressed={on}
-                onClick={() => set("interests", on ? value.interests.filter((x) => x !== p.id) : [...value.interests, p.id])}
-              >
-                {p.name}
-              </button>
-            );
-          })}
-        </div>
-      </Field>
-      <Field label="Remarks / notes" htmlFor={id("rem")}>
-        <textarea className="ta" id={id("rem")} value={value.remarks} onChange={(e) => set("remarks", e.target.value)} />
-      </Field>
 
       <h3 className="mt-4">CRM control</h3>
       <div className="fg2 mt-2">
@@ -202,8 +179,11 @@ export function LeadForm({
           <select className="sel" id={id("status")} value={value.status} onChange={(e) => set("status", e.target.value)}>
             <Options list={MANUAL_LEAD_STATUSES.map((s) => [s, LEAD_STATUS_LABEL[s]] as const)} />
           </select>
+          {value.status === "QUALIFIED" ? (
+            <span className="small text-mint">Saving as Qualified turns this lead into an opportunity.</span>
+          ) : null}
         </Field>
-        <Field label="Temperature" htmlFor={id("temp")}>
+        <Field label="Category" htmlFor={id("temp")}>
           <select className="sel" id={id("temp")} value={value.temperature} onChange={(e) => set("temperature", e.target.value)}>
             <Options list={Object.entries(TEMPERATURE_LABEL) as [string, string][]} />
           </select>
@@ -219,7 +199,7 @@ export function LeadForm({
       <h3 className="mt-4">Follow-up</h3>
       <div className="fg2 mt-2">
         <Field label="Next follow-up date *" htmlFor={id("fu")}>
-          <input className="in" type="date" id={id("fu")} value={value.nextFollowUpDate} onChange={(e) => set("nextFollowUpDate", e.target.value)} />
+          <DateInput id={id("fu")} value={value.nextFollowUpDate} onChange={(d) => set("nextFollowUpDate", d)} />
         </Field>
         <Field label="Follow-up type" htmlFor={id("ftype")}>
           <select className="sel" id={id("ftype")} value={value.followUpType} onChange={(e) => set("followUpType", e.target.value)}>

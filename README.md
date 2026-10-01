@@ -1,7 +1,11 @@
 # Wonder Learning CRM
 
-Phase 1: Sales & Leads — users & roles, leads, opportunities (pipeline),
-follow-up tasks, and a sales dashboard.
+Phase 1: Sales & Leads — users & roles, leads, opportunities (list + pipeline board),
+follow-up tasks, a sales dashboard, and a first step of Phase 2: converting a won deal
+into a client (status Onboarding → Active).
+
+Flow: Lead → (status set to Qualified: converts automatically) → Opportunity → Won →
+Convert to client → onboarding.
 
 Next.js 16 (App Router) · TypeScript · PostgreSQL + Prisma 7 · Auth.js (email/password) · Tailwind 4.
 
@@ -38,10 +42,11 @@ action goes through it.
 - `prisma/schema.prisma` — data model. Master lists (sources, designations, publications,
   follow-up types, competitors, lost reasons, states) are text columns validated against
   `src/lib/constants.ts`, so editing a list needs no migration.
-- `src/server/` — business rules (`leads.ts`, `opportunities.ts`, `tasks.ts`, `activities.ts`,
-  `settings.ts`), validation (`validation.ts`), read models (`queries.ts`, `dashboard.ts`).
+- `src/server/` — business rules (`leads.ts`, `opportunities.ts`, `clients.ts`, `tasks.ts`,
+  `activities.ts`, `settings.ts`), validation (`validation.ts`), read models (`queries.ts`, `dashboard.ts`).
 - `src/app/actions.ts` — server actions: authenticate, call a service, revalidate.
-- `src/app/(app)/` — screens: dashboard, leads, lead detail, pipeline, follow-ups, settings.
+- `src/app/(app)/` — screens: dashboard, leads, opportunities, pipeline, follow-ups, clients, settings.
+- `src/components/date-input.tsx` — every date field; always DD/MM/YYYY regardless of browser language.
 
 ## Tests
 
@@ -53,7 +58,8 @@ npm run typecheck
 
 ## Extending in later phases
 
-- **Schools / orders**: add nullable `schoolId` to `Opportunity`, `Task` and `Activity`; hook
-  School/Order creation into `moveOpportunity` where it marks `WON` (see the "Phase 2" comment there).
+- **Clients / onboarding / orders**: `Client` already exists (created by `convertToClient` in
+  `src/server/clients.ts`), and `Task`/`Activity` link to it. Fuller onboarding, agreements and
+  orders hang off `Client`.
 - **Printed material**: `Product.type = MATERIAL`; `OpportunityItem` already carries qty and price.
 - **More roles**: add to the `Role` enum and decide their visibility in `src/lib/permissions.ts`.

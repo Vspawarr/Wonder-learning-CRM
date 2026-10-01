@@ -11,8 +11,12 @@ export const oppScope = (u: SessionUser): Prisma.OpportunityWhereInput => (seesA
 
 export const taskScope = (u: SessionUser): Prisma.TaskWhereInput => (seesAllSales(u.role) ? {} : { assigneeId: u.id });
 
+export const clientScope = (u: SessionUser): Prisma.ClientWhereInput => (seesAllSales(u.role) ? {} : { ownerId: u.id });
+
 export const activityScope = (u: SessionUser): Prisma.ActivityWhereInput =>
-  seesAllSales(u.role) ? {} : { OR: [{ lead: { assignedToId: u.id } }, { opportunity: { ownerId: u.id } }] };
+    seesAllSales(u.role)
+    ? {}
+    : { OR: [{ lead: { assignedToId: u.id } }, { opportunity: { ownerId: u.id } }, { client: { ownerId: u.id } }] };
 
 /** Check that `actor` may give sales work to `assigneeId`, and that the assignee can own it. */
 export async function assertAssignable(db: Db, actor: SessionUser, assigneeId: string) {

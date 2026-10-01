@@ -1,7 +1,7 @@
 import { db } from "@/lib/db";
 import { toDbDate } from "@/lib/dates";
 import type { SessionUser } from "@/lib/permissions";
-import { assertTaskAssignable, leadScope, oppScope, taskScope } from "./access";
+import { assertTaskAssignable, clientScope, leadScope, oppScope, taskScope } from "./access";
 import { DomainError, NotFoundError } from "./errors";
 import { activityTypeForTask, isActiveLead } from "./rules";
 import { completeTaskInput, parse, taskInput } from "./validation";
@@ -17,6 +17,8 @@ export async function createTask(user: SessionUser, raw: unknown) {
       !(await tx.opportunity.findFirst({ where: { id: d.opportunityId, ...oppScope(user) }, select: { id: true } }))
     )
       throw new NotFoundError("Opportunity");
+    if (d.clientId && !(await tx.client.findFirst({ where: { id: d.clientId, ...clientScope(user) }, select: { id: true } })))
+      throw new NotFoundError("Client");
     const task = await tx.task.create({
       data: {
         title: d.title,
@@ -28,6 +30,7 @@ export async function createTask(user: SessionUser, raw: unknown) {
         createdById: user.id,
         leadId: d.leadId || null,
         opportunityId: d.opportunityId || null,
+        clientId: d.clientId || null,
       },
     });
     return task.id;
@@ -50,7 +53,7 @@ export async function completeTask(user: SessionUser, id: string, raw: unknown) 
       data: { status: "DONE", outcome: d.outcome, completedAt: new Date() },
     });
 
-    if (task.leadId || task.opportunityId)
+    if (task.leadId || task.opportunityId || task.clientId)
       await tx.activity.create({
         data: {
           type: activityTypeForTask(task.type),
@@ -59,6 +62,7 @@ export async function completeTask(user: SessionUser, id: string, raw: unknown) 
           byId: user.id,
           leadId: task.leadId,
           opportunityId: task.opportunityId,
+          clientId: task.clientId,
         },
       });
 
@@ -73,6 +77,7 @@ export async function completeTask(user: SessionUser, id: string, raw: unknown) 
           createdById: user.id,
           leadId: task.leadId,
           opportunityId: task.opportunityId,
+          clientId: task.clientId,
         },
       });
 

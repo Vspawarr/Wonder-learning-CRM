@@ -73,6 +73,8 @@ export async function createLead(user: SessionUser, raw: unknown) {
     await tx.activity.create({
       data: { type: "SYSTEM", subject: `Lead ${leadCode(lead.number)} created`, byId: user.id, leadId: lead.id },
     });
+    // A lead created as Qualified becomes an opportunity straight away.
+    if (d.status === "QUALIFIED") await convertInTx(tx, user, lead);
     return lead.id;
   });
 }
@@ -84,9 +86,8 @@ export async function updateLead(user: SessionUser, id: string, raw: unknown) {
     if (!isActiveLead(lead.status))
       throw new DomainError(`This lead is ${LEAD_STATUS_LABEL[lead.status].toLowerCase()} and can no longer be edited.`);
     if (d.assignedToId !== lead.assignedToId) await assertAssignable(tx, user, d.assignedToId);
-    const interests = await checkProducts(tx, d.interests);
 
-    await tx.leadInterest.deleteMany({ where: { leadId: id } });
+    // "Interested in" and "Remarks" are no longer on the form; existing values are kept as they are.
     await tx.lead.update({
       where: { id },
       data: {
@@ -104,21 +105,19 @@ export async function updateLead(user: SessionUser, id: string, raw: unknown) {
         branches: d.branches,
         source: d.source,
         referenceName: REF_SOURCES.includes(d.source) ? d.referenceName : null,
-        remarks: d.remarks,
         status: d.status,
         temperature: d.temperature,
         assignedToId: d.assignedToId,
         nextFollowUpDate: toDbDate(d.nextFollowUpDate),
         followUpType: d.followUpType,
         followUpRemark: d.followUpRemark,
-        interests: { create: interests.map((productId) => ({ productId })) },
       },
     });
 
     const notes: string[] = [];
     if (d.status !== lead.status) notes.push(`Status: ${LEAD_STATUS_LABEL[lead.status]} → ${LEAD_STATUS_LABEL[d.status]}`);
     if (d.temperature !== lead.temperature)
-      notes.push(`Temperature: ${TEMPERATURE_LABEL[lead.temperature]} → ${TEMPERATURE_LABEL[d.temperature]}`);
+      notes.push(`Category: ${TEMPERATURE_LABEL[lead.temperature]} → ${TEMPERATURE_LABEL[d.temperature]}`);
     if (d.assignedToId !== lead.assignedToId) {
       const to = await tx.user.findUniqueOrThrow({ where: { id: d.assignedToId }, select: { name: true } });
       notes.push(`Reassigned to ${to.name}`);
@@ -157,6 +156,9 @@ export async function updateLead(user: SessionUser, id: string, raw: unknown) {
 
     if (notes.length)
       await tx.activity.create({ data: { type: "SYSTEM", subject: notes.join(" · "), byId: user.id, leadId: id } });
+
+    // A lead marked Qualified becomes an opportunity straight away.
+    if (d.status === "QUALIFIED") await convertInTx(tx, user, await tx.lead.findUniqueOrThrow({ where: { id } }));
   });
 }
 
@@ -187,58 +189,63 @@ export async function disqualifyLead(user: SessionUser, id: string, raw: unknown
 
 /** Creates an Opportunity from an active lead. Returns the opportunity id. */
 export async function convertLead(user: SessionUser, id: string) {
-  return db.$transaction(async (tx) => {
-    const lead = await loadLead(tx, user, id);
-    if (!isActiveLead(lead.status)) throw new DomainError("Only an active lead can be converted.");
-    const existing = await tx.opportunity.findFirst({ where: { leadId: id }, select: { id: true } });
-    if (existing) throw new DomainError("This lead already has an opportunity.");
+  return db.$transaction(async (tx) => convertInTx(tx, user, await loadLead(tx, user, id)));
+}
 
-    const interests = await tx.leadInterest.findMany({ where: { leadId: id }, include: { product: true } });
-    const today = todayIST();
-    const opp = await tx.opportunity.create({
-      data: {
-        leadId: id,
-        schoolName: lead.schoolName,
-        stage: "INTERESTED",
-        probability: 20,
-        expectedCloseDate: toDbDate(addDays(today, 30)),
-        decisionMaker: lead.contactName,
-        nextAction: "Schedule demo",
-        nextActionDate: toDbDate(addDays(today, 2)),
-        ownerId: lead.assignedToId,
-        createdById: user.id,
-        items: { create: interests.map((i) => ({ productId: i.productId, qty: 1, unitPrice: i.product.price })) },
-        stageChanges: { create: { toStage: "INTERESTED", changedById: user.id } },
-      },
-    });
-    await tx.lead.update({
-      where: { id },
-      data: { status: "CONVERTED", convertedAt: new Date(), nextFollowUpDate: null },
-    });
-    // Pending lead follow-ups carry on under the opportunity.
-    await tx.task.updateMany({ where: { leadId: id, status: "OPEN" }, data: { opportunityId: opp.id } });
-    await tx.task.create({
-      data: {
-        type: "Demo",
-        title: `Schedule demo: ${lead.schoolName}`,
-        dueDate: toDbDate(addDays(today, 2)),
-        priority: "MEDIUM",
-        isAuto: true,
-        assigneeId: lead.assignedToId,
-        createdById: user.id,
-        opportunityId: opp.id,
-        leadId: id,
-      },
-    });
-    await tx.activity.create({
-      data: {
-        type: "SYSTEM",
-        subject: `Converted to opportunity ${oppCode(opp.number)}`,
-        byId: user.id,
-        leadId: id,
-        opportunityId: opp.id,
-      },
-    });
-    return opp.id;
+type LeadRow = Awaited<ReturnType<typeof loadLead>>;
+
+/** Shared by convertLead and the automatic conversion when a lead is marked Qualified. */
+async function convertInTx(tx: Tx, user: SessionUser, lead: LeadRow) {
+  const id = lead.id;
+  if (!isActiveLead(lead.status)) throw new DomainError("Only an active lead can be converted.");
+  const existing = await tx.opportunity.findFirst({ where: { leadId: id }, select: { id: true } });
+  if (existing) throw new DomainError("This lead already has an opportunity.");
+
+  const interests = await tx.leadInterest.findMany({ where: { leadId: id }, include: { product: true } });
+  const today = todayIST();
+  const opp = await tx.opportunity.create({
+    data: {
+      leadId: id,
+      schoolName: lead.schoolName,
+      stage: "INTERESTED",
+      probability: 20,
+      expectedCloseDate: toDbDate(addDays(today, 30)),
+      decisionMaker: lead.contactName,
+      nextAction: "Schedule demo",
+      nextActionDate: toDbDate(addDays(today, 2)),
+      ownerId: lead.assignedToId,
+      createdById: user.id,
+      items: { create: interests.map((i) => ({ productId: i.productId, qty: 1, unitPrice: i.product.price })) },
+      stageChanges: { create: { toStage: "INTERESTED", changedById: user.id } },
+    },
   });
+  await tx.lead.update({
+    where: { id },
+    data: { status: "CONVERTED", convertedAt: new Date(), nextFollowUpDate: null },
+  });
+  // Pending lead follow-ups carry on under the opportunity.
+  await tx.task.updateMany({ where: { leadId: id, status: "OPEN" }, data: { opportunityId: opp.id } });
+  await tx.task.create({
+    data: {
+      type: "Online Demo",
+      title: `Schedule demo: ${lead.schoolName}`,
+      dueDate: toDbDate(addDays(today, 2)),
+      priority: "MEDIUM",
+      isAuto: true,
+      assigneeId: lead.assignedToId,
+      createdById: user.id,
+      opportunityId: opp.id,
+      leadId: id,
+    },
+  });
+  await tx.activity.create({
+    data: {
+      type: "SYSTEM",
+      subject: `Converted to opportunity ${oppCode(opp.number)}`,
+      byId: user.id,
+      leadId: id,
+      opportunityId: opp.id,
+    },
+  });
+  return opp.id;
 }

@@ -1,5 +1,6 @@
 "use client";
 
+import { DateInput } from "@/components/date-input";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
@@ -116,7 +117,7 @@ function CompleteModal({ task, onClose }: { task: TaskRow; onClose: () => void }
         <textarea className="ta" id="ct-out" placeholder="What happened?" value={outcome} onChange={(e) => setOutcome(e.target.value)} />
       </Field>
       <Field label="Next follow-up date (optional)" htmlFor="ct-next">
-        <input className="in" type="date" id="ct-next" min={todayIST()} value={nextDate} onChange={(e) => setNextDate(e.target.value)} />
+        <DateInput id="ct-next" min={todayIST()} value={nextDate} onChange={setNextDate} />
       </Field>
     </Modal>
   );
@@ -170,6 +171,7 @@ export function NewTaskButton({ people, targets, me }: { people: Option[]; targe
                         assigneeId: v.assigneeId,
                         leadId: kind === "lead" ? id : null,
                         opportunityId: kind === "opp" ? id : null,
+                        clientId: kind === "client" ? id : null,
                       }),
                     { success: "Task created.", onDone: close },
                   )
@@ -195,7 +197,7 @@ export function NewTaskButton({ people, targets, me }: { people: Option[]; targe
               </select>
             </Field>
             <Field label="Due" htmlFor="nt-due">
-              <input className="in" type="date" id="nt-due" value={v.dueDate} onChange={(e) => setV({ ...v, dueDate: e.target.value })} />
+              <DateInput id="nt-due" value={v.dueDate} onChange={(dueDate) => setV({ ...v, dueDate })} />
             </Field>
             <Field label="Priority" htmlFor="nt-prio">
               <select className="sel" id="nt-prio" value={v.priority} onChange={(e) => setV({ ...v, priority: e.target.value })}>

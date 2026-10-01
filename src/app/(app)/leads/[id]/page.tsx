@@ -5,7 +5,7 @@ import { fmtDate, istDate, todayIST } from "@/lib/dates";
 import { ActivityLog } from "@/components/activity";
 import { Card, DueTag, FollowUp, Pill } from "@/components/ui";
 import { requireUser } from "@/server/session";
-import { assignees, citiesByState, leadDetail, productOptions } from "@/server/queries";
+import { assignees, citiesByState, leadDetail } from "@/server/queries";
 import { isActiveLead } from "@/server/rules";
 import { LeadActions, LeadEditor } from "./lead-client";
 
@@ -19,7 +19,7 @@ export default async function LeadPage({ params }: { params: Promise<{ id: strin
   const user = await requireUser();
   const lead = await leadDetail(user, (await params).id);
   if (!lead) notFound();
-  const [products, team, cities] = await Promise.all([productOptions(), assignees(user), citiesByState()]);
+  const [team, cities] = await Promise.all([assignees(user), citiesByState()]);
   const active = isActiveLead(lead.status);
   const today = todayIST();
   // A reassigned lead keeps showing its current owner even if they're not a choice for this user.
@@ -60,7 +60,7 @@ export default async function LeadPage({ params }: { params: Promise<{ id: strin
       {lead.opportunity ? (
         <div className="note ok">
           Converted to{" "}
-          <Link href={`/pipeline?opp=${lead.opportunity.id}`}>
+          <Link href={`/opportunities?opp=${lead.opportunity.id}`}>
             opportunity {oppCode(lead.opportunity.number)}
           </Link>{" "}
           · {STAGE_LABEL[lead.opportunity.stage]}
@@ -70,7 +70,7 @@ export default async function LeadPage({ params }: { params: Promise<{ id: strin
       <div className="grid grid-cols-1 gap-4 min-[1101px]:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
         <div className="card">
           {active ? (
-            <LeadEditor key={lead.updatedAt} lead={lead} products={products} team={teamWithOwner} cities={cities} />
+            <LeadEditor key={lead.updatedAt} lead={lead} team={teamWithOwner} cities={cities} />
           ) : (
             <ReadOnlyLead lead={lead} />
           )}

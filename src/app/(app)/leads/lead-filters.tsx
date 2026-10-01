@@ -51,7 +51,7 @@ export function LeadFilters() {
           </button>
         ))}
       </div>
-      <div className="flex flex-wrap gap-1.5" role="group" aria-label="Temperature">
+      <div className="flex flex-wrap gap-1.5" role="group" aria-label="Category">
         {TEMPS.map(([v, l]) => (
           <button key={l} className={`chip ${temp === v ? "on" : ""}`} onClick={() => set("temp", v)}>
             {l}

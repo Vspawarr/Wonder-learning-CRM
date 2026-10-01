@@ -2,10 +2,10 @@
 // returns plain serialisable objects (dates as YYYY-MM-DD, money as numbers).
 import type { Prisma } from "@/generated/prisma/client";
 import { db } from "@/lib/db";
-import { CLOSED_STAGES, type Stage } from "@/lib/constants";
+import { CLOSED_STAGES, STAGES, type Stage } from "@/lib/constants";
 import { fromDbDate, optDate } from "@/lib/dates";
 import { SALES_ROLES, canAssignOthers, seesAllSales, type SessionUser } from "@/lib/permissions";
-import { leadScope, oppScope, taskScope } from "./access";
+import { clientScope, leadScope, oppScope, taskScope } from "./access";
 import { ACTIVE_LEAD_STATUSES } from "./rules";
 
 export type Option = { id: string; name: string };
@@ -163,12 +163,32 @@ export function oppValue(o: Pick<OppWithItems, "items">) {
   return { value, unpriced };
 }
 
-export async function pipelineCards(user: SessionUser, ownerId?: string) {
+export type OppFilters = { owner?: string; q?: string; stage?: string };
+
+/** Opportunities for the pipeline board and the Opportunities list. */
+export async function pipelineCards(user: SessionUser, f: OppFilters = {}) {
   const where: Prisma.OpportunityWhereInput = { ...oppScope(user) };
-  if (ownerId && seesAllSales(user.role)) where.ownerId = ownerId;
+  if (f.owner && seesAllSales(user.role)) where.ownerId = f.owner;
+  if (f.stage === "Open") where.stage = { notIn: [...CLOSED_STAGES] };
+  else if (f.stage && (STAGES as readonly string[]).includes(f.stage)) where.stage = f.stage as Stage;
+  const q = f.q?.trim();
+  if (q) {
+    const num = Number(q.replace(/^O-/i, ""));
+    where.OR = [
+      { schoolName: { contains: q, mode: "insensitive" } },
+      { lead: { contactName: { contains: q, mode: "insensitive" } } },
+      { lead: { city: { contains: q, mode: "insensitive" } } },
+      ...(Number.isInteger(num) && num > 0 ? [{ number: num }] : []),
+    ];
+  }
   const rows = await db.opportunity.findMany({
     where,
-    include: { items: true, owner: { select: { id: true, name: true } } },
+    include: {
+      items: true,
+      owner: { select: { id: true, name: true } },
+      lead: { select: { contactName: true, city: true } },
+      client: { select: { id: true } },
+    },
     orderBy: [{ expectedCloseDate: { sort: "asc", nulls: "last" } }, { createdAt: "asc" }],
   });
   return rows.map((o) => ({
@@ -184,6 +204,9 @@ export async function pipelineCards(user: SessionUser, ownerId?: string) {
     nextActionDate: optDate(o.nextActionDate),
     closedAt: o.closedAt?.toISOString() ?? null,
     owner: o.owner,
+    contactName: o.lead?.contactName ?? null,
+    city: o.lead?.city ?? null,
+    clientId: o.client?.id ?? null,
     ...oppValue(o),
   }));
 }
@@ -199,6 +222,7 @@ export async function oppDetail(user: SessionUser, id: string) {
       stageChanges: { include: { changedBy: { select: { name: true } } }, orderBy: { changedAt: "desc" } },
       activities: { include: { by: { select: { id: true, name: true } } }, orderBy: { occurredAt: "desc" }, take: 50 },
       tasks: { where: { status: "OPEN" }, orderBy: { dueDate: "asc" } },
+      client: { select: { id: true, number: true } },
     },
   });
   if (!o) return null;
@@ -218,6 +242,7 @@ export async function oppDetail(user: SessionUser, id: string) {
     lostRemarks: o.lostRemarks,
     owner: o.owner,
     lead: o.lead,
+    client: o.client,
     items: o.items.map((i) => ({
       productId: i.productId,
       name: i.product.name,
@@ -254,6 +279,7 @@ export async function taskList(user: SessionUser, team: boolean) {
     assignee: { select: { id: true, name: true } },
     lead: { select: { id: true, schoolName: true } },
     opportunity: { select: { id: true, schoolName: true, number: true } },
+    client: { select: { id: true, schoolName: true } },
   } as const;
   const [open, done] = await Promise.all([
     db.task.findMany({ where: { ...mine, status: "OPEN" }, include, orderBy: [{ dueDate: "asc" }, { createdAt: "asc" }], take: 1000 }),
@@ -270,8 +296,10 @@ export async function taskList(user: SessionUser, team: boolean) {
     outcome: t.outcome,
     assignee: t.assignee,
     // Converted leads' tasks carry on under the opportunity.
-    related: t.opportunity
-      ? { href: `/pipeline?opp=${t.opportunity.id}`, label: t.opportunity.schoolName }
+    related: t.client
+      ? { href: `/clients/${t.client.id}`, label: t.client.schoolName }
+      : t.opportunity
+      ? { href: `/opportunities?opp=${t.opportunity.id}`, label: t.opportunity.schoolName }
       : t.lead
         ? { href: `/leads/${t.lead.id}`, label: t.lead.schoolName }
         : null,
@@ -280,9 +308,9 @@ export async function taskList(user: SessionUser, team: boolean) {
 }
 export type TaskRow = Awaited<ReturnType<typeof taskList>>["open"][number];
 
-/** Leads and opportunities this user can link a new task to. */
+/** Leads, opportunities and clients this user can link a new task to. */
 export async function taskTargets(user: SessionUser) {
-  const [leads, opps] = await Promise.all([
+  const [leads, opps, clients] = await Promise.all([
     db.lead.findMany({
       where: { ...leadScope(user), status: { in: [...ACTIVE_LEAD_STATUSES] } },
       select: { id: true, schoolName: true },
@@ -295,9 +323,91 @@ export async function taskTargets(user: SessionUser) {
       orderBy: { schoolName: "asc" },
       take: 1000,
     }),
+    db.client.findMany({ where: clientScope(user), select: { id: true, schoolName: true }, orderBy: { schoolName: "asc" }, take: 1000 }),
   ]);
   return [
     ...leads.map((l) => ({ value: `lead:${l.id}`, label: `Lead: ${l.schoolName}` })),
     ...opps.map((o) => ({ value: `opp:${o.id}`, label: `Opportunity: ${o.schoolName}` })),
+    ...clients.map((c) => ({ value: `client:${c.id}`, label: `Client: ${c.schoolName}` })),
   ];
 }
+
+/* ---------- clients ---------- */
+
+export async function clientsList(user: SessionUser, f: { q?: string; status?: string }) {
+  const where: Prisma.ClientWhereInput = { ...clientScope(user) };
+  if (f.status === "ONBOARDING" || f.status === "ACTIVE") where.status = f.status;
+  const q = f.q?.trim();
+  if (q) {
+    const num = Number(q.replace(/^C-/i, ""));
+    where.OR = [
+      { schoolName: { contains: q, mode: "insensitive" } },
+      { contactName: { contains: q, mode: "insensitive" } },
+      { city: { contains: q, mode: "insensitive" } },
+      { mobile: { contains: q } },
+      ...(Number.isInteger(num) && num > 0 ? [{ number: num }] : []),
+    ];
+  }
+  const rows = await db.client.findMany({
+    where,
+    include: { owner: { select: { id: true, name: true } } },
+    orderBy: [{ status: "asc" }, { createdAt: "desc" }],
+    take: 500,
+  });
+  return rows.map((c) => ({
+    id: c.id,
+    number: c.number,
+    schoolName: c.schoolName,
+    contactName: c.contactName,
+    mobile: c.mobile,
+    city: c.city,
+    status: c.status,
+    since: c.createdAt.toISOString(),
+    owner: c.owner,
+  }));
+}
+
+export async function clientDetail(user: SessionUser, id: string) {
+  const c = await db.client.findFirst({
+    where: { id, ...clientScope(user) },
+    include: {
+      owner: { select: { id: true, name: true } },
+      opportunity: { select: { id: true, number: true, leadId: true, lead: { select: { number: true } } } },
+      activities: { include: { by: { select: { id: true, name: true } } }, orderBy: { occurredAt: "desc" }, take: 100 },
+      tasks: { where: { status: "OPEN" }, include: { assignee: { select: { name: true } } }, orderBy: { dueDate: "asc" } },
+    },
+  });
+  if (!c) return null;
+  return {
+    id: c.id,
+    number: c.number,
+    schoolName: c.schoolName,
+    contactName: c.contactName,
+    designation: c.designation,
+    mobile: c.mobile,
+    email: c.email,
+    state: c.state,
+    city: c.city,
+    area: c.area,
+    address: c.address,
+    currentCurriculum: c.currentCurriculum,
+    studentStrength: c.studentStrength,
+    branches: c.branches,
+    status: c.status,
+    since: c.createdAt.toISOString(),
+    onboardingCompletedAt: c.onboardingCompletedAt?.toISOString() ?? null,
+    owner: c.owner,
+    opportunity: c.opportunity,
+    openTasks: c.tasks.map((t) => ({ id: t.id, title: t.title, type: t.type, dueDate: fromDbDate(t.dueDate), assignee: t.assignee.name })),
+    activities: c.activities.map((a) => ({
+      id: a.id,
+      type: a.type,
+      subject: a.subject,
+      summary: a.summary,
+      nextAction: a.nextAction,
+      at: a.occurredAt.toISOString(),
+      by: a.by,
+    })),
+  };
+}
+export type ClientDetail = NonNullable<Awaited<ReturnType<typeof clientDetail>>>;

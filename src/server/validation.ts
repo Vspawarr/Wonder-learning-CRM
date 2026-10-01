@@ -5,7 +5,6 @@ import {
   FOLLOWUP_TYPES,
   LOST_REASONS,
   MANUAL_LEAD_STATUSES,
-  PUBLICATIONS,
   SOURCES,
   STAGES,
   STATES,
@@ -61,7 +60,7 @@ const leadDetails = {
   city: reqText("City", 100),
   area: optText(200),
   address: optText(),
-  currentCurriculum: optOneOf(PUBLICATIONS, "publication / curriculum"),
+  currentCurriculum: optText(200),
   studentStrength: optInt("Student strength", 0),
   branches: optInt("Number of branches", 1),
   source: oneOf(SOURCES, "lead source"),
@@ -84,13 +83,14 @@ export const activityInput = z
   .object({
     leadId: z.string().nullish(),
     opportunityId: z.string().nullish(),
+    clientId: z.string().nullish(),
     type: z.enum(["PHONE", "WHATSAPP", "EMAIL", "MEETING", "SITE_VISIT", "NOTE"]),
     subject: optText(200),
     summary: reqText("What was discussed", 4000),
     nextAction: optText(300),
     followUpDate: optDate,
   })
-  .refine((a) => !!a.leadId !== !!a.opportunityId, "Choose a lead or an opportunity.");
+  .refine((a) => [a.leadId, a.opportunityId, a.clientId].filter(Boolean).length === 1, "Choose a lead, opportunity or client.");
 
 export const oppUpdateInput = z.object({
   expectedCloseDate: optDate,
@@ -130,8 +130,9 @@ export const taskInput = z
     remark: optText(),
     leadId: z.string().nullish(),
     opportunityId: z.string().nullish(),
+    clientId: z.string().nullish(),
   })
-  .refine((t) => !(t.leadId && t.opportunityId), "Link the task to a lead or an opportunity, not both.");
+  .refine((t) => [t.leadId, t.opportunityId, t.clientId].filter(Boolean).length <= 1, "Link the task to only one record.");
 
 export const completeTaskInput = z.object({ outcome: optText(4000), nextDate: optDate });
 

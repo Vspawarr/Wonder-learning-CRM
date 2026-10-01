@@ -1,5 +1,6 @@
 "use client";
 
+import { DateInput } from "@/components/date-input";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { STATES } from "@/lib/constants";
 import { PERIODS } from "@/server/dashboard-periods";
@@ -30,9 +31,9 @@ export function DashFilterBar({ team }: { team: Option[] | null }) {
       </select>
       {period === "custom" ? (
         <>
-          <input className="in w-auto" type="date" aria-label="From" value={sp.get("from") ?? ""} onChange={(e) => set({ from: e.target.value })} />
+          <DateInput className="w-[150px]" ariaLabel="From" value={sp.get("from") ?? ""} onChange={(from) => from && set({ from })} />
           <span className="muted">to</span>
-          <input className="in w-auto" type="date" aria-label="To" value={sp.get("to") ?? ""} onChange={(e) => set({ to: e.target.value })} />
+          <DateInput className="w-[150px]" ariaLabel="To" value={sp.get("to") ?? ""} onChange={(to) => to && set({ to })} />
         </>
       ) : null}
       {team ? (

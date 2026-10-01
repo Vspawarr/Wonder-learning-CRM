@@ -4,7 +4,7 @@ import { todayIST } from "@/lib/dates";
 import { seesAllSales } from "@/lib/permissions";
 import { AvatarName, FollowUp, PageHeader, Pill, Table } from "@/components/ui";
 import { requireUser } from "@/server/session";
-import { assignees, citiesByState, leadsList, productOptions } from "@/server/queries";
+import { assignees, citiesByState, leadsList } from "@/server/queries";
 import { LeadFilters } from "./lead-filters";
 import { NewLeadButton } from "./new-lead";
 
@@ -15,9 +15,8 @@ type SP = Promise<{ q?: string; status?: string; temp?: string; src?: string }>;
 export default async function LeadsPage({ searchParams }: { searchParams: SP }) {
   const user = await requireUser();
   const sp = await searchParams;
-  const [rows, products, team, cities] = await Promise.all([
+  const [rows, team, cities] = await Promise.all([
     leadsList(user, sp),
-    productOptions(),
     assignees(user),
     citiesByState(),
   ]);
@@ -29,11 +28,11 @@ export default async function LeadsPage({ searchParams }: { searchParams: SP }) 
         title="Leads"
         sub={`${seesAllSales(user.role) ? "" : "Your leads only. "}Sorted by next follow-up so the most urgent are on top.`}
       >
-        <NewLeadButton products={products} team={team} cities={cities} defaultAssignee={team.some((t) => t.id === user.id) ? user.id : ""} />
+        <NewLeadButton team={team} cities={cities} defaultAssignee={team.some((t) => t.id === user.id) ? user.id : ""} />
       </PageHeader>
       <LeadFilters />
       <Table
-        head={["Lead", "School", "City", "Source", "Interested in", "Status", "Temp", "Owner", "Next follow-up"]}
+        head={["Lead", "School", "City", "Source", "Status", "Category", "Owner", "Next follow-up"]}
         empty={sp.q || sp.temp || sp.src || (sp.status && sp.status !== "Active") ? "No leads match these filters." : "No leads yet. Add your first lead."}
       >
         {rows.map((l) => (
@@ -51,10 +50,6 @@ export default async function LeadsPage({ searchParams }: { searchParams: SP }) 
             </td>
             <td>{l.city}</td>
             <td>{l.source}</td>
-            <td className="small">
-              {l.interests.slice(0, 2).join(", ")}
-              {l.interests.length > 2 ? ` +${l.interests.length - 2}` : ""}
-            </td>
             <td>
               <Pill>{LEAD_STATUS_LABEL[l.status]}</Pill>
             </td>

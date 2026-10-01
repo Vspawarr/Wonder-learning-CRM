@@ -1,5 +1,6 @@
 "use client";
 
+import { DateInput } from "./date-input";
 import { useState } from "react";
 import { Field, Modal, Options, useAction } from "./client";
 import { Icon } from "./icons";
@@ -78,7 +79,17 @@ const LOG_TYPES: [string, string][] = [
   ["NOTE", "Note"],
 ];
 
-export function LogInteractionButton({ leadId, opportunityId, disabled }: { leadId?: string; opportunityId?: string; disabled?: boolean }) {
+export function LogInteractionButton({
+  leadId,
+  opportunityId,
+  clientId,
+  disabled,
+}: {
+  leadId?: string;
+  opportunityId?: string;
+  clientId?: string;
+  disabled?: boolean;
+}) {
   const [open, setOpen] = useState(false);
   const [v, setV] = useState({ type: "PHONE", subject: "", summary: "", nextAction: "", followUpDate: "" });
   const { pending, run } = useAction();
@@ -105,7 +116,7 @@ export function LogInteractionButton({ leadId, opportunityId, disabled }: { lead
                 className="btn pri"
                 disabled={pending}
                 onClick={() =>
-                  run(() => logActivity({ ...v, leadId, opportunityId }), {
+                  run(() => logActivity({ ...v, leadId, opportunityId, clientId }), {
                     success: v.followUpDate ? "Interaction logged and follow-up booked." : "Interaction logged.",
                     onDone: close,
                   })
@@ -134,7 +145,7 @@ export function LogInteractionButton({ leadId, opportunityId, disabled }: { lead
               <input className="in" id="li-next" value={v.nextAction} onChange={(e) => setV({ ...v, nextAction: e.target.value })} />
             </Field>
             <Field label="Follow-up date (creates a task)" htmlFor="li-date">
-              <input className="in" type="date" id="li-date" min={todayIST()} value={v.followUpDate} onChange={(e) => setV({ ...v, followUpDate: e.target.value })} />
+              <DateInput id="li-date" min={todayIST()} value={v.followUpDate} onChange={(followUpDate) => setV({ ...v, followUpDate })} />
             </Field>
           </div>
         </Modal>

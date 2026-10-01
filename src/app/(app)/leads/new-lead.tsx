@@ -6,7 +6,7 @@ import { Modal, useAction } from "@/components/client";
 import { Icon } from "@/components/icons";
 import { createLead } from "@/app/actions";
 import { addDays, fmtDate, todayIST } from "@/lib/dates";
-import type { Option, ProductOption } from "@/server/queries";
+import type { Option } from "@/server/queries";
 import { LeadForm, type LeadValues } from "./lead-form";
 
 const blank = (assignedToId: string): LeadValues => ({
@@ -24,8 +24,6 @@ const blank = (assignedToId: string): LeadValues => ({
   branches: "",
   source: "",
   referenceName: "",
-  interests: [],
-  remarks: "",
   status: "NEW",
   temperature: "WARM",
   assignedToId,
@@ -35,12 +33,10 @@ const blank = (assignedToId: string): LeadValues => ({
 });
 
 export function NewLeadButton({
-  products,
   team,
   cities,
   defaultAssignee,
 }: {
-  products: ProductOption[];
   team: Option[];
   cities: Record<string, string[]>;
   defaultAssignee: string;
@@ -78,7 +74,10 @@ export function NewLeadButton({
                 disabled={pending}
                 onClick={() =>
                   run(() => createLead(value), {
-                    success: `Lead saved. Follow-up task created for ${fmtDate(value.nextFollowUpDate)}.`,
+                    success:
+                      value.status === "QUALIFIED"
+                        ? "Lead saved and turned into an opportunity."
+                        : `Lead saved. Follow-up task created for ${fmtDate(value.nextFollowUpDate)}.`,
                     onDone: (id) => {
                       close();
                       if (id) router.push(`/leads/${id}`);
@@ -91,7 +90,7 @@ export function NewLeadButton({
             </>
           }
         >
-          <LeadForm value={value} onChange={setValue} products={products} team={team} cities={cities} idPrefix="nl" />
+          <LeadForm value={value} onChange={setValue} team={team} cities={cities} idPrefix="nl" />
         </Modal>
       ) : null}
     </>

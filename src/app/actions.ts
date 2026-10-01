@@ -13,6 +13,7 @@ import * as opps from "@/server/opportunities";
 import * as tasks from "@/server/tasks";
 import * as activities from "@/server/activities";
 import * as settings from "@/server/settings";
+import * as clients from "@/server/clients";
 
 export type ActionResult<T = undefined> = { ok: true; data?: T } | { ok: false; error: string };
 
@@ -56,11 +57,14 @@ export async function changePassword(current: string, next: string) {
 export const createLead = async (data: unknown) => run((u) => leads.createLead(u, data));
 export const updateLead = async (id: string, data: unknown) => run((u) => leads.updateLead(u, id, data));
 export const disqualifyLead = async (id: string, data: unknown) => run((u) => leads.disqualifyLead(u, id, data));
-export const convertLead = async (id: string) => run((u) => leads.convertLead(u, id));
 
 /* opportunities */
 export const updateOpportunity = async (id: string, data: unknown) => run((u) => opps.updateOpportunity(u, id, data));
 export const moveOpportunity = async (id: string, data: unknown) => run((u) => opps.moveOpportunity(u, id, data));
+
+/* clients */
+export const convertToClient = async (opportunityId: string) => run((u) => clients.convertToClient(u, opportunityId));
+export const completeOnboarding = async (id: string) => run((u) => clients.completeOnboarding(u, id));
 
 /* tasks & activity */
 export const createTask = async (data: unknown) => run((u) => tasks.createTask(u, data));

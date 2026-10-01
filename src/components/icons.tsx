@@ -22,6 +22,18 @@ const PATHS = {
     </>
   ),
   funnel: <path d="M3 4h18l-7 8v7l-4 2v-9z" />,
+  briefcase: (
+    <>
+      <rect x="3" y="7" width="18" height="13" rx="2" />
+      <path d="M9 7V5a2 2 0 012-2h2a2 2 0 012 2v2M3 13h18" />
+    </>
+  ),
+  school: (
+    <>
+      <path d="M3 10l9-6 9 6" />
+      <path d="M5 10v10h14V10M10 20v-6h4v6" />
+    </>
+  ),
   check: <path d="M4 12l5 5L20 6" />,
   box: (
     <>

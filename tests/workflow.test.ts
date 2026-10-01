@@ -7,6 +7,7 @@ import { convertLead, createLead, disqualifyLead, updateLead } from "@/server/le
 import { moveOpportunity, updateOpportunity } from "@/server/opportunities";
 import { completeTask, createTask } from "@/server/tasks";
 import { createUser, saveProduct, updateUser } from "@/server/settings";
+import { completeOnboarding, convertToClient } from "@/server/clients";
 import { leadData, makeProduct, makeUser, resetData } from "./helpers";
 
 let head: SessionUser, mgr: SessionUser, exA: SessionUser, exB: SessionUser, admin: SessionUser;
@@ -27,7 +28,7 @@ describe("creating a lead", () => {
     const id = await createLead(exA, leadData(exA.id, {
       interests: [p.id],
       nextFollowUpDate: addDays(today, 3),
-      followUpType: "WhatsApp",
+      followUpType: "WhatsApp/Message",
       followUpRemark: "Send brochure",
       source: "Reference",
       referenceName: "Mrs Rao",
@@ -37,7 +38,7 @@ describe("creating a lead", () => {
     expect(lead.interests.map((i) => i.productId)).toEqual([p.id]);
     expect(lead.referenceName).toBe("Mrs Rao");
     expect(lead.tasks).toHaveLength(1);
-    expect(lead.tasks[0]).toMatchObject({ type: "WhatsApp", title: "Send brochure", priority: "HIGH", isAuto: true, assigneeId: exA.id });
+    expect(lead.tasks[0]).toMatchObject({ type: "WhatsApp/Message", title: "Send brochure", priority: "HIGH", isAuto: true, assigneeId: exA.id });
     expect(fromDbDate(lead.tasks[0].dueDate)).toBe(addDays(today, 3));
   });
 
@@ -102,10 +103,10 @@ describe("access control", () => {
 describe("updating a lead", () => {
   it("reassigning moves open tasks and keeps the follow-up task in step", async () => {
     const id = await createLead(head, leadData(exA.id));
-    await updateLead(head, id, leadData(exB.id, { nextFollowUpDate: addDays(today, 7), followUpType: "Meeting" }));
+    await updateLead(head, id, leadData(exB.id, { nextFollowUpDate: addDays(today, 7), followUpType: "School Visit" }));
     const tasks = await db.task.findMany({ where: { leadId: id } });
     expect(tasks).toHaveLength(1);
-    expect(tasks[0]).toMatchObject({ assigneeId: exB.id, type: "Meeting" });
+    expect(tasks[0]).toMatchObject({ assigneeId: exB.id, type: "School Visit" });
     expect(fromDbDate(tasks[0].dueDate)).toBe(addDays(today, 7));
     expect(await db.activity.count({ where: { leadId: id, subject: { contains: "Reassigned" } } })).toBe(1);
   });
@@ -133,7 +134,7 @@ describe("converting and the pipeline", () => {
     const opp = await db.opportunity.findUniqueOrThrow({ where: { id: oppId }, include: { items: true, tasks: true, stageChanges: true } });
     expect(opp).toMatchObject({ stage: "INTERESTED", probability: 20, ownerId: exA.id, leadId });
     expect(opp.items.map((i) => (i.unitPrice === null ? null : Number(i.unitPrice))).sort()).toEqual([60000, null]);
-    expect(opp.tasks.some((t) => t.type === "Demo" && t.isAuto)).toBe(true);
+    expect(opp.tasks.some((t) => t.type === "Online Demo" && t.isAuto)).toBe(true);
     expect(opp.stageChanges).toHaveLength(1);
     const lead = await db.lead.findUniqueOrThrow({ where: { id: leadId } });
     expect(lead.status).toBe("CONVERTED");
@@ -210,6 +211,69 @@ describe("tasks and activity", () => {
     await expect(createTask(exA, { title: "x", type: "Call", dueDate: today, assigneeId: exB.id })).rejects.toThrow(/yourself/);
     await expect(createTask(head, { title: "x", type: "Call", dueDate: today, assigneeId: exB.id })).resolves.toBeTruthy();
     await expect(createTask(mgr, { title: "x", type: "Call", dueDate: today, assigneeId: exB.id })).rejects.toThrow(/yourself/);
+  });
+});
+
+describe("qualified leads convert automatically", () => {
+  it("creating a lead as Qualified creates its opportunity", async () => {
+    const id = await createLead(exA, leadData(exA.id, { status: "QUALIFIED", currentCurriculum: "Our own books" }));
+    const lead = await db.lead.findUniqueOrThrow({ where: { id }, include: { opportunities: true } });
+    expect(lead.status).toBe("CONVERTED");
+    expect(lead.currentCurriculum).toBe("Our own books");
+    expect(lead.opportunities).toHaveLength(1);
+    expect(lead.opportunities[0]).toMatchObject({ stage: "INTERESTED", ownerId: exA.id });
+    // the lead's first follow-up moves to the opportunity
+    const t = await db.task.findFirstOrThrow({ where: { leadId: id, title: { startsWith: "First" } } });
+    expect(t.opportunityId).toBe(lead.opportunities[0].id);
+  });
+
+  it("changing a lead to Qualified creates its opportunity; other statuses don't", async () => {
+    const id = await createLead(exA, leadData(exA.id));
+    await updateLead(exA, id, leadData(exA.id, { status: "CONTACTED" }));
+    expect(await db.opportunity.count({ where: { leadId: id } })).toBe(0);
+    await updateLead(exA, id, leadData(exA.id, { status: "QUALIFIED" }));
+    expect(await db.opportunity.count({ where: { leadId: id } })).toBe(1);
+    expect((await db.lead.findUniqueOrThrow({ where: { id } })).status).toBe("CONVERTED");
+  });
+
+  it("editing keeps existing interests and remarks (no longer on the form)", async () => {
+    const p = await makeProduct("Curriculum License");
+    const id = await createLead(exA, leadData(exA.id, { interests: [p.id], remarks: "Old note" }));
+    await updateLead(exA, id, leadData(exA.id, { schoolName: "Renamed" }));
+    const lead = await db.lead.findUniqueOrThrow({ where: { id }, include: { interests: true } });
+    expect(lead).toMatchObject({ schoolName: "Renamed", remarks: "Old note" });
+    expect(lead.interests).toHaveLength(1);
+  });
+});
+
+describe("clients", () => {
+  async function wonDeal(owner: SessionUser) {
+    const oppId = await convertLead(owner, await createLead(owner, leadData(owner.id, { schoolName: "Happy Kids" })));
+    return oppId;
+  }
+
+  it("only a won deal converts; it creates the client and an onboarding task", async () => {
+    const oppId = await wonDeal(exA);
+    await expect(convertToClient(exA, oppId)).rejects.toThrow(/won deal/);
+    await moveOpportunity(exA, oppId, { stage: "WON" });
+    const clientId = await convertToClient(exA, oppId);
+    const c = await db.client.findUniqueOrThrow({ where: { id: clientId }, include: { tasks: true } });
+    expect(c).toMatchObject({ schoolName: "Happy Kids", status: "ONBOARDING", ownerId: exA.id, mobile: "98765 43210" });
+    expect(c.number).toBeGreaterThanOrEqual(101);
+    expect(c.tasks[0]).toMatchObject({ title: "Start onboarding: Happy Kids", assigneeId: exA.id, isAuto: true });
+    await expect(convertToClient(exA, oppId)).rejects.toThrow(/already a client/);
+  });
+
+  it("respects access and completes onboarding", async () => {
+    const oppId = await wonDeal(exA);
+    await moveOpportunity(exA, oppId, { stage: "WON" });
+    await expect(convertToClient(exB, oppId)).rejects.toThrow(/not found/);
+    await expect(convertToClient(mgr, oppId)).rejects.toThrow(/not found/);
+    const clientId = await convertToClient(head, oppId);
+    await expect(completeOnboarding(exB, clientId)).rejects.toThrow(/not found/);
+    await completeOnboarding(exA, clientId);
+    expect((await db.client.findUniqueOrThrow({ where: { id: clientId } })).status).toBe("ACTIVE");
+    await expect(completeOnboarding(exA, clientId)).rejects.toThrow(/already complete/);
   });
 });
 

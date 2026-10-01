@@ -40,14 +40,16 @@ model User {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  leadsAssigned Lead[]                   @relation("LeadAssignedTo")
-  leadsCreated  Lead[]                   @relation("LeadCreatedBy")
-  oppsOwned     Opportunity[]            @relation("OpportunityOwner")
-  oppsCreated   Opportunity[]            @relation("OpportunityCreatedBy")
-  tasksAssigned Task[]                   @relation("TaskAssignee")
-  tasksCreated  Task[]                   @relation("TaskCreatedBy")
-  activities    Activity[]
-  stageChanges  OpportunityStageChange[]
+  leadsAssigned  Lead[]                   @relation("LeadAssignedTo")
+  leadsCreated   Lead[]                   @relation("LeadCreatedBy")
+  oppsOwned      Opportunity[]            @relation("OpportunityOwner")
+  clientsOwned   Client[]                 @relation("ClientOwner")
+  clientsCreated Client[]                 @relation("ClientCreatedBy")
+  oppsCreated    Opportunity[]            @relation("OpportunityCreatedBy")
+  tasksAssigned  Task[]                   @relation("TaskAssignee")
+  tasksCreated   Task[]                   @relation("TaskCreatedBy")
+  activities     Activity[]
+  stageChanges   OpportunityStageChange[]
 }
 
 // ───────────────────────── Masters ─────────────────────────
@@ -116,7 +118,7 @@ model Lead {
   address     String?
 
   // School details
-  currentCurriculum String? // PUBLICATIONS
+  currentCurriculum String? // free text
   studentStrength   Int?
   branches          Int?
 
@@ -183,7 +185,7 @@ model Opportunity {
 
   leadId String? // nullable so Phase 2 can open one for an existing school
   lead   Lead?   @relation(fields: [leadId], references: [id])
-  // Phase 2: schoolId String?
+  client Client? // set once a won deal is converted to a client
 
   schoolName        String
   stage             OpportunityStage @default(INTERESTED)
@@ -272,7 +274,9 @@ model Task {
   createdById String
   createdBy   User   @relation("TaskCreatedBy", fields: [createdById], references: [id])
 
-  // What the task is about — later phases add schoolId, serviceId, invoiceId…
+  // What the task is about — later phases add serviceId, invoiceId…
+  clientId      String?
+  client        Client?      @relation(fields: [clientId], references: [id], onDelete: Cascade)
   leadId        String?
   lead          Lead?        @relation(fields: [leadId], references: [id], onDelete: Cascade)
   opportunityId String?
@@ -282,6 +286,7 @@ model Task {
   updatedAt DateTime @updatedAt
 
   @@index([assigneeId, status, dueDate])
+  @@index([clientId])
   @@index([leadId])
   @@index([opportunityId])
 }
@@ -307,6 +312,8 @@ model Activity {
   byId String
   by   User   @relation(fields: [byId], references: [id])
 
+  clientId      String?
+  client        Client?      @relation(fields: [clientId], references: [id], onDelete: Cascade)
   leadId        String?
   lead          Lead?        @relation(fields: [leadId], references: [id], onDelete: Cascade)
   opportunityId String?
@@ -314,7 +321,55 @@ model Activity {
 
   createdAt DateTime @default(now())
 
+  @@index([clientId, occurredAt])
   @@index([leadId, occurredAt])
   @@index([opportunityId, occurredAt])
   @@index([byId, occurredAt])
+}
+
+// ───────────────────────── Clients ─────────────────────────
+
+enum ClientStatus {
+  ONBOARDING // just converted from a won deal
+  ACTIVE // onboarding complete
+}
+
+// A school that has signed up, created from a won opportunity ("Convert to client").
+// Phase 2 extends this with the full onboarding process, agreements and orders.
+model Client {
+  id     String @id @default(cuid())
+  number Int    @unique @default(autoincrement()) // displayed as C-<number>
+
+  opportunityId String      @unique
+  opportunity   Opportunity @relation(fields: [opportunityId], references: [id])
+
+  // Copied from the lead at conversion so the client stands on its own.
+  schoolName        String
+  contactName       String
+  designation       String?
+  mobile            String
+  email             String?
+  state             String
+  city              String
+  area              String?
+  address           String?
+  currentCurriculum String?
+  studentStrength   Int?
+  branches          Int?
+
+  status                ClientStatus @default(ONBOARDING)
+  onboardingCompletedAt DateTime?
+
+  ownerId     String // account owner, initially the deal owner
+  owner       User   @relation("ClientOwner", fields: [ownerId], references: [id])
+  createdById String
+  createdBy   User   @relation("ClientCreatedBy", fields: [createdById], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tasks      Task[]
+  activities Activity[]
+
+  @@index([ownerId, status])
 }

@@ -8,6 +8,7 @@ export async function resetData() {
   await db.$transaction([
     db.activity.deleteMany(),
     db.task.deleteMany(),
+    db.client.deleteMany(),
     db.opportunityStageChange.deleteMany(),
     db.opportunityItem.deleteMany(),
     db.opportunity.deleteMany(),

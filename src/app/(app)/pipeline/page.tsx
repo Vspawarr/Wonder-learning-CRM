@@ -14,7 +14,7 @@ export default async function PipelinePage({ searchParams }: { searchParams: Pro
   const sp = await searchParams;
   const all = seesAllSales(user.role);
   const [cards, team, detail, products] = await Promise.all([
-    pipelineCards(user, sp.owner),
+    pipelineCards(user, { owner: sp.owner }),
     assignees(user),
     sp.opp ? oppDetail(user, sp.opp) : null,
     sp.opp ? productOptions() : [],

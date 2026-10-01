@@ -2,12 +2,12 @@ import { db } from "@/lib/db";
 import { CLOSED_STAGES } from "@/lib/constants";
 import { toDbDate } from "@/lib/dates";
 import type { SessionUser } from "@/lib/permissions";
-import { leadScope, oppScope } from "./access";
+import { clientScope, leadScope, oppScope } from "./access";
 import { DomainError, NotFoundError } from "./errors";
 import { isActiveLead, taskTypeForActivity } from "./rules";
 import { activityInput, parse } from "./validation";
 
-/** Logs a call, message, meeting or note against a lead or opportunity. */
+/** Logs a call, message, meeting or note against a lead, opportunity or client. */
 export async function logActivity(user: SessionUser, raw: unknown) {
   const d = parse(activityInput, raw);
   return db.$transaction(async (tx) => {
@@ -22,6 +22,10 @@ export async function logActivity(user: SessionUser, raw: unknown) {
       ownerId = lead.assignedToId;
       leadId = lead.id;
       leadStatus = lead.status;
+    } else if (d.clientId) {
+      const client = await tx.client.findFirst({ where: { id: d.clientId, ...clientScope(user) } });
+      if (!client) throw new NotFoundError("Client");
+      ownerId = client.ownerId;
     } else {
       const opp = await tx.opportunity.findFirst({ where: { id: d.opportunityId!, ...oppScope(user) } });
       if (!opp) throw new NotFoundError("Opportunity");
@@ -39,6 +43,7 @@ export async function logActivity(user: SessionUser, raw: unknown) {
         byId: user.id,
         leadId,
         opportunityId: d.opportunityId || null,
+        clientId: d.clientId || null,
       },
     });
 
@@ -53,10 +58,11 @@ export async function logActivity(user: SessionUser, raw: unknown) {
           createdById: user.id,
           leadId,
           opportunityId: d.opportunityId || null,
+          clientId: d.clientId || null,
         },
       });
       if (leadId) await tx.lead.update({ where: { id: leadId }, data: { nextFollowUpDate: toDbDate(d.followUpDate) } });
-      else
+      else if (d.opportunityId)
         await tx.opportunity.update({
           where: { id: d.opportunityId! },
           data: { nextAction: d.nextAction, nextActionDate: toDbDate(d.followUpDate) },

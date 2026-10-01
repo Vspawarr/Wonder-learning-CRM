@@ -46,6 +46,7 @@ export const DESIGNATIONS = [
   "Other",
 ] as const;
 
+/** Suggestions only: "Current publication / curriculum" is free text. */
 export const PUBLICATIONS = [
   "Self Developed",
   "Oxford",
@@ -63,15 +64,7 @@ export const PUBLICATIONS = [
   "Information Not Available",
 ] as const;
 
-export const FOLLOWUP_TYPES = [
-  "Call",
-  "WhatsApp",
-  "Meeting",
-  "Email",
-  "School Visit",
-  "Demo",
-  "Proposal Follow-up",
-] as const;
+export const FOLLOWUP_TYPES = ["Call", "WhatsApp/Message", "Email", "School Visit", "Online Demo"] as const;
 
 export const COMPETITORS = [
   "EuroKids",
@@ -113,6 +106,7 @@ export const LEAD_STATUS_LABEL = {
 /** Statuses a user may set by hand; the other two come from actions. */
 export const MANUAL_LEAD_STATUSES = ["NEW", "CONTACTED", "QUALIFIED"] as const;
 
+/** Shown to users as "Category" (stored as temperature). */
 export const TEMPERATURE_LABEL = { HOT: "Hot", WARM: "Warm", COLD: "Cold" } as const;
 
 export const STAGES = [
@@ -166,5 +160,8 @@ export const INITIAL_PRODUCTS = [
   { code: "P07", name: "Branding Support", category: "Branding" },
 ] as const;
 
+export const CLIENT_STATUS_LABEL = { ONBOARDING: "Onboarding", ACTIVE: "Active" } as const;
+
 export const leadCode = (n: number) => `L-${n}`;
+export const clientCode = (n: number) => `C-${n}`;
 export const oppCode = (n: number) => `O-${n}`;

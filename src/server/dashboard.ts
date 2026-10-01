@@ -80,6 +80,7 @@ export async function salesDashboard(user: SessionUser, f: DashFilters) {
         assignee: { select: { id: true, name: true } },
         lead: { select: { id: true, schoolName: true } },
         opportunity: { select: { id: true, schoolName: true } },
+        client: { select: { id: true, schoolName: true } },
       },
       orderBy: { dueDate: "asc" },
       take: 8,
@@ -155,8 +156,10 @@ export async function salesDashboard(user: SessionUser, f: DashFilters) {
       title: t.title,
       dueDate: fromDbDate(t.dueDate),
       assignee: t.assignee,
-      related: t.opportunity
-        ? { href: `/pipeline?opp=${t.opportunity.id}`, label: t.opportunity.schoolName }
+      related: t.client
+        ? { href: `/clients/${t.client.id}`, label: t.client.schoolName }
+        : t.opportunity
+        ? { href: `/opportunities?opp=${t.opportunity.id}`, label: t.opportunity.schoolName }
         : t.lead
           ? { href: `/leads/${t.lead.id}`, label: t.lead.schoolName }
           : null,

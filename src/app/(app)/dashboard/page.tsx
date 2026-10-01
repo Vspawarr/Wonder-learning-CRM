@@ -117,7 +117,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
         <Card title="Biggest open deals">
           {d.biggest.length ? (
             d.biggest.map((o) => (
-              <Link key={o.id} href={`/pipeline?opp=${o.id}`} className="flex items-center justify-between gap-2 border-b border-line py-1.5 text-ink no-underline last:border-0">
+              <Link key={o.id} href={`/opportunities?opp=${o.id}`} className="flex items-center justify-between gap-2 border-b border-line py-1.5 text-ink no-underline last:border-0">
                 <span className="min-w-0">
                   <b className="block truncate">{o.school}</b>
                   <span className="small muted">

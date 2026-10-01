@@ -1,14 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Field, Modal, Options, useAction } from "@/components/client";
 import { Icon } from "@/components/icons";
 import { LogInteractionButton } from "@/components/activity";
-import { convertLead, disqualifyLead, updateLead } from "@/app/actions";
+import { disqualifyLead, updateLead } from "@/app/actions";
 import { LOST_REASONS } from "@/lib/constants";
-import type { LeadDetail, Option, ProductOption } from "@/server/queries";
+import type { LeadDetail, Option } from "@/server/queries";
 import { LeadForm, type LeadValues } from "../lead-form";
 
 const ACTIVE = ["NEW", "CONTACTED", "QUALIFIED"];
@@ -30,8 +29,6 @@ function toValues(l: LeadDetail): LeadValues {
     branches: s(l.branches),
     source: l.source,
     referenceName: s(l.referenceName),
-    interests: l.interests.map((p) => p.id),
-    remarks: s(l.remarks),
     status: l.status,
     temperature: l.temperature,
     assignedToId: l.assignedTo.id,
@@ -43,12 +40,10 @@ function toValues(l: LeadDetail): LeadValues {
 
 export function LeadEditor({
   lead,
-  products,
   team,
   cities,
 }: {
   lead: LeadDetail;
-  products: ProductOption[];
   team: Option[];
   cities: Record<string, string[]>;
 }) {
@@ -58,7 +53,7 @@ export function LeadEditor({
   const dirty = JSON.stringify(value) !== JSON.stringify(initial);
   return (
     <>
-      <LeadForm key={lead.id} value={value} onChange={setValue} products={products} team={team} cities={cities} idPrefix="el" />
+      <LeadForm key={lead.id} value={value} onChange={setValue} team={team} cities={cities} idPrefix="el" />
       <div className="sticky bottom-0 -mx-4 -mb-4 flex justify-end gap-2 rounded-b-xl border-t border-line bg-surf px-4 py-3">
         <button className="btn" disabled={!dirty || pending} onClick={() => setValue(initial)}>
           Discard changes
@@ -72,7 +67,6 @@ export function LeadEditor({
 }
 
 export function LeadActions({ lead }: { lead: LeadDetail }) {
-  const router = useRouter();
   const active = ACTIVE.includes(lead.status);
   const [disq, setDisq] = useState(false);
   const [reason, setReason] = useState("");
@@ -96,22 +90,9 @@ export function LeadActions({ lead }: { lead: LeadDetail }) {
         </button>
       ) : null}
       {lead.opportunity ? (
-        <Link className="btn" href={`/pipeline?opp=${lead.opportunity.id}`}>
+        <Link className="btn" href={`/opportunities?opp=${lead.opportunity.id}`}>
           Open opportunity
         </Link>
-      ) : active ? (
-        <button
-          className="btn pri"
-          disabled={pending}
-          onClick={() =>
-            run(() => convertLead(lead.id), {
-              success: "Opportunity created in the pipeline.",
-              onDone: (oppId) => router.push(`/pipeline?opp=${oppId}`),
-            })
-          }
-        >
-          Convert to opportunity
-        </button>
       ) : null}
 
       {disq ? (

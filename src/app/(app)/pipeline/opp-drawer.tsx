@@ -1,13 +1,14 @@
 "use client";
 
+import { DateInput } from "@/components/date-input";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { Field, Modal, Options, useAction } from "@/components/client";
 import { ActivityLog, LogInteractionButton } from "@/components/activity";
 import { Pill, DueTag } from "@/components/ui";
-import { moveOpportunity, updateOpportunity } from "@/app/actions";
-import { COMPETITORS, STAGES, STAGE_LABEL, STAGE_PROBABILITY, leadCode, oppCode, type Stage } from "@/lib/constants";
+import { convertToClient, moveOpportunity, updateOpportunity } from "@/app/actions";
+import { COMPETITORS, STAGES, STAGE_LABEL, STAGE_PROBABILITY, clientCode, leadCode, oppCode, type Stage } from "@/lib/constants";
 import { fmtDate, istDate, todayIST } from "@/lib/dates";
 import { inr, inrS } from "@/lib/format";
 import type { OppDetail, Option, ProductOption } from "@/server/queries";
@@ -108,7 +109,27 @@ export function OppDrawer({ opp, products, team }: { opp: OppDetail; products: P
         </div>
       ) : null}
       {opp.stage === "WON" ? (
-        <div className="note ok">Won. School and order setup comes with the next phase of the CRM.</div>
+        opp.client ? (
+          <div className="note ok">
+            Won and converted to <Link href={`/clients/${opp.client.id}`}>client {clientCode(opp.client.number)}</Link>.
+          </div>
+        ) : (
+          <div className="note ok flex flex-wrap items-center justify-between gap-2">
+            <span>Won! Convert this school into a client to start onboarding.</span>
+            <button
+              className="btn pri sm"
+              disabled={pending}
+              onClick={() =>
+                run(() => convertToClient(opp.id), {
+                  success: `${opp.schoolName} is now a client. Onboarding task created.`,
+                  onDone: (id) => id && router.push(`/clients/${id}`),
+                })
+              }
+            >
+              Convert to client
+            </button>
+          </div>
+        )
       ) : null}
 
       <div className="flex flex-wrap items-end gap-2">
@@ -206,7 +227,7 @@ export function OppDrawer({ opp, products, team }: { opp: OppDetail; products: P
 
       <div className="fg2">
         <Field label="Expected close date" htmlFor="op-close">
-          <input className="in" type="date" id="op-close" disabled={opp.closed} value={v.expectedCloseDate} onChange={(e) => setV({ ...v, expectedCloseDate: e.target.value })} />
+          <DateInput id="op-close" disabled={opp.closed} value={v.expectedCloseDate} onChange={(expectedCloseDate) => setV({ ...v, expectedCloseDate })} />
         </Field>
         <Field label="Competitor" htmlFor="op-comp">
           <select className="sel" id="op-comp" disabled={opp.closed} value={v.competitor} onChange={(e) => setV({ ...v, competitor: e.target.value })}>
@@ -217,7 +238,7 @@ export function OppDrawer({ opp, products, team }: { opp: OppDetail; products: P
           <input className="in" id="op-next" disabled={opp.closed} value={v.nextAction} onChange={(e) => setV({ ...v, nextAction: e.target.value })} />
         </Field>
         <Field label="Next action date" htmlFor="op-nextd">
-          <input className="in" type="date" id="op-nextd" disabled={opp.closed} value={v.nextActionDate} onChange={(e) => setV({ ...v, nextActionDate: e.target.value })} />
+          <DateInput id="op-nextd" disabled={opp.closed} value={v.nextActionDate} onChange={(nextActionDate) => setV({ ...v, nextActionDate })} />
         </Field>
         <Field label="Decision maker" htmlFor="op-dm">
           <input className="in" id="op-dm" disabled={opp.closed} value={v.decisionMaker} onChange={(e) => setV({ ...v, decisionMaker: e.target.value })} />
