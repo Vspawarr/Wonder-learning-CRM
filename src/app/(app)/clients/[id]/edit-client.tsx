@@ -108,11 +108,11 @@ export function EditClientButton({ client: c, team, locations, canChangeOwner }:
             <Field label="Number of branches" htmlFor="ec-br">
               <input className="in" id="ec-br" type="number" min={1} value={v.branches} onChange={(e) => set("branches", e.target.value)} />
             </Field>
-            <Field label="Account owner" htmlFor="ec-owner">
+            <Field label="Assigned to (salesperson)" htmlFor="ec-owner">
               <select className="sel" id="ec-owner" value={v.ownerId} disabled={!canChangeOwner} onChange={(e) => set("ownerId", e.target.value)}>
                 <Options list={owners.map((t) => [t.id, t.name] as const)} />
               </select>
-              {canChangeOwner ? <span className="small muted">Their open follow-ups move to the new owner.</span> : null}
+              {canChangeOwner ? <span className="small muted">Their open follow-ups move to the new salesperson.</span> : null}
             </Field>
           </div>
         </Modal>

@@ -52,7 +52,8 @@ export async function productOptions(): Promise<ProductOption[]> {
 
 /* ---------- leads ---------- */
 
-export type LeadFilters = { q?: string; status?: string; src?: string };
+/** sort: "new" (default, newest first), "old" (oldest first) or "follow" (next follow-up first). */
+export type LeadFilters = { q?: string; status?: string; src?: string; sort?: string };
 
 export async function leadsList(user: SessionUser, f: LeadFilters) {
   const where: Prisma.LeadWhereInput = { ...leadScope(user) };
@@ -78,7 +79,10 @@ export async function leadsList(user: SessionUser, f: LeadFilters) {
       assignedTo: { select: { id: true, name: true } },
       interests: { include: { product: { select: { name: true } } } },
     },
-    orderBy: [{ nextFollowUpDate: { sort: "asc", nulls: "last" } }, { createdAt: "desc" }],
+    orderBy:
+      f.sort === "follow"
+        ? [{ nextFollowUpDate: { sort: "asc", nulls: "last" } }, { createdAt: "desc" }]
+        : { createdAt: f.sort === "old" ? "asc" : "desc" },
     take: 500,
   });
   return rows.map((l) => ({
@@ -87,6 +91,7 @@ export async function leadsList(user: SessionUser, f: LeadFilters) {
     schoolName: l.schoolName,
     contactName: l.contactName,
     mobile: l.mobile,
+    createdAt: fmtDateTimeIST(l.createdAt),
     city: l.city,
     source: l.source,
     interests: l.interests.map((i) => i.product.name),

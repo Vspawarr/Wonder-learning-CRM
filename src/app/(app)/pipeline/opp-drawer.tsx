@@ -242,7 +242,7 @@ export function OppDrawer({
             onChange={(e) => setV({ ...v, decisionMaker: e.target.value })}
           />
         </Field>
-        <Field label="Owner" htmlFor="op-owner">
+        <Field label="Assigned to" htmlFor="op-owner">
           <select
             className="sel"
             id="op-owner"

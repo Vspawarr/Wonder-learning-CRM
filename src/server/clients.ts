@@ -116,7 +116,7 @@ export async function updateClient(user: SessionUser, id: string, raw: unknown) 
     const { ownerId, ...details } = d;
     const ownerChanged = ownerId !== c.ownerId;
     if (ownerChanged) {
-      if (!seesAllSales(user.role)) throw new DomainError("Only an Admin or the Sales Head can change the account owner.");
+      if (!seesAllSales(user.role)) throw new DomainError("Only an Admin or the Sales Head can change the assigned salesperson.");
       await assertAssignable(tx, user, ownerId);
     }
     const changed = Object.keys(FIELD_LABEL).filter((k) => (details as Record<string, unknown>)[k] !== (c as Record<string, unknown>)[k]);
@@ -127,7 +127,7 @@ export async function updateClient(user: SessionUser, id: string, raw: unknown) 
         where: { id: ownerId },
         select: { name: true },
       });
-      notes.push(`Account owner changed to ${to.name}`);
+      notes.push(`Assigned salesperson changed to ${to.name}`);
       // Their open follow-ups (incl. payment collection) move with the account.
       await tx.task.updateMany({
         where: { clientId: id, status: "OPEN", assigneeId: c.ownerId },

@@ -10,7 +10,7 @@ export function OwnerFilter({ team, value }: { team: Option[]; value: string }) 
   return (
     <select
       className="sel w-auto min-w-[170px]"
-      aria-label="Owner"
+      aria-label="Assigned to"
       value={value}
       onChange={(e) => {
         const next = new URLSearchParams(sp);
@@ -20,7 +20,7 @@ export function OwnerFilter({ team, value }: { team: Option[]; value: string }) 
         router.replace(`${path}?${next}`, { scroll: false });
       }}
     >
-      <option value="">Everyone</option>
+      <option value="">All salespeople</option>
       {team.map((t) => (
         <option key={t.id} value={t.id}>
           {t.name}

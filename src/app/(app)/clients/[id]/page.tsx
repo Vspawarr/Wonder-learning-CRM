@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { CLIENT_STATUS_LABEL, clientCode, leadCode, oppCode } from "@/lib/constants";
 import { fmtDate, istDate, todayIST } from "@/lib/dates";
 import { ActivityLog } from "@/components/activity";
-import { Card, DueTag, Kpi, Pill } from "@/components/ui";
+import { BackLink, Card, DueTag, Kpi, Pill } from "@/components/ui";
 import { inr } from "@/lib/format";
 import { isEmailConfigured } from "@/server/mailer";
 import { requireUser } from "@/server/session";
@@ -54,15 +54,13 @@ export default async function ClientPage({ params }: { params: Promise<{ id: str
     ["Current curriculum", c.currentCurriculum],
     ["Student strength", c.studentStrength],
     ["Branches", c.branches],
-    ["Account owner", c.owner.name],
+    ["Assigned to (salesperson)", c.owner.name],
   ];
 
   return (
     <>
       <div className="mb-2">
-        <Link href="/clients" className="small no-underline">
-          ← All clients
-        </Link>
+        <BackLink href="/clients">All clients</BackLink>
       </div>
       <div className="mb-[18px] flex flex-wrap items-start justify-between gap-4">
         <div className="min-w-0">

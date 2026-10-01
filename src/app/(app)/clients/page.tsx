@@ -34,7 +34,7 @@ export default async function ClientsPage({ searchParams }: { searchParams: Prom
       <ClientFilterBar />
 
       <div className="hidden min-[901px]:block">
-        <Table head={["Client", "School", "City", "Mobile", "Status", "Since", "Owner"]} empty={empty}>
+        <Table head={["Client", "School", "City", "Mobile", "Status", "Since", "Assigned to"]} empty={empty}>
           {rows.map((c) => (
             <tr key={c.id} className="click">
               <td className="faint">
@@ -73,7 +73,7 @@ export default async function ClientsPage({ searchParams }: { searchParams: Prom
               {c.contactName} · {c.city}
             </div>
             <div className="small mt-1">
-              {clientCode(c.number)} · since {fmtDate(istDate(c.since), today)} · {c.owner.name}
+              {clientCode(c.number)} · since {fmtDate(istDate(c.since), today)} · Assigned to {c.owner.name}
             </div>
           </Link>
         ))}

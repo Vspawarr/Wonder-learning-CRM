@@ -194,3 +194,28 @@ export function Table({ head, children, empty }: { head: (string | [string, "num
     </div>
   );
 }
+
+/** "← All leads" style link back to a list, large enough to tap. */
+export function BackLink({ href, children }: { href: string; children: React.ReactNode }) {
+  return (
+    <Link href={href} className="inline-flex items-center gap-1.5 py-1 text-[15px] font-semibold no-underline">
+      <span aria-hidden="true">←</span> {children}
+    </Link>
+  );
+}
+
+/** Key facts about a school's contact, shown beside the page title. */
+export function ContactFacts({ rows }: { rows: [string, React.ReactNode][] }) {
+  return (
+    <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-1.5 rounded-xl border border-line bg-surf px-4 py-3 text-[14px] min-[701px]:grid-cols-[auto_minmax(0,1fr)_auto_minmax(0,1fr)]">
+      {rows
+        .filter(([, v]) => v !== null && v !== undefined && v !== "")
+        .map(([k, v]) => (
+          <div key={k} className="contents">
+            <dt className="text-ink3">{k}</dt>
+            <dd className="min-w-0 break-words font-medium">{v}</dd>
+          </div>
+        ))}
+    </dl>
+  );
+}

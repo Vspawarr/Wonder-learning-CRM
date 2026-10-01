@@ -1,9 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { LEAD_STATUS_LABEL, STAGE_LABEL, leadCode, oppCode } from "@/lib/constants";
-import { fmtDate, istDate, todayIST } from "@/lib/dates";
+import { fmtDateTimeIST, todayIST } from "@/lib/dates";
 import { ActivityLog } from "@/components/activity";
-import { Card, DueTag, FollowUp, Pill } from "@/components/ui";
+import { BackLink, Card, ContactFacts, DueTag, FollowUp, Pill } from "@/components/ui";
 import { requireUser } from "@/server/session";
 import { assignees, leadDetail } from "@/server/queries";
 import { getLocations } from "@/server/locations";
@@ -29,27 +29,39 @@ export default async function LeadPage({ params }: { params: Promise<{ id: strin
   return (
     <>
       <div className="mb-2">
-        <Link href="/leads" className="small no-underline">
-          ← All leads
-        </Link>
+        <BackLink href="/leads">All leads</BackLink>
       </div>
-      <div className="mb-[18px] flex flex-wrap items-start justify-between gap-4">
+      <div className="mb-[18px] grid grid-cols-1 items-start gap-4 min-[1101px]:grid-cols-[minmax(0,1fr)_minmax(0,auto)]">
         <div className="min-w-0">
           <h1>{lead.schoolName}</h1>
-          <div className="muted mt-1">
-            {lead.contactName}
-            {lead.designation ? ` · ${lead.designation}` : ""} · {lead.mobile} · {lead.city}, {lead.state}
-          </div>
           <div className="mt-2 flex flex-wrap items-center gap-2">
             <Pill>{LEAD_STATUS_LABEL[lead.status]}</Pill>
             <span className="tag">{lead.source}</span>
             <span className="tag">{leadCode(lead.number)}</span>
-            <span className="small faint min-w-0 break-words">
-              Added {fmtDate(istDate(lead.createdAt), today)} by {lead.createdBy}
-            </span>
+          </div>
+          <div className="small faint mt-2 break-words">
+            Added {fmtDateTimeIST(lead.createdAt)} by {lead.createdBy}
           </div>
         </div>
-        <LeadActions lead={lead} />
+        <div className="flex min-w-0 flex-col gap-3">
+          <ContactFacts
+            rows={[
+              ["Contact person", lead.contactName],
+              ["Designation", lead.designation],
+              [
+                "Mobile",
+                <a key="m" href={`tel:${lead.mobile.replace(/[^\d+]/g, "")}`}>
+                  {lead.mobile}
+                </a>,
+              ],
+              ["Email", lead.email ? <a key="e" href={`mailto:${lead.email}`}>{lead.email}</a> : null],
+              ["Location", [lead.area, lead.city, lead.state].filter(Boolean).join(", ")],
+              ["Assigned to", lead.assignedTo.name],
+              ["Next follow-up", lead.nextFollowUpDate ? <FollowUp key="f" date={lead.nextFollowUpDate} today={today} /> : null],
+            ]}
+          />
+          <LeadActions lead={lead} />
+        </div>
       </div>
 
       {lead.status === "DISQUALIFIED" ? (

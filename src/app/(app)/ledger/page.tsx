@@ -48,7 +48,7 @@ async function Summary({ user, period, owner, range }: { user: Awaited<ReturnTyp
       </div>
       <div className="small muted mb-2">All clients · {range}. Pick a client above for the full statement.</div>
       <div className="hidden min-[901px]:block">
-        <Table head={["Client", "School", "City", "Owner", ["Opening", "num"], ["Invoiced", "num"], ["Received", "num"], ["Closing", "num"]]} empty="No invoices or payments in this period.">
+        <Table head={["Client", "School", "City", "Assigned to", ["Opening", "num"], ["Invoiced", "num"], ["Received", "num"], ["Closing", "num"]]} empty="No invoices or payments in this period.">
           {s.rows.map((r) => (
             <tr key={r.clientId}>
               <td className="faint">{clientCode(r.number)}</td>
@@ -91,7 +91,7 @@ async function Summary({ user, period, owner, range }: { user: Awaited<ReturnTyp
               </b>
             </div>
             <div className="small muted mt-0.5">
-              {r.city} · {r.owner}
+              {r.city} · Assigned to {r.owner}
             </div>
             <div className="small mt-1.5 grid grid-cols-3 gap-2">
               <span>

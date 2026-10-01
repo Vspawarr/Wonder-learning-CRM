@@ -44,6 +44,11 @@ export function LeadFilters() {
           </button>
         ))}
       </div>
+      <select className="sel w-auto" aria-label="Sort" value={sp.get("sort") ?? ""} onChange={(e) => set("sort", e.target.value)}>
+        <option value="">Newest first</option>
+        <option value="old">Oldest first</option>
+        <option value="follow">Next follow-up first</option>
+      </select>
       <select className="sel w-auto min-w-[150px]" aria-label="Source" value={sp.get("src") ?? ""} onChange={(e) => set("src", e.target.value)}>
         <option value="">All sources</option>
         {SOURCES.map((s) => (

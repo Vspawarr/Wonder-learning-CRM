@@ -89,7 +89,7 @@ export const clientInput = z.object({
   currentCurriculum: leadDetails.currentCurriculum,
   studentStrength: leadDetails.studentStrength,
   branches: leadDetails.branches,
-  ownerId: z.string().min(1, "Choose the account owner."),
+  ownerId: z.string().min(1, "Choose the assigned salesperson."),
 });
 
 export const leadInput = z

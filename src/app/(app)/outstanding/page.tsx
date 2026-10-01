@@ -74,7 +74,7 @@ export default async function OutstandingPage({ searchParams }: { searchParams: 
       <OutstandingFilterBar owners={owners} />
 
       <div className="hidden min-[1101px]:block">
-        <Table head={["Invoice", "School", "Due", ["Total", "num"], ["Received", "num"], ["Balance", "num"], "Status", "Owner", ""]} empty={empty}>
+        <Table head={["Invoice", "School", "Due", ["Total", "num"], ["Received", "num"], ["Balance", "num"], "Status", "Assigned to", ""]} empty={empty}>
           {shown.map((r) => (
             <tr key={r.id}>
               <td className="whitespace-nowrap">
@@ -117,7 +117,7 @@ export default async function OutstandingPage({ searchParams }: { searchParams: 
               <InvoiceStatePill row={r} />
             </div>
             <div className="small muted mt-0.5">
-              {r.number} · due {dmy(r.dueDate)} · {r.client.owner.name}
+              {r.number} · due {dmy(r.dueDate)} · Assigned to {r.client.owner.name}
             </div>
             <div className="my-2 grid grid-cols-3 gap-2 text-[13px]">
               <div>

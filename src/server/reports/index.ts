@@ -26,7 +26,7 @@ const time12 = (t: string | null) => {
 const filtersLine = (parts: (string | false | undefined | null)[]) => parts.filter(Boolean).join(" · ") || undefined;
 
 async function leads(user: SessionUser, p: Params): Promise<Report> {
-  const rows = await leadsList(user, { q: p.q, status: p.status, src: p.src });
+  const rows = await leadsList(user, { q: p.q, status: p.status, src: p.src, sort: p.sort });
   return {
     title: "Leads",
     subtitle: filtersLine([
@@ -39,17 +39,19 @@ async function leads(user: SessionUser, p: Params): Promise<Report> {
       {
         columns: [
           { key: "no", header: "Lead", width: 0.7 },
+          { key: "added", header: "Added", width: 1.3 },
           { key: "school", header: "School", width: 2 },
           { key: "contact", header: "Contact", width: 1.3 },
           { key: "mobile", header: "Mobile", width: 1.1 },
           { key: "city", header: "City", width: 1 },
           { key: "source", header: "Source", width: 1.1 },
           { key: "status", header: "Status", width: 0.9 },
-          { key: "owner", header: "Owner", width: 1.2 },
+          { key: "owner", header: "Assigned to", width: 1.2 },
           { key: "next", header: "Next follow-up", width: 1 },
         ],
         rows: rows.map((l) => ({
           no: leadCode(l.number),
+          added: l.createdAt,
           school: l.schoolName,
           contact: l.contactName,
           mobile: l.mobile,
@@ -94,7 +96,7 @@ async function opportunities(user: SessionUser, p: Params): Promise<Report> {
           { key: "chance", header: "Chance %", kind: "number", width: 0.6 },
           { key: "close", header: "Expected close", width: 0.9 },
           { key: "next", header: "Next action", width: 1.5 },
-          { key: "owner", header: "Owner", width: 1.1 },
+          { key: "owner", header: "Assigned to", width: 1.1 },
         ],
         rows: rows.map((o) => ({
           no: oppCode(o.number),
@@ -132,7 +134,7 @@ async function clients(user: SessionUser, p: Params): Promise<Report> {
           { key: "city", header: "City", width: 0.9 },
           { key: "status", header: "Status", width: 0.8 },
           { key: "since", header: "Since", width: 0.8 },
-          { key: "owner", header: "Owner", width: 1 },
+          { key: "owner", header: "Assigned to", width: 1 },
         ],
         rows: rows.map((c) => ({
           no: clientCode(c.number),
@@ -211,7 +213,7 @@ async function outstanding(user: SessionUser, p: Params): Promise<Report> {
           { key: "paid", header: "Received", kind: "money" },
           { key: "balance", header: "Balance", kind: "money" },
           { key: "state", header: "Status", width: 1.1 },
-          { key: "owner", header: "Owner", width: 1 },
+          { key: "owner", header: "Assigned to", width: 1 },
         ],
         rows: shown.map((r) => ({
           inv: r.number,
@@ -285,7 +287,7 @@ async function ledger(user: SessionUser, p: Params): Promise<Report> {
           { key: "no", header: "Client", width: 0.6 },
           { key: "school", header: "School", width: 2 },
           { key: "city", header: "City", width: 0.9 },
-          { key: "owner", header: "Owner", width: 1 },
+          { key: "owner", header: "Assigned to", width: 1 },
           { key: "opening", header: "Opening", kind: "money" },
           { key: "debit", header: "Invoiced", kind: "money" },
           { key: "credit", header: "Received", kind: "money" },

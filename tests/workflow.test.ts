@@ -423,7 +423,7 @@ describe("client editing", () => {
     const id = await client();
     await updateClient(exA, id, details());
     expect(await db.client.findUniqueOrThrow({ where: { id } })).toMatchObject({ schoolName: "Sunshine Preschool", contactName: "New Owner" });
-    await expect(updateClient(exA, id, details({ ownerId: exB.id }))).rejects.toThrow(/account owner/);
+    await expect(updateClient(exA, id, details({ ownerId: exB.id }))).rejects.toThrow(/assigned salesperson/);
     await expect(updateClient(exB, id, details())).rejects.toThrow(/not found/);
     await updateClient(head, id, details({ ownerId: exB.id }));
     const c = await db.client.findUniqueOrThrow({ where: { id }, include: { tasks: { where: { status: "OPEN" } } } });

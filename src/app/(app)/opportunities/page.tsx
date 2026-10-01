@@ -59,7 +59,7 @@ export default async function OpportunitiesPage({ searchParams }: { searchParams
       {/* Computer: table */}
       <div className="hidden min-[901px]:block">
         <Table
-          head={["Opportunity", "School", "Stage", ["Value", "num"], ["Chance", "num"], "Expected close", "Next action", "Owner"]}
+          head={["Opportunity", "School", "Stage", ["Value", "num"], ["Chance", "num"], "Expected close", "Next action", "Assigned to"]}
           empty={filtered ? "No opportunities match these filters." : "No open opportunities. Leads become opportunities when marked Qualified."}
         >
           {rows.map((o) => (
@@ -108,7 +108,7 @@ export default async function OpportunitiesPage({ searchParams }: { searchParams
             </div>
             <div className="small muted mt-0.5">{[o.contactName, o.city].filter(Boolean).join(" · ")}</div>
             <div className="small mt-1.5">
-              {o.noValue ? <span className="faint">No value yet</span> : <b>{inrS(o.value)}</b>} · {o.probability}% · {o.owner.name}
+              {o.noValue ? <span className="faint">No value yet</span> : <b>{inrS(o.value)}</b>} · {o.probability}% · Assigned to {o.owner.name}
             </div>
             <div className="small mt-1">
               <NextAction o={o} today={today} />

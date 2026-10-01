@@ -14,7 +14,7 @@ import { BulkLeadButtons } from "./bulk-upload";
 
 export const metadata = { title: "Leads" };
 
-type SP = Promise<{ q?: string; status?: string; src?: string }>;
+type SP = Promise<{ q?: string; status?: string; src?: string; sort?: string }>;
 
 export default async function LeadsPage({ searchParams }: { searchParams: SP }) {
   const user = await requireUser();
@@ -33,7 +33,7 @@ export default async function LeadsPage({ searchParams }: { searchParams: SP }) 
     <>
       <PageHeader
         title="Leads"
-        sub={`${seesAllSales(user.role) ? "" : "Your leads only. "}Sorted by next follow-up so the most urgent are on top.`}
+        sub={`${seesAllSales(user.role) ? "" : "Your leads only. "}${sp.sort === "follow" ? "Sorted by next follow-up." : sp.sort === "old" ? "Oldest first." : "Newest first."}`}
       >
         <BulkLeadButtons />
         <ExportButtons report="leads" />
@@ -41,13 +41,17 @@ export default async function LeadsPage({ searchParams }: { searchParams: SP }) 
       </PageHeader>
       <LeadFilters />
       <div className="hidden min-[901px]:block">
-        <Table head={["Lead", "School", "City", "Source", "Status", "Owner", "Next follow-up", ""]} empty={empty}>
+        <Table head={["Lead", "Added", "School", "City", "Source", "Status", "Assigned to", "Next follow-up", ""]} empty={empty}>
           {rows.map((l) => (
             <tr key={l.id} className="click">
               <td className="faint">
                 <Link href={`/leads/${l.id}`} className="text-inherit no-underline">
                   {leadCode(l.number)}
                 </Link>
+              </td>
+              <td className="small whitespace-nowrap text-ink2">
+                {l.createdAt.split(", ")[0]}
+                <div className="faint">{l.createdAt.split(", ")[1]}</div>
               </td>
               <td>
                 <Link href={`/leads/${l.id}`} className="font-bold text-ink no-underline hover:underline">
@@ -87,6 +91,7 @@ export default async function LeadsPage({ searchParams }: { searchParams: SP }) 
                 <span>
                   Next: <FollowUp date={l.nextFollowUpDate} today={today} />
                 </span>
+                <span className="faint">Added {l.createdAt}</span>
               </div>
             </Link>
             {convertible(l.status) ? (
