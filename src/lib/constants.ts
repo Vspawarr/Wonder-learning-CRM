@@ -150,6 +150,12 @@ export const INITIAL_PRODUCTS = [
 
 export const CLIENT_STATUS_LABEL = { ONBOARDING: "Onboarding", ACTIVE: "Active" } as const;
 
+/** How a payment was received. */
+export const PAYMENT_MODES = ["NEFT/RTGS", "UPI", "Cheque", "CDC (Current Dated Cheque)", "PDC (Post Dated Cheque)", "Cash", "Other"] as const;
+
+/** Days after the invoice date when payment is due, unless changed on the invoice. */
+export const DEFAULT_PAYMENT_DAYS = 45;
+
 export const leadCode = (n: number) => `L-${n}`;
 export const clientCode = (n: number) => `C-${n}`;
 export const oppCode = (n: number) => `O-${n}`;

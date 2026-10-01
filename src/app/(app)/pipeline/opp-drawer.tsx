@@ -153,7 +153,20 @@ export function OppDrawer({
         </div>
       </div>
 
-      <QuotationsPanel opp={opp} products={products} emailReady={emailReady} me={me} />
+      <QuotationsPanel
+        target={{
+          parent: { opportunityId: opp.id },
+          schoolName: opp.schoolName,
+          closed: opp.closed,
+          stage: opp.stage,
+          email: opp.lead?.email ?? null,
+          mobile: opp.lead?.mobile ?? null,
+          quotations: opp.quotations,
+        }}
+        products={products}
+        emailReady={emailReady}
+        me={me}
+      />
 
       <div className="fg2">
         <Field label="Expected deal value (₹)" htmlFor="op-value">

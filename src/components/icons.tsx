@@ -22,6 +22,7 @@ const PATHS = {
     </>
   ),
   funnel: <path d="M3 4h18l-7 8v7l-4 2v-9z" />,
+  rupee: <path d="M6 4h12M6 9h12M9 4c6 0 6 10 0 10H6l8 7" />,
   briefcase: (
     <>
       <rect x="3" y="7" width="18" height="13" rx="2" />

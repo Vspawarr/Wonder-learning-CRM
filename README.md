@@ -49,6 +49,7 @@ action goes through it.
 - `src/server/locations.ts` — states and cities (managed in Settings → Locations); the only list behind the form, the Excel template and the upload.
 - `src/server/lead-excel/` — bulk lead upload: `columns.ts` (the template's columns, built from `src/lib/constants.ts`), `template.ts` (generated on each download), `import.ts` (re-checks every row, then uses `createLead`).
 - `src/server/quotation/` — quotations: `service.ts` (drafts, numbering QUO/YYYY/MM/NNN, send/revise, email), `pdf.tsx` (3-page PDF in the Wonder Learning format), `content.ts` (standard text, edited in Settings → Quotation). `src/server/mailer.ts` sends email once SMTP_* is set (see DEPLOY.md).
+- `src/server/finance/` — after-sale money for clients: `service.ts` (sales orders SO/…, invoices INV/…, instalment payments, collection follow-ups, reminders, share link `/i/<token>`), `money.ts` (totals, GST per line, Unpaid / Partially paid / Paid / Overdue rules), `invoice-pdf.tsx` (provisional layout until the business's invoice sample is matched). Screens: client page sections and `/outstanding`.
 - `src/components/date-input.tsx` — every date field; always DD/MM/YYYY regardless of browser language.
 
 ## Tests

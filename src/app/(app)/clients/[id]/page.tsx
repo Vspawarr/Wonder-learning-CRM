@@ -3,10 +3,14 @@ import { notFound } from "next/navigation";
 import { CLIENT_STATUS_LABEL, clientCode, leadCode, oppCode } from "@/lib/constants";
 import { fmtDate, istDate, todayIST } from "@/lib/dates";
 import { ActivityLog } from "@/components/activity";
-import { Card, DueTag, Pill } from "@/components/ui";
+import { Card, DueTag, Kpi, Pill } from "@/components/ui";
+import { inr } from "@/lib/format";
+import { isEmailConfigured } from "@/server/mailer";
 import { requireUser } from "@/server/session";
-import { clientDetail } from "@/server/queries";
+import { clientDetail, productOptions } from "@/server/queries";
+import { QuotationsPanel } from "../../pipeline/quotations";
 import { ClientActions } from "./client-actions";
+import { InvoicesPanel, PaymentsPanel, SalesOrdersPanel } from "./finance";
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
   const user = await requireUser();
@@ -16,9 +20,12 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
 
 export default async function ClientPage({ params }: { params: Promise<{ id: string }> }) {
   const user = await requireUser();
-  const c = await clientDetail(user, (await params).id);
+  const [c, products] = await Promise.all([clientDetail(user, (await params).id), productOptions()]);
   if (!c) notFound();
   const today = todayIST();
+  const emailReady = isEmailConfigured();
+  const me = { name: user.name };
+  const m = c.money;
 
   const facts: [string, React.ReactNode][] = [
     ["Owner / contact", c.contactName],
@@ -66,8 +73,38 @@ export default async function ClientPage({ params }: { params: Promise<{ id: str
         </div>
       )}
 
+      <div className="kgrid kgrid-2 my-4">
+        <Kpi label="Invoiced" value={inr(m.invoiced)} sub={`${c.invoices.filter((i) => i.state !== "CANCELLED").length} invoice(s)`} color="#1C86C4" />
+        <Kpi label="Received" value={inr(m.received)} sub={`${c.payments.length} payment(s)`} color="#0E8F79" />
+        <Kpi label="Outstanding" value={inr(m.outstanding)} sub="Still to collect" color="#C77A00" />
+        <Kpi label="Overdue" value={inr(m.overdue)} sub={m.overdueCount ? `${m.overdueCount} invoice(s) past due` : "Nothing past due"} color="#D9412D" />
+      </div>
+
       <div className="grid grid-cols-1 gap-4 min-[1101px]:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
         <div className="flex flex-col gap-4">
+          <Card title="Invoices & payments due">
+            <InvoicesPanel client={c} emailReady={emailReady} me={me} />
+          </Card>
+          <Card title="Sales orders">
+            <SalesOrdersPanel client={c} products={products} />
+          </Card>
+          <Card title="Quotations">
+            <QuotationsPanel
+              heading={false}
+              target={{
+                parent: { clientId: c.id },
+                schoolName: c.schoolName,
+                closed: false,
+                stage: null,
+                email: c.email,
+                mobile: c.mobile,
+                quotations: c.quotations,
+              }}
+              products={products}
+              emailReady={emailReady}
+              me={me}
+            />
+          </Card>
           <Card title="School details">
             <dl className="facts">
               {facts
@@ -110,6 +147,9 @@ export default async function ClientPage({ params }: { params: Promise<{ id: str
             <Link href="/tasks" className="small mt-2 inline-block">
               Open follow-ups →
             </Link>
+          </Card>
+          <Card title="Payments received">
+            <PaymentsPanel client={c} />
           </Card>
           <Card title="Activity">
             <ActivityLog items={c.activities} />

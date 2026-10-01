@@ -5,7 +5,7 @@ import { db } from "@/lib/db";
 import { CLOSED_STAGES } from "@/lib/constants";
 import { fromDbDate, isDateStr, todayIST, toDbDate } from "@/lib/dates";
 import type { SessionUser } from "@/lib/permissions";
-import { oppScope } from "../access";
+import { clientScope, oppScope } from "../access";
 import { DomainError, NotFoundError } from "../errors";
 import { isEmailConfigured, sendMail } from "../mailer";
 import { moveOpportunity } from "../opportunities";
@@ -59,33 +59,63 @@ export const emailInput = z.object({
 
 const formatNumber = (y: number, m: number, seq: number) => `QUO/${y}/${String(m).padStart(2, "0")}/${String(seq).padStart(3, "0")}`;
 
-async function loadOpp(user: SessionUser, opportunityId: string) {
-  const opp = await db.opportunity.findFirst({ where: { id: opportunityId, ...oppScope(user) }, include: { lead: true } });
+/** New business is quoted on an opportunity; repeat orders on an existing client. */
+export type QuoteParent = { opportunityId: string } | { clientId: string };
+const asParent = (p: string | QuoteParent): QuoteParent => (typeof p === "string" ? { opportunityId: p } : p);
+
+async function loadParent(user: SessionUser, parent: QuoteParent) {
+  if ("clientId" in parent) {
+    const c = await db.client.findFirst({ where: { id: parent.clientId, ...clientScope(user) } });
+    if (!c) throw new NotFoundError("Client");
+    return {
+      opportunityId: null,
+      clientId: c.id,
+      leadId: null,
+      closed: false,
+      schoolName: c.schoolName,
+      address: [c.address, c.area, c.city].filter(Boolean).join(", "),
+    };
+  }
+  const opp = await db.opportunity.findFirst({ where: { id: parent.opportunityId, ...oppScope(user) }, include: { lead: true } });
   if (!opp) throw new NotFoundError("Opportunity");
-  return opp;
+  const l = opp.lead;
+  return {
+    opportunityId: opp.id,
+    clientId: null,
+    leadId: opp.leadId,
+    closed: CLOSED_STAGES.includes(opp.stage),
+    schoolName: opp.schoolName,
+    address: l ? [l.address, l.area, l.city].filter(Boolean).join(", ") : "",
+  };
 }
+
+/** Visible when its opportunity or its client is visible to this user. */
+const quotationScope = (user: SessionUser): Prisma.QuotationWhereInput => ({
+  OR: [{ opportunity: { is: oppScope(user) } }, { client: { is: clientScope(user) } }],
+});
 
 async function loadQuotation(user: SessionUser, id: string) {
   const q = await db.quotation.findFirst({
-    where: { id, opportunity: oppScope(user) },
+    where: { id, ...quotationScope(user) },
     include: { opportunity: true, items: { orderBy: { sortOrder: "asc" } }, preparedBy: true },
   });
   if (!q) throw new NotFoundError("Quotation");
   return q;
 }
 
-/** Suggested values for a new quotation on this opportunity. */
-export async function quotationDefaults(user: SessionUser, opportunityId: string) {
-  const opp = await loadOpp(user, opportunityId);
+/** Suggested values for a new quotation on this opportunity or client. */
+export async function quotationDefaults(user: SessionUser, parentRef: string | QuoteParent) {
+  const parent = await loadParent(user, asParent(parentRef));
   const content = await getQuotationContent();
-  const items = await db.opportunityItem.findMany({ where: { opportunityId }, include: { product: true } });
-  const l = opp.lead;
+  const items = parent.opportunityId
+    ? await db.opportunityItem.findMany({ where: { opportunityId: parent.opportunityId }, include: { product: true } })
+    : [];
   return {
     date: todayIST(),
     validityDays: content.defaultValidityDays,
     toLine: "The Director",
-    schoolName: opp.schoolName,
-    address: l ? [l.address, l.area, l.city].filter(Boolean).join(", ") : "",
+    schoolName: parent.schoolName,
+    address: parent.address,
     items: items.map((i) => ({ productId: i.productId, description: i.product.name, mrp: "", price: "" })),
   };
 }
@@ -103,10 +133,11 @@ export async function quotationForEdit(user: SessionUser, id: string) {
   };
 }
 
-export async function createQuotation(user: SessionUser, opportunityId: string, raw: unknown) {
+export async function createQuotation(user: SessionUser, parentRef: string | QuoteParent, raw: unknown) {
   const d = parse(quotationInput, raw);
-  const opp = await loadOpp(user, opportunityId);
-  if (CLOSED_STAGES.includes(opp.stage)) throw new DomainError("Quotations can't be created for a closed deal.");
+  const parent = await loadParent(user, asParent(parentRef));
+  if (parent.closed) throw new DomainError("Quotations can't be created for a closed deal.");
+  const { opportunityId, clientId } = parent;
   const [y, m] = todayIST().split("-").map(Number);
   // Running number per month; retry if two people create one at the same moment.
   for (let attempt = 0; attempt < 5; attempt++) {
@@ -121,6 +152,7 @@ export async function createQuotation(user: SessionUser, opportunityId: string, 
             month: m,
             seq,
             opportunityId,
+            clientId,
             date: toDbDate(d.date),
             validityDays: d.validityDays,
             toLine: d.toLine,
@@ -132,7 +164,7 @@ export async function createQuotation(user: SessionUser, opportunityId: string, 
           },
         });
         await tx.activity.create({
-          data: { type: "SYSTEM", subject: `Quotation ${q.number} drafted`, byId: user.id, opportunityId, leadId: opp.leadId },
+          data: { type: "SYSTEM", subject: `Quotation ${q.number} drafted`, byId: user.id, opportunityId, clientId, leadId: parent.leadId },
         });
         return q.id;
       });
@@ -173,7 +205,10 @@ export async function deleteQuotation(user: SessionUser, id: string) {
 /** A new draft copied from an existing quotation (e.g. after a price change). */
 export async function reviseQuotation(user: SessionUser, id: string) {
   const q = await loadQuotation(user, id);
-  return createQuotation(user, q.opportunityId, {
+  // A quotation from a deal that has since become a client is revised on the client.
+  const client = q.clientId ? null : await db.client.findUnique({ where: { opportunityId: q.opportunityId! }, select: { id: true } });
+  const parent: QuoteParent = q.clientId ? { clientId: q.clientId } : client ? { clientId: client.id } : { opportunityId: q.opportunityId! };
+  return createQuotation(user, parent, {
     date: todayIST(),
     validityDays: q.validityDays,
     toLine: q.toLine,
@@ -205,12 +240,13 @@ export async function markQuotationSent(user: SessionUser, id: string, via: Sent
         subject: `Quotation ${q.number} ${label}`,
         byId: user.id,
         opportunityId: q.opportunityId,
-        leadId: q.opportunity.leadId,
+        clientId: q.clientId,
+        leadId: q.opportunity?.leadId ?? null,
       },
     }),
   ]);
-  if (q.opportunity.stage === "INTERESTED" || q.opportunity.stage === "DEMO_SCHEDULED")
-    await moveOpportunity(user, q.opportunityId, { stage: "PROPOSAL_SENT" });
+  if (q.opportunity && (q.opportunity.stage === "INTERESTED" || q.opportunity.stage === "DEMO_SCHEDULED"))
+    await moveOpportunity(user, q.opportunity.id, { stage: "PROPOSAL_SENT" });
 }
 
 function pdfData(q: Awaited<ReturnType<typeof loadQuotation>>, content: Awaited<ReturnType<typeof getQuotationContent>>): QuotationPdfData {

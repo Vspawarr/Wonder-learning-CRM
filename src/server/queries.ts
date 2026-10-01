@@ -7,6 +7,8 @@ import { fromDbDate, optDate } from "@/lib/dates";
 import { SALES_ROLES, canAssignOthers, seesAllSales, type SessionUser } from "@/lib/permissions";
 import { clientScope, leadScope, oppScope, taskScope } from "./access";
 import { ACTIVE_LEAD_STATUSES } from "./rules";
+import { outstandingSummary, totals } from "./finance/money";
+import { invoiceRows } from "./finance/service";
 
 export type Option = { id: string; name: string };
 
@@ -233,17 +235,7 @@ export async function oppDetail(user: SessionUser, id: string) {
     owner: o.owner,
     lead: o.lead,
     client: o.client,
-    quotations: o.quotations.map((q) => ({
-      id: q.id,
-      number: q.number,
-      date: fromDbDate(q.date),
-      status: q.status,
-      sentVia: q.sentVia,
-      sentAt: q.sentAt?.toISOString() ?? null,
-      lines: q._count.items,
-      preparedBy: q.preparedBy.name,
-      shareToken: q.shareToken,
-    })),
+    quotations: o.quotations.map(quoteSummary),
     items: o.items.map((i) => ({
       productId: i.productId,
       name: i.product.name,
@@ -296,6 +288,7 @@ export async function taskList(user: SessionUser, team: boolean) {
     isAuto: t.isAuto,
     outcome: t.outcome,
     assignee: t.assignee,
+    invoiceId: t.invoiceId,
     // Converted leads' tasks carry on under the opportunity.
     related: t.client
       ? { href: `/clients/${t.client.id}`, label: t.client.schoolName }
@@ -368,6 +361,23 @@ export async function clientsList(user: SessionUser, f: { q?: string; status?: s
   }));
 }
 
+const quoteInclude = { _count: { select: { items: true } }, preparedBy: { select: { name: true } } } as const;
+
+function quoteSummary(q: Prisma.QuotationGetPayload<{ include: typeof quoteInclude }>) {
+  return {
+    id: q.id,
+    number: q.number,
+    date: fromDbDate(q.date),
+    status: q.status,
+    sentVia: q.sentVia,
+    sentAt: q.sentAt?.toISOString() ?? null,
+    lines: q._count.items,
+    preparedBy: q.preparedBy.name,
+    shareToken: q.shareToken,
+  };
+}
+export type QuoteSummary = ReturnType<typeof quoteSummary>;
+
 export async function clientDetail(user: SessionUser, id: string) {
   const c = await db.client.findFirst({
     where: { id, ...clientScope(user) },
@@ -376,9 +386,21 @@ export async function clientDetail(user: SessionUser, id: string) {
       opportunity: { select: { id: true, number: true, leadId: true, lead: { select: { number: true } } } },
       activities: { include: { by: { select: { id: true, name: true } } }, orderBy: { occurredAt: "desc" }, take: 100 },
       tasks: { where: { status: "OPEN" }, include: { assignee: { select: { name: true } } }, orderBy: { dueDate: "asc" } },
+      salesOrders: {
+        include: { items: true, invoices: { select: { id: true, number: true, status: true } }, quotation: { select: { number: true } } },
+        orderBy: { createdAt: "desc" },
+      },
+      payments: { include: { invoice: { select: { number: true } }, recordedBy: { select: { name: true } } }, orderBy: [{ date: "desc" }, { createdAt: "desc" }] },
     },
   });
   if (!c) return null;
+  // Quotations made on the client (repeat orders) and on the deal it came from.
+  const quotations = await db.quotation.findMany({
+    where: { OR: [{ clientId: c.id }, { opportunityId: c.opportunityId }] },
+    include: quoteInclude,
+    orderBy: { createdAt: "desc" },
+  });
+  const invoices = await invoiceRows(user, { clientId: c.id });
   return {
     id: c.id,
     number: c.number,
@@ -400,6 +422,33 @@ export async function clientDetail(user: SessionUser, id: string) {
     owner: c.owner,
     opportunity: c.opportunity,
     openTasks: c.tasks.map((t) => ({ id: t.id, title: t.title, type: t.type, dueDate: fromDbDate(t.dueDate), assignee: t.assignee.name })),
+    quotations: quotations.map(quoteSummary),
+    salesOrders: c.salesOrders.map((so) => ({
+      id: so.id,
+      number: so.number,
+      date: fromDbDate(so.date),
+      expectedDelivery: so.expectedDelivery ? fromDbDate(so.expectedDelivery) : null,
+      deliveredOn: so.deliveredOn ? fromDbDate(so.deliveredOn) : null,
+      status: so.status,
+      notes: so.notes,
+      quotationNumber: so.quotation?.number ?? null,
+      kits: so.items.reduce((n, i) => n + i.qty, 0),
+      lines: so.items.length,
+      total: totals(so.items.map((i) => ({ qty: i.qty, price: Number(i.price), gstRate: Number(i.gstRate) }))).total,
+      invoice: so.invoices.find((i) => i.status === "ISSUED") ?? null,
+    })),
+    invoices,
+    payments: c.payments.map((p) => ({
+      id: p.id,
+      invoiceNumber: p.invoice.number,
+      amount: Number(p.amount),
+      date: fromDbDate(p.date),
+      mode: p.mode,
+      reference: p.reference,
+      note: p.note,
+      recordedBy: p.recordedBy.name,
+    })),
+    money: outstandingSummary(invoices),
     activities: c.activities.map((a) => ({
       id: a.id,
       type: a.type,

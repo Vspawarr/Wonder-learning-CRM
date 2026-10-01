@@ -10,7 +10,9 @@ import { AvatarName, DueTag, Pill } from "@/components/ui";
 import { completeTask, createTask } from "@/app/actions";
 import { FOLLOWUP_TYPES } from "@/lib/constants";
 import { addDays, daysFrom, todayIST } from "@/lib/dates";
+import type { InvoiceRow } from "@/server/finance/service";
 import type { Option, TaskRow } from "@/server/queries";
+import { InvoiceButtons } from "../clients/[id]/finance";
 
 const PRIORITY_LABEL: Record<string, string> = { LOW: "Low", MEDIUM: "Medium", HIGH: "High", CRITICAL: "Critical" };
 
@@ -25,7 +27,23 @@ export function TeamToggle({ on }: { on: boolean }) {
   );
 }
 
-export function TaskBoard({ open, done, today, showOwner }: { open: TaskRow[]; done: TaskRow[]; today: string; showOwner: boolean }) {
+export function TaskBoard({
+  open,
+  done,
+  today,
+  showOwner,
+  invoices = {},
+  emailReady = false,
+  me = { name: "" },
+}: {
+  open: TaskRow[];
+  done: TaskRow[];
+  today: string;
+  showOwner: boolean;
+  invoices?: Record<string, InvoiceRow>;
+  emailReady?: boolean;
+  me?: { name: string };
+}) {
   const [completing, setCompleting] = useState<TaskRow | null>(null);
   const groups: [string, TaskRow[]][] = [
     ["Overdue", open.filter((t) => daysFrom(t.dueDate, today) < 0)],
@@ -57,6 +75,11 @@ export function TaskBoard({ open, done, today, showOwner }: { open: TaskRow[]; d
                   {t.type} · <DueTag date={t.dueDate} today={today} />
                   {t.remark && t.remark !== t.title ? ` · ${t.remark}` : ""}
                 </div>
+                {t.invoiceId && invoices[t.invoiceId] ? (
+                  <div className="mt-1.5">
+                    <InvoiceButtons row={invoices[t.invoiceId]} contact={invoices[t.invoiceId].client} emailReady={emailReady} me={me} compact />
+                  </div>
+                ) : null}
               </div>
               {t.priority === "HIGH" || t.priority === "CRITICAL" ? <Pill>{PRIORITY_LABEL[t.priority]}</Pill> : null}
               {showOwner ? (

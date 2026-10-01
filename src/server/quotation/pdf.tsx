@@ -90,7 +90,7 @@ function Rich({ text }: { text: string }) {
 
 // The original right-aligns single-line titles to x≈561pt and centres the
 // three-line page 2 title on x≈442pt.
-function Header({ title, align }: { title: string; align: "right" | "center" }) {
+export function Header({ title, align }: { title: string; align: "right" | "center" }) {
   const box = align === "right" ? { left: 300, width: 261, alignItems: "flex-end" as const } : { left: 319, width: 246, alignItems: "center" as const };
   return (
     <View style={s.header}>
@@ -103,7 +103,7 @@ function Header({ title, align }: { title: string; align: "right" | "center" }) 
   );
 }
 
-function FooterBand({ lines }: { lines: string[] }) {
+export function FooterBand({ lines }: { lines: string[] }) {
   return (
     <View style={s.footer} fixed>
       {/* eslint-disable-next-line jsx-a11y/alt-text */}
@@ -114,7 +114,7 @@ function FooterBand({ lines }: { lines: string[] }) {
 }
 
 /** ₹ in the rupee font, digits in Helvetica, e.g. ₹3700.00 (same digits as the original format). */
-function Money({ n }: { n: number }) {
+export function Money({ n }: { n: number }) {
   return (
     <>
       <Text style={{ fontFamily: "Rupee" }}>₹</Text>

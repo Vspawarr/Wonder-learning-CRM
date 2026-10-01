@@ -6,6 +6,7 @@ import { seesAllSales } from "@/lib/permissions";
 import { AvatarName, Card, DueTag, Empty, HBars, Kpi, PageHeader, Table, VBars } from "@/components/ui";
 import { requireUser } from "@/server/session";
 import { salesDashboard, type DashFilters } from "@/server/dashboard";
+import { collectionsSummary } from "@/server/finance/service";
 import { assignees } from "@/server/queries";
 import { DashFilterBar } from "./filters";
 import { getLocations } from "@/server/locations";
@@ -34,6 +35,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   ]);
   const today = todayIST();
   const k = d.kpis;
+  const cash = await collectionsSummary(user, { exec: all ? f.exec : undefined, state: f.state }, d.range.from, d.range.to);
   const first = user.name.split(" ")[0];
 
   return (
@@ -44,7 +46,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
       />
       <DashFilterBar team={all ? team : null} states={locations.states} />
 
-      <div className="kgrid my-4">
+      <div className="kgrid kgrid-2 my-4">
         <Kpi label="Leads created" value={k.leads} sub={<Delta now={k.leads} prev={k.leadsPrev} />} color="#1C86C4" href="/leads?status=All" />
         <Kpi label="Hot leads" value={k.hot} sub="Active right now" color="#D9412D" href="/leads?temp=HOT" />
         <Kpi label="Converted" value={k.converted} sub="Leads converted in period" color="#0E8F79" href="/leads?status=Converted" />
@@ -53,6 +55,11 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
         <Kpi label="Won" value={inrS(k.wonValue)} sub={`${k.wonCount} deal(s)`} color="#0E8F79" />
         <Kpi label="Lost" value={inrS(k.lostValue)} sub={`${k.lostCount} deal(s)`} color="#8B88A6" />
         <Kpi label="Win rate" value={k.winRate === null ? "–" : `${k.winRate}%`} sub="Won ÷ (won + lost)" color="#3D3BA8" />
+      </div>
+      <div className="kgrid kgrid-2 mb-4">
+        <Kpi label="Collected" value={inrS(cash.collected)} sub={`${cash.collectedCount} payment(s) in period`} color="#0E8F79" href="/outstanding?show=all" />
+        <Kpi label="Outstanding" value={inrS(cash.outstanding)} sub="Invoiced, not yet received" color="#C77A00" href="/outstanding" />
+        <Kpi label="Overdue" value={inrS(cash.overdue)} sub={`${cash.overdueCount} invoice(s) past due`} color="#D9412D" href="/outstanding?show=overdue" />
       </div>
       {k.noValue ? (
         <div className="note warn">

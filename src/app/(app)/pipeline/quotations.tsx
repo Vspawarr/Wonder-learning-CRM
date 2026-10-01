@@ -16,21 +16,35 @@ import {
   updateQuotation,
 } from "@/app/actions";
 import { fmtDate, istDate, todayIST } from "@/lib/dates";
-import type { OppDetail, ProductOption } from "@/server/queries";
+import type { ProductOption, QuoteSummary } from "@/server/queries";
+import type { QuoteParent } from "@/server/quotation/service";
 
-type Q = OppDetail["quotations"][number];
+type Q = QuoteSummary;
+/** What the panel needs to know about the deal or client it quotes for. */
+export type QuoteTarget = {
+  parent: QuoteParent;
+  schoolName: string;
+  closed: boolean;
+  /** Opportunity stage, when quoting on a deal (sending can move it to Proposal Sent). */
+  stage: string | null;
+  email: string | null;
+  mobile: string | null;
+  quotations: Q[];
+};
 type Line = { productId: string | null; description: string; mrp: string; price: string };
 type Draft = { date: string; validityDays: string; toLine: string; schoolName: string; address: string; items: Line[] };
 
 const VIA: Record<string, string> = { download: "downloaded", whatsapp: "WhatsApp", email: "email" };
 
 export function QuotationsPanel({
-  opp,
+  target: opp,
   products,
   emailReady,
   me,
+  heading = true,
 }: {
-  opp: OppDetail;
+  target: QuoteTarget;
+  heading?: boolean;
   products: ProductOption[];
   emailReady: boolean;
   me: { name: string };
@@ -41,7 +55,7 @@ export function QuotationsPanel({
   const today = todayIST();
 
   const startNew = () =>
-    run(() => quotationDefaults(opp.id), {
+    run(() => quotationDefaults(opp.parent), {
       onDone: (d) =>
         d &&
         setEditing({
@@ -62,7 +76,7 @@ export function QuotationsPanel({
   return (
     <div className="mb-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h3>Quotations</h3>
+        {heading ? <h3>Quotations</h3> : <span />}
         {!opp.closed ? (
           <button className="btn sm pri" disabled={pending} onClick={startNew}>
             <Icon name="plus" size={14} /> Create quotation
@@ -128,7 +142,7 @@ export function QuotationsPanel({
 
       {editing ? (
         <QuotationEditor
-          oppId={opp.id}
+          parent={opp.parent}
           id={editing.id}
           initial={editing.draft}
           products={products}
@@ -142,14 +156,14 @@ export function QuotationsPanel({
 }
 
 function QuotationEditor({
-  oppId,
+  parent,
   id,
   initial,
   products,
   me,
   onClose,
 }: {
-  oppId: string;
+  parent: QuoteParent;
   id: string | null;
   initial: Draft;
   products: ProductOption[];
@@ -163,7 +177,7 @@ function QuotationEditor({
   const addable = products.filter((p) => p.active);
 
   const save = () =>
-    run(() => (id ? updateQuotation(id, d) : createQuotation(oppId, d)) as Promise<{ ok: true } | { ok: false; error: string }>, {
+    run(() => (id ? updateQuotation(id, d) : createQuotation(parent, d)) as Promise<{ ok: true } | { ok: false; error: string }>, {
       success: id ? "Quotation saved." : "Quotation created as a draft. Use “Send quotation” when ready.",
       onDone: onClose,
     });
@@ -282,19 +296,19 @@ function SendQuotation({
   onClose,
 }: {
   q: Q;
-  opp: OppDetail;
+  opp: QuoteTarget;
   emailReady: boolean;
   me: { name: string };
   onClose: () => void;
 }) {
   const toast = useToast();
   const { pending, run } = useAction();
-  const [to, setTo] = useState(opp.lead?.email ?? "");
+  const [to, setTo] = useState(opp.email ?? "");
   const [cc, setCc] = useState("");
   const [message, setMessage] = useState(
     `Dear Sir/Madam,\n\nPlease find attached our quotation ${q.number} for ${opp.schoolName}.\n\nWe look forward to working with you.\n\nRegards,\n${me.name}\nWonder Learning India Pvt. Ltd.`,
   );
-  const mobile = (opp.lead?.mobile ?? "").replace(/\D/g, "").replace(/^(\d{10})$/, "91$1");
+  const mobile = (opp.mobile ?? "").replace(/\D/g, "").replace(/^(\d{10})$/, "91$1");
 
   const whatsapp = () => {
     const link = `${window.location.origin}/q/${q.shareToken}`;
@@ -330,12 +344,12 @@ function SendQuotation({
         <button className="btn justify-center" disabled={pending} onClick={download}>
           <Icon name="download" size={16} /> Download PDF
         </button>
-        <button className="btn justify-center" disabled={pending || !mobile} onClick={whatsapp} title={mobile ? "" : "No mobile number on the lead"}>
+        <button className="btn justify-center" disabled={pending || !mobile} onClick={whatsapp} title={mobile ? "" : "No mobile number on record"}>
           <Icon name="chat" size={16} /> Share on WhatsApp
         </button>
       </div>
       <p className="small muted mt-2">
-        WhatsApp opens a message to {opp.lead?.mobile ?? "the school"} with a private link to the PDF. Download saves the PDF so you can attach it
+        WhatsApp opens a message to {opp.mobile ?? "the school"} with a private link to the PDF. Download saves the PDF so you can attach it
         yourself.
       </p>
 

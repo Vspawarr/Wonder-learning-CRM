@@ -70,7 +70,8 @@ export async function completeTask(user: SessionUser, id: string, raw: unknown) 
       await tx.task.create({
         data: {
           type: task.type,
-          title: task.title.startsWith("Follow up: ") ? task.title : `Follow up: ${task.title}`,
+          // A payment-collection follow-up stays tied to its invoice (its title tracks the balance).
+          title: task.invoiceId || task.title.startsWith("Follow up: ") ? task.title : `Follow up: ${task.title}`,
           dueDate: toDbDate(d.nextDate),
           priority: task.priority,
           assigneeId: task.assigneeId,
@@ -78,6 +79,8 @@ export async function completeTask(user: SessionUser, id: string, raw: unknown) 
           leadId: task.leadId,
           opportunityId: task.opportunityId,
           clientId: task.clientId,
+          invoiceId: task.invoiceId,
+          isAuto: !!task.invoiceId,
         },
       });
 

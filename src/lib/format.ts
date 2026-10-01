@@ -25,3 +25,9 @@ export function avatarColor(id: string): string {
   for (const c of id) h = (h * 31 + c.charCodeAt(0)) >>> 0;
   return AV_COLORS[h % AV_COLORS.length];
 }
+
+/** Exact rupees with paise when present: ₹1,97,000 or ₹2,800.50. */
+export const inrExact = (n: number) => `₹${n.toLocaleString("en-IN", { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
+
+/** "2026-10-01" → "01/10/2026". */
+export const dmy = (s: string | null | undefined) => (s ? s.split("-").reverse().join("/") : "—");

@@ -51,7 +51,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     authorized({ auth, request }) {
       const path = request.nextUrl.pathname;
       // /q/<secret> is the shareable quotation PDF link sent on WhatsApp.
-      if (path.startsWith("/login") || path.startsWith("/q/")) return true;
+      // /i/<secret> is the same for an invoice.
+      if (path.startsWith("/login") || path.startsWith("/q/") || path.startsWith("/i/")) return true;
       return !!auth?.user;
     },
   },

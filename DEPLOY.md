@@ -81,9 +81,9 @@ included.
 
 ---
 
-## Optional: send quotations by email
+## Optional: send quotations and invoices by email
 
-The CRM can email quotations (with the PDF attached) from your own email account.
+The CRM can email quotations, invoices and payment reminders (with the PDF attached) from your own email account.
 Until this is set up, the email option is switched off and quotations are shared
 by Download or WhatsApp.
 
