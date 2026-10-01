@@ -4,6 +4,7 @@ import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import type { Role } from "@/generated/prisma/enums";
+import { recordFailedLogin, recordGoodLogin } from "@/server/password";
 
 const credentials = z.object({
   email: z.string().trim().toLowerCase().email(),
@@ -30,7 +31,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const user = await db.user.findUnique({ where: { email: parsed.data.email } });
         // Compare even when the user is missing so response time doesn't reveal which emails exist.
         const ok = await bcrypt.compare(parsed.data.password, user?.passwordHash ?? DUMMY_HASH);
+        if (user?.lockedUntil && user.lockedUntil > new Date()) throw new InvalidLogin();
+        if (user && !ok) await recordFailedLogin(user.id);
         if (!user || !ok || !user.active) throw new InvalidLogin();
+        if (user.failedLogins || user.lockedUntil) await recordGoodLogin(user.id);
         return { id: user.id, name: user.name, email: user.email, role: user.role };
       },
     }),
@@ -53,7 +57,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       // /q/<secret> is the shareable quotation PDF link sent on WhatsApp.
       // /i/<secret> is the same for an invoice.
       // /r/<secret> is a payment receipt; /download-app is the public page with the Android app.
-      if (["/login", "/q/", "/i/", "/r/", "/download-app"].some((p) => path.startsWith(p))) return true;
+      if (["/login", "/q/", "/i/", "/r/", "/download-app", "/forgot-password", "/reset-password/"].some((p) => path.startsWith(p))) return true;
       return !!auth?.user;
     },
   },

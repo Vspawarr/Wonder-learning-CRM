@@ -53,7 +53,7 @@ export async function updateUser(actor: SessionUser, id: string, raw: unknown) {
         mobile: d.mobile,
         role: d.role,
         active: d.active,
-        ...(d.password ? { passwordHash: await bcrypt.hash(d.password, 12) } : {}),
+        ...(d.password ? { passwordHash: await bcrypt.hash(d.password, 12), failedLogins: 0, lockedUntil: null } : {}),
       },
     });
   } catch (e) {

@@ -1,7 +1,7 @@
 import { db, type Tx } from "@/lib/db";
-import { LEAD_STATUS_LABEL, REF_SOURCES, TEMPERATURE_LABEL, leadCode, oppCode } from "@/lib/constants";
+import { LEAD_STATUS_LABEL, REF_SOURCES, TEMPERATURE_LABEL, clientCode, leadCode, oppCode } from "@/lib/constants";
 import { addDays, todayIST, toDbDate } from "@/lib/dates";
-import type { SessionUser } from "@/lib/permissions";
+import { seesAllSales, type SessionUser } from "@/lib/permissions";
 import { assertAssignable, leadScope } from "./access";
 import { DomainError, NotFoundError } from "./errors";
 import { isActiveLead } from "./rules";
@@ -250,4 +250,55 @@ async function convertInTx(tx: Tx, user: SessionUser, lead: LeadRow, temperature
     },
   });
   return opp.id;
+}
+
+export type DuplicateMatch = { kind: "Lead" | "Client"; code: string; schoolName: string; city: string; owner: string; status: string; href: string | null };
+
+/**
+ * Leads and clients that look like the same school: same mobile number (last 10 digits)
+ * or same school name in the same city. Checked company-wide so two people don't chase
+ * one school; details are only linked when the user may open them.
+ */
+export async function findDuplicateLeads(user: SessionUser, raw: { schoolName?: string; mobile?: string; city?: string; excludeLeadId?: string }) {
+  const digits = (raw.mobile ?? "").replace(/\D/g, "").slice(-10);
+  const name = (raw.schoolName ?? "").trim().toLowerCase();
+  const city = (raw.city ?? "").trim().toLowerCase();
+  if (digits.length < 10 && !(name && city)) return [];
+  const mobileLike = digits.length === 10 ? `%${digits}` : "__no_match__";
+  const [leads, clients] = await Promise.all([
+    db.$queryRaw<{ id: string; number: number; schoolName: string; city: string; status: string; assignedToId: string; owner: string }[]>`
+      SELECT l.id, l.number, l."schoolName", l.city, l.status::text AS status, l."assignedToId", u.name AS owner
+      FROM "Lead" l JOIN "User" u ON u.id = l."assignedToId"
+      WHERE (regexp_replace(l.mobile, '[^0-9]', '', 'g') LIKE ${mobileLike}
+         OR (lower(trim(l."schoolName")) = ${name} AND lower(trim(l.city)) = ${city}))
+        AND l.id <> ${raw.excludeLeadId ?? ""}
+      ORDER BY l."createdAt" DESC LIMIT 5`,
+    db.$queryRaw<{ id: string; number: number; schoolName: string; city: string; ownerId: string; owner: string }[]>`
+      SELECT c.id, c.number, c."schoolName", c.city, c."ownerId", u.name AS owner
+      FROM "Client" c JOIN "User" u ON u.id = c."ownerId"
+      WHERE regexp_replace(c.mobile, '[^0-9]', '', 'g') LIKE ${mobileLike}
+         OR (lower(trim(c."schoolName")) = ${name} AND lower(trim(c.city)) = ${city})
+      LIMIT 5`,
+  ]);
+  const seesAll = seesAllSales(user.role);
+  return [
+    ...clients.map((c): DuplicateMatch => ({
+      kind: "Client",
+      code: clientCode(c.number),
+      schoolName: c.schoolName,
+      city: c.city,
+      owner: c.owner,
+      status: "Client",
+      href: seesAll || c.ownerId === user.id ? `/clients/${c.id}` : null,
+    })),
+    ...leads.map((l): DuplicateMatch => ({
+      kind: "Lead",
+      code: leadCode(l.number),
+      schoolName: l.schoolName,
+      city: l.city,
+      owner: l.owner,
+      status: LEAD_STATUS_LABEL[l.status as keyof typeof LEAD_STATUS_LABEL] ?? l.status,
+      href: seesAll || l.assignedToId === user.id ? `/leads/${l.id}` : null,
+    })),
+  ];
 }

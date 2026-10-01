@@ -30,15 +30,20 @@ enum Role {
 }
 
 model User {
-  id           String   @id @default(cuid())
+  id           String    @id @default(cuid())
   name         String
-  email        String   @unique
+  email        String    @unique
   mobile       String?
   role         Role
   passwordHash String
-  active       Boolean  @default(true)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  active       Boolean   @default(true)
+  /// Wrong passwords in a row; 5 locks the account for 15 minutes.
+  failedLogins Int       @default(0)
+  lockedUntil  DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  passwordResets PasswordReset[]
 
   leadsAssigned      Lead[]                   @relation("LeadAssignedTo")
   leadsCreated       Lead[]                   @relation("LeadCreatedBy")
@@ -622,4 +627,15 @@ model Payment {
   @@unique([year, month, seq])
   @@index([invoiceId])
   @@index([clientId, date])
+}
+
+/// One-time "forgot password" link (only the hash of the secret is stored).
+model PasswordReset {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
 }

@@ -444,3 +444,16 @@ describe("feature switches", () => {
     await setFeature(admin, "cheques", true);
   });
 });
+
+describe("duplicate leads", () => {
+  it("matches the same mobile (any spacing) or the same school in the same city, company-wide", async () => {
+    const { findDuplicateLeads } = await import("@/server/leads");
+    await createLead(exA, leadData(exA.id, { schoolName: "Tiny Steps", mobile: "+91 98765-43210" }));
+    const byMobile = await findDuplicateLeads(exB, { schoolName: "Other", mobile: "9876543210", city: "Pune" });
+    expect(byMobile).toHaveLength(1);
+    expect(byMobile[0]).toMatchObject({ kind: "Lead", schoolName: "Tiny Steps", href: null });
+    expect(await findDuplicateLeads(exB, { schoolName: " tiny steps ", mobile: "9999999999", city: "pune" })).toHaveLength(1);
+    expect(await findDuplicateLeads(exB, { schoolName: "Tiny Steps", mobile: "9999999999", city: "Mumbai" })).toHaveLength(0);
+    expect((await findDuplicateLeads(exA, { mobile: "98765 43210" }))[0].href).toMatch(/^\/leads\//);
+  });
+});

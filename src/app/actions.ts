@@ -21,6 +21,8 @@ import * as po from "@/server/finance/po";
 import { contentSchema, resetQuotationContent, saveQuotationContent } from "@/server/quotation/content";
 import { canManageSettings } from "@/lib/permissions";
 import { parse } from "@/server/validation";
+import { lockMessage, requestPasswordReset as requestReset, resetPassword as doReset } from "@/server/password";
+import { headers } from "next/headers";
 
 export type ActionResult<T = undefined> = { ok: true; data?: T } | { ok: false; error: string };
 
@@ -47,8 +49,34 @@ export async function login(_: string | null, form: FormData): Promise<string | 
     });
     return null;
   } catch (e) {
-    if (e instanceof AuthError) return "Email or password is incorrect, or the account is inactive.";
+    if (e instanceof AuthError)
+      return (await lockMessage(String(form.get("email") ?? ""))) ?? "Email or password is incorrect, or the account is inactive.";
     throw e; // redirect on success
+  }
+}
+
+/** Public: emails a reset link (if email is set up). */
+export async function requestPasswordReset(_: unknown, form: FormData): Promise<{ done: boolean; emailReady: boolean } | null> {
+  const h = await headers();
+  const origin = `${h.get("x-forwarded-proto") ?? "https"}://${h.get("x-forwarded-host") ?? h.get("host")}`;
+  try {
+    const r = await requestReset(String(form.get("email") ?? ""), origin);
+    return { done: true, emailReady: r.sent };
+  } catch (e) {
+    console.error(e);
+    return { done: true, emailReady: true };
+  }
+}
+
+/** Public: sets a new password from a reset link. */
+export async function resetPassword(token: string, password: string): Promise<ActionResult> {
+  try {
+    await doReset(token, password);
+    return { ok: true };
+  } catch (e) {
+    if (e instanceof DomainError) return { ok: false, error: e.message };
+    console.error(e);
+    return { ok: false, error: "Something went wrong. Please try again." };
   }
 }
 
@@ -61,6 +89,8 @@ export async function changePassword(current: string, next: string) {
 }
 
 /* leads */
+export const findDuplicateLeads = async (data: { schoolName?: string; mobile?: string; city?: string; excludeLeadId?: string }) =>
+  run((u) => leads.findDuplicateLeads(u, data));
 export const createLead = async (data: unknown) => run((u) => leads.createLead(u, data));
 export const updateLead = async (id: string, data: unknown) => run((u) => leads.updateLead(u, id, data));
 export const disqualifyLead = async (id: string, data: unknown) => run((u) => leads.disqualifyLead(u, id, data));
