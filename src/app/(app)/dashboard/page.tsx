@@ -4,9 +4,9 @@ import { STAGE_COLOR, STAGE_LABEL } from "@/lib/constants";
 import { fmtDate, todayIST } from "@/lib/dates";
 import { inrS } from "@/lib/format";
 import { seesAllSales } from "@/lib/permissions";
-import { AvatarName, Card, DueTag, Empty, HBars, Kpi, PageHeader, Table, VBars } from "@/components/ui";
+import { AvatarName, Card, DueTag, Empty, HBars, Kpi, PageHeader, Ribbon, Table, VBars } from "@/components/ui";
 import { requireUser } from "@/server/session";
-import { salesDashboard, type DashFilters } from "@/server/dashboard";
+import { lifecycleCounts, salesDashboard, type DashFilters } from "@/server/dashboard";
 import { collectionsSummary } from "@/server/finance/service";
 import { getFeatures } from "@/server/features";
 import { targetProgress } from "@/server/targets";
@@ -31,7 +31,12 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   const user = await requireUser();
   const f = await searchParams;
   const all = seesAllSales(user.role);
-  const [d, team, locations] = await Promise.all([salesDashboard(user, f), all ? assignees(user) : Promise.resolve([]), getLocations()]);
+  const [d, team, locations, life] = await Promise.all([
+    salesDashboard(user, f),
+    all ? assignees(user) : Promise.resolve([]),
+    getLocations(),
+    lifecycleCounts(user),
+  ]);
   const today = todayIST();
   const k = d.kpis;
   const features = await getFeatures();
@@ -43,11 +48,24 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
     <>
       <PageHeader
         title={`Hello, ${first}`}
-        sub={`${all ? "Sales across the team" : "Your numbers"} · ${fmtDate(d.range.from, today)} – ${fmtDate(d.range.to, today)}`}
+        sub={`${all ? "Sales across the team" : "Your numbers"} · ${fmtDate(d.range.from, today)} – ${fmtDate(d.range.to, today)}. Tap any number to see the records behind it.`}
       >
         <ExportButtons report="dashboard" />
       </PageHeader>
-      <DashFilterBar team={all ? team : null} states={locations.states} />
+      <Ribbon
+        steps={[
+          { label: "Active leads", value: life.leads, color: "#1C86C4", href: "/leads" },
+          { label: "Opportunities", value: life.opps, color: "#7A48B8", href: "/pipeline" },
+          { label: "Quotations open", value: life.quotes, color: "#C77A00", href: "/pipeline" },
+          { label: "Open sales orders", value: life.orders, color: "#C2417A", href: "/clients" },
+          { label: "Clients", value: life.clients, color: "#3D3BA8", href: "/clients" },
+          { label: life.overdue ? `Unpaid · ${life.overdue} overdue` : "Unpaid invoices", value: life.unpaid, color: "#D9412D", href: "/outstanding" },
+          { label: "To-dos due", value: life.todos, color: "#0E8F79", href: "/tasks" },
+        ]}
+      />
+      <div className="mt-4">
+        <DashFilterBar team={all ? team : null} states={locations.states} />
+      </div>
 
       <div className="kgrid kgrid-2 my-4">
         <Kpi label="Leads created" value={k.leads} sub={<Delta now={k.leads} prev={k.leadsPrev} />} color="#1C86C4" href="/leads?status=All" />
@@ -64,8 +82,6 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
         <Kpi label="Won" value={inrS(k.wonValue)} sub={`${k.wonCount} deal(s)`} color="#0E8F79" />
         <Kpi label="Lost" value={inrS(k.lostValue)} sub={`${k.lostCount} deal(s)`} color="#8B88A6" />
         <Kpi label="Win rate" value={k.winRate === null ? "–" : `${k.winRate}%`} sub="Won ÷ (won + lost)" color="#3D3BA8" />
-      </div>
-      <div className="kgrid kgrid-2 mb-4">
         <Kpi
           label="Collected"
           value={inrS(cash.collected)}
@@ -80,6 +96,12 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
           sub={`${cash.overdueCount} invoice(s) past due`}
           color="#D9412D"
           href="/outstanding?show=overdue"
+        />
+        <Kpi
+          label="Interactions logged"
+          value={d.team.reduce((t, r) => t + r.interactions, 0)}
+          sub="Calls, visits, messages"
+          color="#1C86C4"
         />
       </div>
       {targets && targets.rows.some((r) => r.salesTarget || r.collectionTarget) ? (

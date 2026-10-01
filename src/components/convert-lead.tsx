@@ -15,7 +15,7 @@ export function ConvertLeadButton({ leadId, schoolName, small }: { leadId: strin
   const router = useRouter();
   return (
     <>
-      <button className={`btn pri ${small ? "sm" : ""}`} onClick={() => setOpen(true)}>
+      <button className={small ? "btn sm soft" : "btn pri"} onClick={() => setOpen(true)}>
         <Icon name="briefcase" size={small ? 14 : 16} /> Convert to opportunity
       </button>
       {open ? (

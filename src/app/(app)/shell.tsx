@@ -8,6 +8,7 @@ import { Avatar } from "@/components/ui";
 import { DownloadAppLink } from "@/components/app-download";
 import { logout } from "@/app/actions";
 import { PasswordButton } from "./password-button";
+import { TopBarTools } from "./top-bar";
 
 export type NavGroup = { group: string; items: { href: string; label: string; icon: IconName; badge?: number }[] };
 
@@ -84,7 +85,8 @@ export function Shell({
           >
             <Icon name="menu" />
           </button>
-          <h1 className="text-[20px]">{title}</h1>
+          <h1 className="min-w-0 truncate text-[20px]">{title}</h1>
+          <TopBarTools />
         </header>
         <main className="max-w-[1520px] px-3.5 pt-4 pb-[70px] min-[901px]:px-7 min-[901px]:pt-[22px]">{children}</main>
       </div>

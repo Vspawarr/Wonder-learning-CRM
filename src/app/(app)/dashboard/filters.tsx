@@ -21,13 +21,13 @@ export function DashFilterBar({ team, states }: { team: Option[] | null; states:
   const period = sp.get("period") ?? "month";
   return (
     <div className="flex flex-wrap items-center gap-2.5">
-      <select className="sel w-auto min-w-[160px]" aria-label="Period" value={period} onChange={(e) => set({ period: e.target.value === "month" ? "" : e.target.value })}>
+      <div className="chips" role="group" aria-label="Period">
         {PERIODS.map(([v, l]) => (
-          <option key={v} value={v}>
+          <button key={v} className={`chip ${period === v ? "on" : ""}`} aria-pressed={period === v} onClick={() => set({ period: v === "month" ? "" : v })}>
             {l}
-          </option>
+          </button>
         ))}
-      </select>
+      </div>
       {period === "custom" ? (
         <>
           <DateInput className="w-[150px]" ariaLabel="From" value={sp.get("from") ?? ""} onChange={(from) => from && set({ from })} />

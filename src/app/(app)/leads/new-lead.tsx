@@ -39,15 +39,18 @@ export function NewLeadButton({
   team,
   locations,
   defaultAssignee,
+  autoOpen = false,
 }: {
   team: Option[];
   locations: Locations;
   defaultAssignee: string;
+  /** Open straight away (from the top bar's "+ Add → New lead"). */
+  autoOpen?: boolean;
 }) {
   const router = useRouter();
   // Most leads are in Maharashtra; otherwise start empty.
   const defaultState = locations.states.includes("Maharashtra") ? "Maharashtra" : "";
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(autoOpen);
   const [value, setValue] = useState(() => blank(defaultAssignee, defaultState));
   const { pending, run } = useAction();
   const [dups, setDups] = useState<DuplicateMatch[] | null>(null);

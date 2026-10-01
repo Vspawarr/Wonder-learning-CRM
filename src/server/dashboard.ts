@@ -5,7 +5,9 @@ import { db } from "@/lib/db";
 import { COMPETITORS, LOST_REASONS, SOURCES, STAGES, type Stage } from "@/lib/constants";
 import { addDays, fmtDate, fromDbDate, istDayStart, toDbDate, todayIST, type DateStr } from "@/lib/dates";
 import { SALES_ROLES, seesAllSales, type SessionUser } from "@/lib/permissions";
-import { leadScope, oppScope, taskScope } from "./access";
+import { clientScope, leadScope, oppScope, taskScope } from "./access";
+import { invoiceRows } from "./finance/service";
+import { quotationScope } from "./quotation/service";
 import { oppValue } from "./queries";
 import { periodRange, type DashFilters } from "./dashboard-periods";
 
@@ -161,5 +163,30 @@ export async function salesDashboard(user: SessionUser, f: DashFilters) {
           ? { href: `/leads/${t.lead.id}`, label: t.lead.schoolName }
           : null,
     })),
+  };
+}
+
+/** Live counts for the coloured lifecycle strip (lead → client → cash), not tied to the period filter. */
+export async function lifecycleCounts(user: SessionUser) {
+  const today = toDbDate(todayIST());
+  const [leads, opps, quotes, orders, clients, invoices, todos] = await Promise.all([
+    db.lead.count({ where: { ...leadScope(user), status: { in: ["NEW", "CONTACTED", "QUALIFIED"] } } }),
+    db.opportunity.count({ where: { ...oppScope(user), stage: { notIn: ["WON", "LOST"] } } }),
+    db.quotation.count({ where: { ...quotationScope(user), salesOrders: { none: {} } } }),
+    db.salesOrder.count({ where: { status: "CONFIRMED", client: { is: clientScope(user) } } }),
+    db.client.count({ where: clientScope(user) }),
+    invoiceRows(user, { status: "ISSUED" }),
+    db.task.count({ where: { ...taskScope(user), assigneeId: user.id, status: "OPEN", dueDate: { lte: today } } }),
+  ]);
+  const unpaid = invoices.filter((i) => i.balance > 0);
+  return {
+    leads,
+    opps,
+    quotes,
+    orders,
+    clients,
+    unpaid: unpaid.length,
+    overdue: unpaid.filter((i) => i.state === "OVERDUE").length,
+    todos,
   };
 }

@@ -96,7 +96,7 @@ async function loadParent(user: SessionUser, parent: QuoteParent) {
 }
 
 /** Visible when its opportunity or its client is visible to this user. */
-const quotationScope = (user: SessionUser): Prisma.QuotationWhereInput => ({
+export const quotationScope = (user: SessionUser): Prisma.QuotationWhereInput => ({
   OR: [{ opportunity: { is: oppScope(user) } }, { client: { is: clientScope(user) } }],
 });
 

@@ -73,6 +73,56 @@ export function Kpi({ label, value, sub, color, href }: { label: string; value: 
   );
 }
 
+export type RibbonStep = { label: string; value: React.ReactNode; color: string; href?: string };
+
+/** The prototype's coloured arrow strip: a row of linked counts, read left to right. */
+export function Ribbon({ steps, mini }: { steps: RibbonStep[]; mini?: boolean }) {
+  return (
+    <nav className={`ribbon ${mini ? "mini" : ""}`} aria-label="Summary">
+      {steps.map((s) => {
+        const body = (
+          <>
+            <b>{s.value}</b>
+            <span>{s.label}</span>
+          </>
+        );
+        const style = { "--c": s.color } as React.CSSProperties;
+        return s.href ? (
+          <Link key={s.label} className="rs" style={style} href={s.href}>
+            {body}
+          </Link>
+        ) : (
+          <div key={s.label} className="rs" style={style}>
+            {body}
+          </div>
+        );
+      })}
+    </nav>
+  );
+}
+
+/** Circular progress (0–100) with a caption, like the prototype's health score. */
+export function Ring({ pct, caption, color }: { pct: number | null; caption: string; color?: string }) {
+  const r = 40;
+  const len = 2 * Math.PI * r;
+  const p = pct === null ? 0 : Math.max(0, Math.min(100, pct));
+  const c = color ?? (pct === null ? "var(--ink3)" : p >= 80 ? "var(--mint)" : p >= 50 ? "var(--sun)" : "var(--coral)");
+  return (
+    <div className="sring" role="img" aria-label={`${caption}: ${pct === null ? "none yet" : `${p}%`}`}>
+      <svg viewBox="0 0 92 92" aria-hidden="true">
+        <circle cx="46" cy="46" r={r} fill="none" style={{ stroke: "var(--line)" }} strokeWidth="8" />
+        <circle cx="46" cy="46" r={r} fill="none" style={{ stroke: c }} strokeWidth="8" strokeLinecap="round" strokeDasharray={`${(p / 100) * len} ${len}`} />
+      </svg>
+      <b>
+        <span>
+          {pct === null ? "–" : `${p}%`}
+          <small>{caption}</small>
+        </span>
+      </b>
+    </div>
+  );
+}
+
 export function Avatar({ id, name, size = 26 }: { id: string; name: string; size?: number }) {
   return (
     <span

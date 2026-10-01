@@ -57,6 +57,8 @@ const PATHS = {
     </>
   ),
   plus: <path d="M12 5v14M5 12h14" />,
+  bell: <path d="M6 16V11a6 6 0 0112 0v5l2 2H4zM10 21h4" />,
+  refresh: <path d="M20 11a8 8 0 00-14.9-3M4 4v4h4M4 13a8 8 0 0014.9 3M20 20v-4h-4" />,
   download: <path d="M12 4v11M7 10l5 5 5-5M5 20h14" />,
   doc: (
     <>

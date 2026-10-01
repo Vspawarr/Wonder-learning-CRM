@@ -181,7 +181,7 @@ export function TaskBoard({
               </div>
             </div>
           ))}
-          {!ts.length ? <div className="small faint">Nothing here.</div> : null}
+          {!ts.length ? <div className="empty small">Nothing here.</div> : null}
         </div>
       ))}
       {done.length ? (
@@ -413,10 +413,13 @@ export function NewTaskButton({
   people,
   targets,
   me,
+  autoOpen = false,
 }: {
   people: Option[];
   targets: { value: string; label: string }[];
   me: string;
+  /** Open straight away (from the top bar's "+ Add → New to-do"). */
+  autoOpen?: boolean;
 }) {
   const blank = () => ({
     title: "",
@@ -428,7 +431,7 @@ export function NewTaskButton({
     remark: "",
     assigneeId: people.some((p) => p.id === me) ? me : "",
   });
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(autoOpen);
   const [v, setV] = useState(blank);
   const { pending, run } = useAction();
   const close = () => setOpen(false);

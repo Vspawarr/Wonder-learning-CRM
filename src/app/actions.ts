@@ -23,6 +23,7 @@ import * as files from "@/server/files";
 import * as contacts from "@/server/contacts";
 import * as renewals from "@/server/renewals";
 import * as targets from "@/server/targets";
+import * as search from "@/server/search";
 import { contentSchema, resetQuotationContent, saveQuotationContent } from "@/server/quotation/content";
 import { canManageSettings } from "@/lib/permissions";
 import { parse } from "@/server/validation";
@@ -43,6 +44,10 @@ async function run<T>(fn: (u: SessionUser) => Promise<T>): Promise<ActionResult<
     return { ok: false, error: "Something went wrong. Please try again." };
   }
 }
+
+/* top bar (read-only, so no revalidate) */
+export const globalSearch = async (q: string) => search.globalSearch(await requireUser(), q);
+export const attentionAlerts = async () => search.attentionAlerts(await requireUser());
 
 /* auth */
 export async function login(_: string | null, form: FormData): Promise<string | null> {

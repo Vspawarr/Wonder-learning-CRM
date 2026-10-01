@@ -10,7 +10,7 @@ import { NewTaskButton, TaskBoard, TodoFilters } from "./tasks-client";
 
 export const metadata = { title: "To-do" };
 
-export default async function TasksPage({ searchParams }: { searchParams: Promise<{ team?: string; kind?: string }> }) {
+export default async function TasksPage({ searchParams }: { searchParams: Promise<{ team?: string; kind?: string; new?: string }> }) {
   const user = await requireUser();
   const sp = await searchParams;
   const canTeam = seesAllSales(user.role);
@@ -25,7 +25,7 @@ export default async function TasksPage({ searchParams }: { searchParams: Promis
     <>
       <PageHeader title="To-do" sub="School follow-ups and your own work in one list. Items marked Auto were scheduled by the system.">
         <ExportButtons report="todo" />
-        <NewTaskButton people={people} targets={targets} me={user.id} />
+        <NewTaskButton key={sp.new} autoOpen={!!sp.new} people={people} targets={targets} me={user.id} />
       </PageHeader>
       <TodoFilters canTeam={canTeam} />
       <TaskBoard

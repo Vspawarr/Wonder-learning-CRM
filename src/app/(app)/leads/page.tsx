@@ -14,7 +14,7 @@ import { BulkLeadButtons } from "./bulk-upload";
 
 export const metadata = { title: "Leads" };
 
-type SP = Promise<{ q?: string; status?: string; src?: string; sort?: string }>;
+type SP = Promise<{ q?: string; status?: string; src?: string; sort?: string; new?: string }>;
 
 export default async function LeadsPage({ searchParams }: { searchParams: SP }) {
   const user = await requireUser();
@@ -37,7 +37,7 @@ export default async function LeadsPage({ searchParams }: { searchParams: SP }) 
       >
         <BulkLeadButtons />
         <ExportButtons report="leads" />
-        <NewLeadButton team={team} locations={locations} defaultAssignee={team.some((t) => t.id === user.id) ? user.id : ""} />
+        <NewLeadButton key={sp.new} autoOpen={!!sp.new} team={team} locations={locations} defaultAssignee={team.some((t) => t.id === user.id) ? user.id : ""} />
       </PageHeader>
       <LeadFilters />
       <div className="hidden min-[901px]:block">
