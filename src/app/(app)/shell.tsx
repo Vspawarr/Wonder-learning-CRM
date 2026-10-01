@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { Icon, Logo, type IconName } from "@/components/icons";
 import { Avatar } from "@/components/ui";
+import { DownloadAppLink } from "@/components/app-download";
 import { logout } from "@/app/actions";
 import { PasswordButton } from "./password-button";
 
@@ -55,7 +56,10 @@ export function Shell({
             ))}
           </div>
         ))}
-        <div className="mt-auto border-t border-white/10 px-2 pt-3.5">
+        <div className="mt-auto px-2 pb-3">
+          <DownloadAppLink className="btn sm w-full justify-center border-[#3a3680] bg-[#26225a] text-white no-underline hover:text-white" />
+        </div>
+        <div className="border-t border-white/10 px-2 pt-3.5">
           <div className="flex items-center gap-2.5">
             <Avatar id={user.id} name={user.name} size={34} />
             <div className="min-w-0">

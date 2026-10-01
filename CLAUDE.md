@@ -13,6 +13,7 @@ See README.md for setup, roles and the code map.
   database via `src/server/locations.ts`. The lead form, the Excel template and the upload parser must all read
   those; never hardcode a second copy.
 - Visibility rules live only in `src/server/access.ts` / `src/lib/permissions.ts`.
+- The Android app (`android/`) points at the live address in `Config.java`. If the domain changes, rebuild it (see `android/README.md`).
 - Deploys: pushing to the `claude/kind-pasteur-jpzqm5` branch auto-deploys to Vercel (see DEPLOY.md).
 
 ## Mobile backlog for Phase 1

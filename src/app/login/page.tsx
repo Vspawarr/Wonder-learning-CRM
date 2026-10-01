@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { Logo } from "@/components/icons";
 import { currentUser } from "@/server/session";
+import { DownloadAppLink } from "@/components/app-download";
 import { LoginForm } from "./login-form";
 
 export const metadata = { title: "Sign in" };
@@ -19,6 +20,9 @@ export default async function LoginPage() {
         </div>
         <div className="card mt-6">
           <LoginForm />
+        </div>
+        <div className="mt-4 flex justify-center">
+          <DownloadAppLink />
         </div>
       </div>
     </main>
