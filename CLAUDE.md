@@ -16,6 +16,8 @@ See README.md for setup, roles and the code map.
 - The Android app (`android/`) points at the live address in `Config.java`. If the domain changes, rebuild it (see `android/README.md`).
 - Every report-like screen has PDF + Excel export (`ExportButtons` + a builder in `src/server/reports/index.ts`); add one for new reports.
 - Opportunity "Category" (Hot/Warm/Cold, stored as `temperature`) belongs to the opportunity, not the lead.
+- Optional features are switchable in Settings → Features (`src/lib/features.ts`); new optional features should get a switch so the client can turn them off.
+- Money corrections (cancel invoice, delete payment, credit notes, clear/bounce cheques) are for `canManageFinance` roles only.
 - Deploys: pushing to the `claude/kind-pasteur-jpzqm5` branch auto-deploys to Vercel (see DEPLOY.md).
 
 ## Mobile backlog for Phase 1
