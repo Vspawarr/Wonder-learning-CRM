@@ -16,6 +16,7 @@ import * as settings from "@/server/settings";
 import * as clients from "@/server/clients";
 import * as quotes from "@/server/quotation/service";
 import * as fin from "@/server/finance/service";
+import * as features from "@/server/features";
 import * as po from "@/server/finance/po";
 import { contentSchema, resetQuotationContent, saveQuotationContent } from "@/server/quotation/content";
 import { canManageSettings } from "@/lib/permissions";
@@ -72,6 +73,7 @@ export const moveOpportunity = async (id: string, data: unknown) => run((u) => o
 
 /* clients */
 export const convertToClient = async (opportunityId: string) => run((u) => clients.convertToClient(u, opportunityId));
+export const updateClient = async (id: string, data: unknown) => run((u) => clients.updateClient(u, id, data));
 export const completeOnboarding = async (id: string) => run((u) => clients.completeOnboarding(u, id));
 
 /* quotations */
@@ -124,6 +126,7 @@ export const completeTask = async (id: string, data: unknown) => run((u) => task
 export const logActivity = async (data: unknown) => run((u) => activities.logActivity(u, data));
 
 /* settings */
+export const setFeature = async (key: string, on: boolean) => run((u) => features.setFeature(u, key, on));
 export const createUser = async (data: unknown) => run((u) => settings.createUser(u, data));
 export const updateUser = async (id: string, data: unknown) => run((u) => settings.updateUser(u, id, data));
 export const deleteProduct = async (id: string) => run((u) => settings.deleteProduct(u, id));

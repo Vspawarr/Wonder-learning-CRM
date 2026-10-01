@@ -279,8 +279,8 @@ describe("invoices and payments", () => {
     const id = await invoice();
     await recordPayment(exA, id, pay(197000));
     const p = await db.payment.findFirstOrThrow({ where: { invoiceId: id } });
-    await expect(deletePayment(exB, p.id)).rejects.toThrow(/not found/);
-    await deletePayment(exA, p.id);
+    await expect(deletePayment(exA, p.id)).rejects.toThrow(/Admin or the Sales Head/);
+    await deletePayment(head, p.id);
     const open = await db.task.findMany({
       where: { invoiceId: id, status: "OPEN" },
     });
@@ -306,12 +306,13 @@ describe("invoices and payments", () => {
   it("cancelling needs no payments and closes the follow-up", async () => {
     const id = await invoice();
     await recordPayment(exA, id, pay(1000));
-    await expect(cancelInvoice(exA, id)).rejects.toThrow(/has payments/);
+    await expect(cancelInvoice(exA, id)).rejects.toThrow(/Admin or the Sales Head/);
+    await expect(cancelInvoice(head, id)).rejects.toThrow(/has payments/);
     await deletePayment(
-      exA,
+      head,
       (await db.payment.findFirstOrThrow({ where: { invoiceId: id } })).id,
     );
-    await cancelInvoice(exA, id);
+    await cancelInvoice(head, id);
     expect(
       await db.task.count({ where: { invoiceId: id, status: "OPEN" } }),
     ).toBe(0);

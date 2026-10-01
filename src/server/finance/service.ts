@@ -7,7 +7,7 @@ import { db, type Tx } from "@/lib/db";
 import { DEFAULT_PAYMENT_DAYS, PAYMENT_MODES } from "@/lib/constants";
 import { addDays, fmtDateTimeIST, fromDbDate, isDateStr, todayIST, toDbDate } from "@/lib/dates";
 import { inr } from "@/lib/format";
-import { seesAllSales, type SessionUser } from "@/lib/permissions";
+import { canManageFinance, seesAllSales, type SessionUser } from "@/lib/permissions";
 import { clientScope } from "../access";
 import { DomainError, NotFoundError } from "../errors";
 import { isEmailConfigured, sendMail } from "../mailer";
@@ -341,7 +341,12 @@ export async function createInvoice(user: SessionUser, salesOrderId: string, raw
   });
 }
 
+const assertFinance = (user: SessionUser) => {
+  if (!canManageFinance(user.role)) throw new DomainError("Only an Admin or the Sales Head can do this. Please ask them.");
+};
+
 export async function cancelInvoice(user: SessionUser, id: string) {
+  assertFinance(user);
   const inv = await loadInvoice(user, id);
   if (inv.status === "CANCELLED") return;
   if (inv.payments.length) throw new DomainError("This invoice has payments; delete them first if they were recorded by mistake.");
@@ -428,6 +433,7 @@ export async function recordPayment(user: SessionUser, invoiceId: string, raw: u
 }
 
 export async function deletePayment(user: SessionUser, paymentId: string) {
+  assertFinance(user);
   const p = await db.payment.findFirst({ where: { id: paymentId, client: clientScope(user) }, include: { invoice: true } });
   if (!p) throw new NotFoundError("Payment");
   await db.$transaction(async (tx) => {

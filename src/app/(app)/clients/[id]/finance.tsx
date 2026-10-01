@@ -2,6 +2,7 @@
 
 // Client page: sales orders, invoices, payments and reminders.
 import { useRouter } from "next/navigation";
+import { useApp } from "@/components/app-context";
 import { useState } from "react";
 import { Field, Modal, Options, useAction } from "@/components/client";
 import { DateInput } from "@/components/date-input";
@@ -895,6 +896,7 @@ export function InvoiceButtons({
   const [receipt, setReceipt] = useState<ReceiptInfo | null>(null);
   const [sending, setSending] = useState<"invoice" | "reminder" | null>(null);
   const { pending, run } = useAction();
+  const { canFinance } = useApp();
   const live = row.state !== "CANCELLED";
   const owed = live && row.balance > 0;
   return (
@@ -922,7 +924,7 @@ export function InvoiceButtons({
           Send invoice
         </button>
       ) : null}
-      {live && !compact && row.paid === 0 ? (
+      {live && !compact && row.paid === 0 && canFinance ? (
         <button
           className="btn sm ghost"
           disabled={pending}
@@ -1325,6 +1327,7 @@ export function PaymentsPanel({
   me: { name: string };
 }) {
   const { pending, run } = useAction();
+  const { canFinance } = useApp();
   const [receipt, setReceipt] = useState<ReceiptInfo | null>(null);
   if (!client.payments.length)
     return <div className="small muted">No payments recorded yet.</div>;
@@ -1361,19 +1364,23 @@ export function PaymentsPanel({
             >
               Receipt
             </button>
-            <button
-              className="btn sm ghost"
-              disabled={pending}
-              aria-label={`Delete payment of ${money(p.amount)}`}
-              onClick={() =>
-                confirm(
-                  `Delete this payment of ${money(p.amount)}? Only do this if it was recorded by mistake.`,
-                ) &&
-                run(() => deletePayment(p.id), { success: "Payment deleted." })
-              }
-            >
-              Delete
-            </button>
+            {canFinance ? (
+              <button
+                className="btn sm ghost"
+                disabled={pending}
+                aria-label={`Delete payment of ${money(p.amount)}`}
+                onClick={() =>
+                  confirm(
+                    `Delete this payment of ${money(p.amount)}? Only do this if it was recorded by mistake.`,
+                  ) &&
+                  run(() => deletePayment(p.id), {
+                    success: "Payment deleted.",
+                  })
+                }
+              >
+                Delete
+              </button>
+            ) : null}
           </div>
         </div>
       ))}

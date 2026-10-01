@@ -7,7 +7,10 @@ import { Card, DueTag, Kpi, Pill } from "@/components/ui";
 import { inr } from "@/lib/format";
 import { isEmailConfigured } from "@/server/mailer";
 import { requireUser } from "@/server/session";
-import { clientDetail, productOptions } from "@/server/queries";
+import { assignees, clientDetail, productOptions } from "@/server/queries";
+import { getLocations } from "@/server/locations";
+import { seesAllSales } from "@/lib/permissions";
+import { EditClientButton } from "./edit-client";
 import { QuotationsPanel } from "../../pipeline/quotations";
 import { ClientActions } from "./client-actions";
 import { InvoicesPanel, PaymentsPanel, SalesOrdersPanel } from "./finance";
@@ -20,7 +23,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
 
 export default async function ClientPage({ params }: { params: Promise<{ id: string }> }) {
   const user = await requireUser();
-  const [c, products] = await Promise.all([clientDetail(user, (await params).id), productOptions()]);
+  const [c, products, team, locations] = await Promise.all([clientDetail(user, (await params).id), productOptions(), assignees(user), getLocations()]);
   if (!c) notFound();
   const today = todayIST();
   const emailReady = isEmailConfigured();
@@ -60,7 +63,10 @@ export default async function ClientPage({ params }: { params: Promise<{ id: str
             <span className="small faint">Client since {fmtDate(istDate(c.since), today)}</span>
           </div>
         </div>
-        <ClientActions id={c.id} mobile={c.mobile} onboarding={c.status === "ONBOARDING"} />
+        <div className="flex flex-wrap items-center gap-2">
+          <EditClientButton client={c} team={team} locations={locations} canChangeOwner={seesAllSales(user.role)} />
+          <ClientActions id={c.id} mobile={c.mobile} onboarding={c.status === "ONBOARDING"} />
+        </div>
       </div>
 
       {c.status === "ONBOARDING" ? (

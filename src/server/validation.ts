@@ -75,6 +75,23 @@ const leadDetails = {
   followUpRemark: optText(),
 };
 
+/** A client's school and contact details (owner change is checked separately). */
+export const clientInput = z.object({
+  schoolName: leadDetails.schoolName,
+  contactName: leadDetails.contactName,
+  designation: leadDetails.designation,
+  mobile: leadDetails.mobile,
+  email: leadDetails.email,
+  state: leadDetails.state,
+  city: leadDetails.city,
+  area: leadDetails.area,
+  address: leadDetails.address,
+  currentCurriculum: leadDetails.currentCurriculum,
+  studentStrength: leadDetails.studentStrength,
+  branches: leadDetails.branches,
+  ownerId: z.string().min(1, "Choose the account owner."),
+});
+
 export const leadInput = z
   .object({ ...leadDetails, status: z.enum(MANUAL_LEAD_STATUSES).default("NEW") })
   .refine((d) => d.status !== "QUALIFIED" || !!d.temperature, {

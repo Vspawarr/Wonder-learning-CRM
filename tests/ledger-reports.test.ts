@@ -44,7 +44,7 @@ describe("ledger", () => {
     const b = await invoiceOf(50000);
     await recordPayment(exA, a, pay(40000));
     await recordPayment(exA, a, pay(60000));
-    await cancelInvoice(exA, b);
+    await cancelInvoice(head, b);
     await invoiceOf(25000);
     const l = await clientLedger(exA, clientId, financialYear(today));
     expect(l.opening).toBe(0);

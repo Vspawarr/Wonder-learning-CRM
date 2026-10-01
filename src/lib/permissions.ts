@@ -15,6 +15,9 @@ export const canManageSettings = (role: Role) => role === "DIRECTOR" || role ===
 /** Directors, Admins and the Sales Head manage products and their prices. */
 export const canManageProducts = (role: Role) => canManageSettings(role) || role === "SALES_HEAD";
 
+/** Directors, Admins and the Sales Head control money corrections: cancel invoices, delete payments, credit notes. */
+export const canManageFinance = seesAllSales;
+
 /** Anyone who sees all sales data may view the user list. */
 export const canViewUsers = seesAllSales;
 

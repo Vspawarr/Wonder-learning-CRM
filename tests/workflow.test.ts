@@ -401,3 +401,46 @@ describe("to-do", () => {
     await expect(postponeTask(exA, id, { dueDate: today })).rejects.toThrow(/already closed/);
   });
 });
+
+describe("client editing", () => {
+  async function client() {
+    const oppId = await convertLead(exA, await createLead(exA, leadData(exA.id, { schoolName: "Sunshine" })), { temperature: "WARM" });
+    await moveOpportunity(exA, oppId, { stage: "WON" });
+    return convertToClient(exA, oppId);
+  }
+  const details = (over: Record<string, unknown> = {}) => ({
+    schoolName: "Sunshine Preschool",
+    contactName: "New Owner",
+    mobile: "98765 00000",
+    state: "Maharashtra",
+    city: "Pune",
+    ownerId: exA.id,
+    ...over,
+  });
+
+  it("the owner can edit details; only Admin / Sales Head can change the owner", async () => {
+    const { updateClient } = await import("@/server/clients");
+    const id = await client();
+    await updateClient(exA, id, details());
+    expect(await db.client.findUniqueOrThrow({ where: { id } })).toMatchObject({ schoolName: "Sunshine Preschool", contactName: "New Owner" });
+    await expect(updateClient(exA, id, details({ ownerId: exB.id }))).rejects.toThrow(/account owner/);
+    await expect(updateClient(exB, id, details())).rejects.toThrow(/not found/);
+    await updateClient(head, id, details({ ownerId: exB.id }));
+    const c = await db.client.findUniqueOrThrow({ where: { id }, include: { tasks: { where: { status: "OPEN" } } } });
+    expect(c.ownerId).toBe(exB.id);
+    expect(c.tasks.every((t) => t.assigneeId === exB.id)).toBe(true);
+    await expect(updateClient(head, id, details({ city: "Atlantis" }))).rejects.toThrow(/Locations/);
+  });
+});
+
+describe("feature switches", () => {
+  it("start on; only an Admin can switch them", async () => {
+    const { getFeatures, setFeature } = await import("@/server/features");
+    await db.appSetting.deleteMany({ where: { key: "features" } });
+    expect((await getFeatures()).cheques).toBe(true);
+    await expect(setFeature(head, "cheques", false)).rejects.toThrow(/Admin/);
+    await setFeature(admin, "cheques", false);
+    expect((await getFeatures()).cheques).toBe(false);
+    await setFeature(admin, "cheques", true);
+  });
+});
