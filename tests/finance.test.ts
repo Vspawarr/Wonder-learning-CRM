@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { db } from "@/lib/db";
-import { addDays, todayIST } from "@/lib/dates";
+import { addDays, fromDbDate, todayIST } from "@/lib/dates";
 import type { SessionUser } from "@/lib/permissions";
 import { convertToClient } from "@/server/clients";
 import { convertLead, createLead } from "@/server/leads";
@@ -500,5 +500,17 @@ describe("purchase orders", () => {
     expect((await poTemplatePdfByToken(shareToken, []))?.schoolName).toBe(
       "Little Stars",
     );
+  });
+});
+
+describe("payment promise date", () => {
+  it("moves the collection follow-up to the promised date on a part payment", async () => {
+    const so = await createSalesOrder(exA, clientId, order());
+    const id = await createInvoice(exA, so, { date: today, dueDate: addDays(today, 45) });
+    await expect(recordPayment(exA, id, pay(1000, { promiseDate: addDays(today, -1) }))).rejects.toThrow(/past/);
+    await recordPayment(exA, id, pay(50000, { promiseDate: addDays(today, 10) }));
+    const t = await db.task.findFirstOrThrow({ where: { invoiceId: id, status: "OPEN" } });
+    expect(fromDbDate(t.dueDate)).toBe(addDays(today, 10));
+    expect(t.remark).toMatch(/promised/);
   });
 });

@@ -281,16 +281,20 @@ enum TaskPriority {
 }
 
 model Task {
-  id          String       @id @default(cuid())
-  type        String // FOLLOWUP_TYPES or "Other"
-  title       String
-  remark      String?
-  dueDate     DateTime     @db.Date
-  priority    TaskPriority @default(MEDIUM)
-  status      TaskStatus   @default(OPEN)
-  outcome     String?
-  completedAt DateTime?
-  isAuto      Boolean      @default(false) // created by the system, not a person
+  id             String       @id @default(cuid())
+  type           String // TASK_TYPES: follow-up types or own to-do types
+  title          String
+  remark         String?
+  dueDate        DateTime     @db.Date
+  /// Optional time of day, "HH:MM" (24h), e.g. for an internal meeting.
+  dueTime        String?
+  postponedCount Int          @default(0)
+  postponeReason String?
+  priority       TaskPriority @default(MEDIUM)
+  status         TaskStatus   @default(OPEN)
+  outcome        String?
+  completedAt    DateTime?
+  isAuto         Boolean      @default(false) // created by the system, not a person
 
   assigneeId  String
   assignee    User   @relation("TaskAssignee", fields: [assigneeId], references: [id])

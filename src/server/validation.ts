@@ -3,6 +3,7 @@ import {
   COMPETITORS,
   DESIGNATIONS,
   FOLLOWUP_TYPES,
+  TASK_TYPES,
   LOST_REASONS,
   MANUAL_LEAD_STATUSES,
   SOURCES,
@@ -137,13 +138,19 @@ export const stageMoveInput = z
     if (!m.lostRemarks) ctx.addIssue({ code: "custom", message: "Remarks are required to mark a deal as lost." });
   });
 
-export const TASK_TYPES = [...FOLLOWUP_TYPES, "Other"] as const;
+
+const optTime = z
+  .string()
+  .nullish()
+  .transform((s) => s || null)
+  .refine((s) => s === null || /^([01]\d|2[0-3]):[0-5]\d$/.test(s), "Enter a valid time.");
 
 export const taskInput = z
   .object({
     title: reqText("Task", 300),
     type: oneOf(TASK_TYPES, "type"),
     dueDate: reqDate("Due date"),
+    dueTime: optTime,
     priority: z.enum(["LOW", "MEDIUM", "HIGH", "CRITICAL"]).default("MEDIUM"),
     assigneeId: z.string().min(1, "Assign the task to someone."),
     remark: optText(),
@@ -154,6 +161,14 @@ export const taskInput = z
   .refine((t) => [t.leadId, t.opportunityId, t.clientId].filter(Boolean).length <= 1, "Link the task to only one record.");
 
 export const completeTaskInput = z.object({ outcome: optText(4000), nextDate: optDate });
+
+export const postponeTaskInput = z.object({
+  dueDate: reqDate("New date"),
+  dueTime: optTime,
+  reason: optText(300),
+});
+
+export const cancelTaskInput = z.object({ reason: optText(300) });
 
 export const userInput = z.object({
   name: reqText("Name", 120),

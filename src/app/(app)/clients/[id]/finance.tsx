@@ -952,8 +952,11 @@ function PaymentModal({
     mode: "",
     reference: "",
     note: "",
+    promiseDate: "",
   });
   const { pending, run } = useAction();
+  const amt = Number(p.amount.replace(/,/g, ""));
+  const partial = Number.isFinite(amt) && amt > 0 && amt < row.balance;
   return (
     <Modal
       title={`Record payment · ${row.number}`}
@@ -968,19 +971,26 @@ function PaymentModal({
             className="btn pri"
             disabled={pending}
             onClick={() =>
-              run(() => recordPayment(row.id, p), {
-                success: "Payment recorded. Receipt ready to send.",
-                onDone: (r) =>
-                  r
-                    ? onSaved({
-                        paymentId: r.paymentId,
-                        number: r.receiptNumber,
-                        shareToken: r.shareToken,
-                        amount: r.amount,
-                        balance: r.balance,
-                      })
-                    : onClose(),
-              })
+              run(
+                () =>
+                  recordPayment(row.id, {
+                    ...p,
+                    promiseDate: partial ? p.promiseDate : "",
+                  }),
+                {
+                  success: "Payment recorded. Receipt ready to send.",
+                  onDone: (r) =>
+                    r
+                      ? onSaved({
+                          paymentId: r.paymentId,
+                          number: r.receiptNumber,
+                          shareToken: r.shareToken,
+                          amount: r.amount,
+                          balance: r.balance,
+                        })
+                      : onClose(),
+                },
+              )
             }
           >
             {pending ? "Saving…" : "Save payment"}
@@ -1025,6 +1035,22 @@ function PaymentModal({
           />
         </Field>
       </div>
+      {partial ? (
+        <Field
+          label={`Next payment promised on (balance ${money(Math.round((row.balance - amt) * 100) / 100)})`}
+          htmlFor="pay-promise"
+        >
+          <DateInput
+            id="pay-promise"
+            min={todayIST()}
+            value={p.promiseDate}
+            onChange={(promiseDate) => setP({ ...p, promiseDate })}
+          />
+          <span className="small muted">
+            Optional. The payment follow-up moves to this date in To-do.
+          </span>
+        </Field>
+      ) : null}
       <Field label="Note" htmlFor="pay-note">
         <input
           className="in"

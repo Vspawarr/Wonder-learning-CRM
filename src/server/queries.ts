@@ -263,8 +263,15 @@ export type OppDetail = NonNullable<Awaited<ReturnType<typeof oppDetail>>>;
 
 /* ---------- tasks ---------- */
 
-export async function taskList(user: SessionUser, team: boolean) {
-  const mine: Prisma.TaskWhereInput = team && seesAllSales(user.role) ? taskScope(user) : { assigneeId: user.id };
+/** "followups" = about a lead, deal or client; "todos" = a person's own to-dos. */
+export type TaskKind = "all" | "followups" | "todos";
+
+export async function taskList(user: SessionUser, team: boolean, kind: TaskKind = "all") {
+  const mine: Prisma.TaskWhereInput = {
+    ...(team && seesAllSales(user.role) ? taskScope(user) : { assigneeId: user.id }),
+    ...(kind === "todos" ? { leadId: null, opportunityId: null, clientId: null } : {}),
+    ...(kind === "followups" ? { OR: [{ leadId: { not: null } }, { opportunityId: { not: null } }, { clientId: { not: null } }] } : {}),
+  };
   const include = {
     assignee: { select: { id: true, name: true } },
     lead: { select: { id: true, schoolName: true } },
@@ -272,8 +279,13 @@ export async function taskList(user: SessionUser, team: boolean) {
     client: { select: { id: true, schoolName: true } },
   } as const;
   const [open, done] = await Promise.all([
-    db.task.findMany({ where: { ...mine, status: "OPEN" }, include, orderBy: [{ dueDate: "asc" }, { createdAt: "asc" }], take: 1000 }),
-    db.task.findMany({ where: { ...mine, status: "DONE" }, include, orderBy: { completedAt: "desc" }, take: 8 }),
+    db.task.findMany({
+      where: { ...mine, status: "OPEN" },
+      include,
+      orderBy: [{ dueDate: "asc" }, { dueTime: { sort: "asc", nulls: "last" } }, { createdAt: "asc" }],
+      take: 1000,
+    }),
+    db.task.findMany({ where: { ...mine, status: { in: ["DONE", "CANCELLED"] } }, include, orderBy: { completedAt: "desc" }, take: 15 }),
   ]);
   const shape = (t: (typeof open)[number]) => ({
     id: t.id,
@@ -281,6 +293,10 @@ export async function taskList(user: SessionUser, team: boolean) {
     type: t.type,
     remark: t.remark,
     dueDate: fromDbDate(t.dueDate),
+    dueTime: t.dueTime,
+    postponedCount: t.postponedCount,
+    postponeReason: t.postponeReason,
+    status: t.status,
     priority: t.priority,
     isAuto: t.isAuto,
     outcome: t.outcome,

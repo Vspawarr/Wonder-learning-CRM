@@ -73,6 +73,8 @@ export const invoiceInput = z.object({
 });
 
 export const paymentInput = z.object({
+  /** When part is still owed: the date the school promised to pay the rest. */
+  promiseDate: optDate,
   amount: num("amount", 0.01),
   date: z.string().refine(isDateStr, "Enter the payment date."),
   mode: z.string().refine((m) => (PAYMENT_MODES as readonly string[]).includes(m), "Choose how it was paid."),
@@ -390,6 +392,7 @@ export async function recordPayment(user: SessionUser, invoiceId: string, raw: u
   const balance = r2(Number(inv.total) - paidOf(inv.payments));
   if (balance <= 0) throw new DomainError("This invoice is already fully paid.");
   if (d.amount > balance + 0.001) throw new DomainError(`That's more than the ${inr(balance)} still due on ${inv.number}.`);
+  if (d.promiseDate && d.promiseDate < todayIST()) throw new DomainError("The promised payment date can't be in the past.");
   return withNextNumber("payment", "RCPT", async (tx, n) => {
     const p = await tx.payment.create({
       data: {
@@ -406,10 +409,16 @@ export async function recordPayment(user: SessionUser, invoiceId: string, raw: u
       },
     });
     const s = await syncCollectionTask(tx, user, invoiceId);
+    const promised = s.balance > 0 && d.promiseDate ? d.promiseDate : null;
+    if (promised)
+      await tx.task.updateMany({
+        where: { invoiceId, status: "OPEN" },
+        data: { dueDate: toDbDate(promised), remark: `School promised to pay the balance on ${dmy(toDbDate(promised)).replace(/-/g, "/")}.` },
+      });
     await tx.activity.create({
       data: {
         type: "SYSTEM",
-        subject: `Payment ${inr(d.amount)} received for ${inv.number} (${d.mode}${d.reference ? ` ${d.reference}` : ""}) · receipt ${p.number} · ${s.balance > 0 ? `${inr(s.balance)} still due` : "paid in full"}`,
+        subject: `Payment ${inr(d.amount)} received for ${inv.number} (${d.mode}${d.reference ? ` ${d.reference}` : ""}) · receipt ${p.number} · ${s.balance > 0 ? `${inr(s.balance)} still due` : "paid in full"}${promised ? ` · next payment promised ${dmy(toDbDate(promised)).replace(/-/g, "/")}` : ""}`,
         byId: user.id,
         clientId: inv.clientId,
       },

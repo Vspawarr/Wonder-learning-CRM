@@ -5,8 +5,8 @@ import type { SessionUser } from "@/lib/permissions";
 import { logActivity } from "@/server/activities";
 import { convertLead, createLead, disqualifyLead, updateLead } from "@/server/leads";
 import { moveOpportunity, updateOpportunity } from "@/server/opportunities";
-import { completeTask, createTask } from "@/server/tasks";
-import { pipelineCards } from "@/server/queries";
+import { cancelTask, completeTask, createTask, postponeTask } from "@/server/tasks";
+import { pipelineCards, taskList } from "@/server/queries";
 import { createUser, saveProduct, updateUser } from "@/server/settings";
 import { completeOnboarding, convertToClient } from "@/server/clients";
 import { leadData, makeProduct, makeUser, resetData } from "./helpers";
@@ -368,5 +368,36 @@ describe("opportunity category", () => {
     const oppId = await convertLead(exA, await createLead(exA, leadData(exA.id)), { temperature: "WARM" });
     await updateOpportunity(exA, oppId, { ownerId: exA.id, temperature: "HOT" });
     expect((await db.opportunity.findUniqueOrThrow({ where: { id: oppId } })).temperature).toBe("HOT");
+  });
+});
+
+describe("to-do", () => {
+  it("own to-dos with a time sit next to school follow-ups", async () => {
+    await createLead(exA, leadData(exA.id));
+    await createTask(exA, { title: "Prepare agreement", type: "Document Preparation", dueDate: today, dueTime: "15:30", assigneeId: exA.id });
+    await expect(createTask(exA, { title: "x", type: "Party", dueDate: today, assigneeId: exA.id })).rejects.toThrow(/type/);
+    await expect(createTask(exA, { title: "x", type: "Other", dueDate: today, dueTime: "25:00", assigneeId: exA.id })).rejects.toThrow(/time/);
+    expect((await taskList(exA, false)).open).toHaveLength(2);
+    const own = (await taskList(exA, false, "todos")).open;
+    expect(own.map((t) => [t.title, t.dueTime])).toEqual([["Prepare agreement", "15:30"]]);
+    expect((await taskList(exA, false, "followups")).open).toHaveLength(1);
+  });
+
+  it("postpone moves the date, counts it, and keeps the lead's next follow-up in step", async () => {
+    const leadId = await createLead(exA, leadData(exA.id));
+    const t = await db.task.findFirstOrThrow({ where: { leadId } });
+    await expect(postponeTask(exA, t.id, { dueDate: addDays(today, -1) })).rejects.toThrow(/later date/);
+    await expect(postponeTask(exB, t.id, { dueDate: addDays(today, 5) })).rejects.toThrow(/not found/);
+    await postponeTask(exA, t.id, { dueDate: addDays(today, 5), dueTime: "11:00", reason: "Principal travelling" });
+    const after = await db.task.findUniqueOrThrow({ where: { id: t.id } });
+    expect(after).toMatchObject({ postponedCount: 1, dueTime: "11:00", postponeReason: "Principal travelling", status: "OPEN" });
+    expect(fromDbDate((await db.lead.findUniqueOrThrow({ where: { id: leadId } })).nextFollowUpDate!)).toBe(addDays(today, 5));
+  });
+
+  it("cancel closes a to-do with a reason", async () => {
+    const id = await createTask(exA, { title: "Team meeting", type: "Internal Meeting", dueDate: today, assigneeId: exA.id });
+    await cancelTask(exA, id, { reason: "Moved online" });
+    expect(await db.task.findUniqueOrThrow({ where: { id } })).toMatchObject({ status: "CANCELLED", outcome: "Moved online" });
+    await expect(postponeTask(exA, id, { dueDate: today })).rejects.toThrow(/already closed/);
   });
 });

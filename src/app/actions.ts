@@ -118,6 +118,8 @@ export const emailInvoice = async (id: string, data: unknown, kind: "invoice" | 
 
 /* tasks & activity */
 export const createTask = async (data: unknown) => run((u) => tasks.createTask(u, data));
+export const postponeTask = async (id: string, data: unknown) => run((u) => tasks.postponeTask(u, id, data));
+export const cancelTask = async (id: string, data: unknown) => run((u) => tasks.cancelTask(u, id, data));
 export const completeTask = async (id: string, data: unknown) => run((u) => tasks.completeTask(u, id, data));
 export const logActivity = async (data: unknown) => run((u) => activities.logActivity(u, data));
 

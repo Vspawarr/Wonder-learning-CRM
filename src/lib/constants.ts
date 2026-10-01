@@ -54,6 +54,12 @@ export const PUBLICATIONS = [
 
 export const FOLLOWUP_TYPES = ["Call", "WhatsApp/Message", "Email", "School Visit", "Online Demo"] as const;
 
+/** A person's own to-dos (not about a school). */
+export const TODO_TYPES = ["Internal Meeting", "Document Preparation", "Report / Admin Work", "Training", "Reminder", "Other"] as const;
+
+/** Everything a task can be: client follow-ups and own to-dos. */
+export const TASK_TYPES = [...FOLLOWUP_TYPES, ...TODO_TYPES] as const;
+
 export const COMPETITORS = [
   "EuroKids",
   "Kidzee",
