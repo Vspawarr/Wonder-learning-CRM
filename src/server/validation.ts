@@ -98,9 +98,11 @@ export const oppUpdateInput = z.object({
   nextAction: optText(300),
   nextActionDate: optDate,
   ownerId: z.string().min(1),
+  /** Optional: the screen no longer edits items (products are priced on quotations). */
   items: z
     .array(z.object({ productId: z.string().min(1), qty: z.coerce.number().int().min(1).max(100000) }))
-    .max(50),
+    .max(50)
+    .optional(),
 });
 
 export const stageMoveInput = z

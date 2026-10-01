@@ -1,9 +1,12 @@
 // The quotation PDF, laid out to match Wonder Learning's quotation format
 // (US Letter; positions measured from the original). Page 1: quotation;
 // page 2: kit components & services; page 3: terms & payment schedule.
-import { Document, Image, Page, StyleSheet, Text, View, renderToBuffer } from "@react-pdf/renderer";
+import { Document, Font, Image, Page, StyleSheet, Text, View, renderToBuffer } from "@react-pdf/renderer";
 import type { Style } from "@react-pdf/types";
 import { FOOTER_JPG, HEADER_JPG } from "./brand-images";
+import { RUPEE_FONT } from "./rupee-font";
+
+Font.register({ family: "Rupee", src: RUPEE_FONT });
 import type { KitSection, QuotationContent } from "./content";
 
 export type QuotationPdfData = {
@@ -110,7 +113,15 @@ function FooterBand({ lines }: { lines: string[] }) {
   );
 }
 
-const money = (n: number) => n.toFixed(2);
+/** ₹ in the rupee font, digits in Helvetica, e.g. ₹3700.00 (same digits as the original format). */
+function Money({ n }: { n: number }) {
+  return (
+    <>
+      <Text style={{ fontFamily: "Rupee" }}>₹</Text>
+      {n.toFixed(2)}
+    </>
+  );
+}
 
 function Bullets({ items, style }: { items: string[]; style?: Style }) {
   return (
@@ -184,8 +195,12 @@ export function QuotationDocument({ d }: { d: QuotationPdfData }) {
             <View key={i} style={i % 2 ? [s.tr, s.trAlt] : s.tr} wrap={false}>
               <Text style={s.cNo}>{i + 1}</Text>
               <Text style={s.cDesc}>{it.description}</Text>
-              <Text style={s.cMrp}>{money(it.mrp)}</Text>
-              <Text style={s.cPrice}>{money(it.price)}</Text>
+              <Text style={s.cMrp}>
+                <Money n={it.mrp} />
+              </Text>
+              <Text style={s.cPrice}>
+                <Money n={it.price} />
+              </Text>
             </View>
           ))}
         </View>

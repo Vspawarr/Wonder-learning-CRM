@@ -20,30 +20,33 @@ export async function updateOpportunity(user: SessionUser, id: string, raw: unkn
     if (CLOSED_STAGES.includes(opp.stage)) throw new DomainError("Closed deals can't be edited.");
     if (d.ownerId !== opp.ownerId) await assertAssignable(tx, user, d.ownerId);
 
-    const productIds = [...new Set(d.items.map((i) => i.productId))];
-    if (productIds.length !== d.items.length) throw new DomainError("Each product can appear only once.");
-    const [products, current] = await Promise.all([
-      tx.product.findMany({ where: { id: { in: productIds } } }),
-      tx.opportunityItem.findMany({ where: { opportunityId: id } }),
-    ]);
-    if (products.length !== productIds.length) throw new DomainError("One of the chosen products doesn't exist.");
-    const kept = new Map(current.map((i) => [i.productId, i]));
-    for (const p of products)
-      if (!p.active && !kept.has(p.id)) throw new DomainError(`${p.name} is no longer offered.`);
+    if (d.items) {
+      const items = d.items;
+      const productIds = [...new Set(items.map((i) => i.productId))];
+      if (productIds.length !== items.length) throw new DomainError("Each product can appear only once.");
+      const [products, current] = await Promise.all([
+        tx.product.findMany({ where: { id: { in: productIds } } }),
+        tx.opportunityItem.findMany({ where: { opportunityId: id } }),
+      ]);
+      if (products.length !== productIds.length) throw new DomainError("One of the chosen products doesn't exist.");
+      const kept = new Map(current.map((i) => [i.productId, i]));
+      for (const p of products)
+        if (!p.active && !kept.has(p.id)) throw new DomainError(`${p.name} is no longer offered.`);
 
-    await tx.opportunityItem.deleteMany({ where: { opportunityId: id, productId: { notIn: productIds } } });
-    for (const item of d.items) {
-      const prev = kept.get(item.productId);
-      if (prev) await tx.opportunityItem.update({ where: { id: prev.id }, data: { qty: item.qty } });
-      else
-        await tx.opportunityItem.create({
-          data: {
-            opportunityId: id,
-            productId: item.productId,
-            qty: item.qty,
-            unitPrice: products.find((p) => p.id === item.productId)!.price,
-          },
-        });
+      await tx.opportunityItem.deleteMany({ where: { opportunityId: id, productId: { notIn: productIds } } });
+      for (const item of items) {
+        const prev = kept.get(item.productId);
+        if (prev) await tx.opportunityItem.update({ where: { id: prev.id }, data: { qty: item.qty } });
+        else
+          await tx.opportunityItem.create({
+            data: {
+              opportunityId: id,
+              productId: item.productId,
+              qty: item.qty,
+              unitPrice: products.find((p) => p.id === item.productId)!.price,
+            },
+          });
+      }
     }
 
     await tx.opportunity.update({

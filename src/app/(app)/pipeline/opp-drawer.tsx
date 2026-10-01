@@ -10,7 +10,7 @@ import { Pill, DueTag } from "@/components/ui";
 import { convertToClient, moveOpportunity, updateOpportunity } from "@/app/actions";
 import { COMPETITORS, STAGES, STAGE_LABEL, STAGE_PROBABILITY, clientCode, leadCode, oppCode, type Stage } from "@/lib/constants";
 import { fmtDate, istDate, todayIST } from "@/lib/dates";
-import { inr, inrS } from "@/lib/format";
+import { inr } from "@/lib/format";
 import type { OppDetail, Option, ProductOption } from "@/server/queries";
 import { LostModal, WonModal } from "./close-modals";
 import { QuotationsPanel } from "./quotations";
@@ -43,22 +43,15 @@ export function OppDrawer({
     nextAction: opp.nextAction ?? "",
     nextActionDate: opp.nextActionDate ?? "",
     ownerId: opp.owner.id,
-    items: opp.items.map((i) => ({ productId: i.productId, qty: i.qty })),
   };
   const [v, setV] = useState(initial);
   const [lost, setLost] = useState(false);
   const [won, setWon] = useState(false);
-  const [add, setAdd] = useState("");
   const { pending, run } = useAction();
   const dirty = JSON.stringify(v) !== JSON.stringify(initial);
   const today = todayIST();
   const owners = team.some((t) => t.id === opp.owner.id) ? team : [opp.owner, ...team];
 
-  const priceOf = (productId: string) =>
-    opp.items.find((i) => i.productId === productId)?.unitPrice ?? products.find((p) => p.id === productId)?.price ?? null;
-  const nameOf = (productId: string) =>
-    opp.items.find((i) => i.productId === productId)?.name ?? products.find((p) => p.id === productId)?.name ?? "";
-  const addable = products.filter((p) => p.active && !v.items.some((i) => i.productId === p.id));
 
   const move = (stage: Stage) => {
     if (stage === opp.stage) return;
@@ -161,84 +154,6 @@ export function OppDrawer({
       </div>
 
       <QuotationsPanel opp={opp} products={products} emailReady={emailReady} me={me} />
-
-      <h3 className="mt-2">Items of interest</h3>
-      <div className="tw mt-2 mb-3">
-        <table>
-          <thead>
-            <tr>
-              <th>Product</th>
-              <th className="num">Qty</th>
-              <th className="num">Price</th>
-              <th className="num">Value</th>
-              {opp.closed ? null : <th />}
-            </tr>
-          </thead>
-          <tbody>
-            {v.items.map((it, idx) => {
-              const price = priceOf(it.productId);
-              return (
-                <tr key={it.productId}>
-                  <td>{nameOf(it.productId)}</td>
-                  <td className="num">
-                    {opp.closed ? (
-                      it.qty
-                    ) : (
-                      <input
-                        className="in w-[72px] text-right"
-                        type="number"
-                        min={1}
-                        aria-label={`Quantity of ${nameOf(it.productId)}`}
-                        value={it.qty}
-                        onChange={(e) =>
-                          setV({ ...v, items: v.items.map((x, j) => (j === idx ? { ...x, qty: Math.max(1, Number(e.target.value) || 1) } : x)) })
-                        }
-                      />
-                    )}
-                  </td>
-                  <td className="num">{price === null ? <span className="faint">Not set</span> : inr(price)}</td>
-                  <td className="num">{price === null ? "—" : inrS(price * it.qty)}</td>
-                  {opp.closed ? null : (
-                    <td className="num">
-                      <button
-                        className="btn ghost sm"
-                        aria-label={`Remove ${nameOf(it.productId)}`}
-                        onClick={() => setV({ ...v, items: v.items.filter((_, j) => j !== idx) })}
-                      >
-                        Remove
-                      </button>
-                    </td>
-                  )}
-                </tr>
-              );
-            })}
-            {!v.items.length ? (
-              <tr>
-                <td colSpan={5} className="faint">
-                  No items yet.
-                </td>
-              </tr>
-            ) : null}
-          </tbody>
-        </table>
-      </div>
-      {!opp.closed && addable.length ? (
-        <div className="mb-4 flex gap-2">
-          <select className="sel" aria-label="Add a product" value={add} onChange={(e) => setAdd(e.target.value)}>
-            <Options list={addable.map((p) => [p.id, p.name] as const)} blank="Add a product…" />
-          </select>
-          <button
-            className="btn"
-            disabled={!add}
-            onClick={() => {
-              setV({ ...v, items: [...v.items, { productId: add, qty: 1 }] });
-              setAdd("");
-            }}
-          >
-            Add
-          </button>
-        </div>
-      ) : null}
 
       <div className="fg2">
         <Field label="Expected close date" htmlFor="op-close">
