@@ -8,6 +8,7 @@ import { assignees, leadsList } from "@/server/queries";
 import { getLocations } from "@/server/locations";
 import { LeadFilters } from "./lead-filters";
 import { NewLeadButton } from "./new-lead";
+import { BulkLeadButtons } from "./bulk-upload";
 
 export const metadata = { title: "Leads" };
 
@@ -29,6 +30,7 @@ export default async function LeadsPage({ searchParams }: { searchParams: SP }) 
         title="Leads"
         sub={`${seesAllSales(user.role) ? "" : "Your leads only. "}Sorted by next follow-up so the most urgent are on top.`}
       >
+        <BulkLeadButtons />
         <NewLeadButton team={team} locations={locations} defaultAssignee={team.some((t) => t.id === user.id) ? user.id : ""} />
       </PageHeader>
       <LeadFilters />

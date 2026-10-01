@@ -9,6 +9,9 @@ See README.md for setup, roles and the code map.
   scrolling, tap-friendly controls, and the key information visible without swiping tables.
   Prefer card lists over wide tables on phones.
 - The owner is not a developer: explain changes and steps in plain language.
+- Allowed-value lists have exactly one source: fixed lists in `src/lib/constants.ts`, states/cities in the
+  database via `src/server/locations.ts`. The lead form, the Excel template and the upload parser must all read
+  those; never hardcode a second copy.
 - Visibility rules live only in `src/server/access.ts` / `src/lib/permissions.ts`.
 - Deploys: pushing to the `claude/kind-pasteur-jpzqm5` branch auto-deploys to Vercel (see DEPLOY.md).
 

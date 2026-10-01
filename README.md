@@ -46,6 +46,8 @@ action goes through it.
   `activities.ts`, `settings.ts`), validation (`validation.ts`), read models (`queries.ts`, `dashboard.ts`).
 - `src/app/actions.ts` — server actions: authenticate, call a service, revalidate.
 - `src/app/(app)/` — screens: dashboard, leads, opportunities, pipeline, follow-ups, clients, settings.
+- `src/server/locations.ts` — states and cities (managed in Settings → Locations); the only list behind the form, the Excel template and the upload.
+- `src/server/lead-excel/` — bulk lead upload: `columns.ts` (the template's columns, built from `src/lib/constants.ts`), `template.ts` (generated on each download), `import.ts` (re-checks every row, then uses `createLead`).
 - `src/components/date-input.tsx` — every date field; always DD/MM/YYYY regardless of browser language.
 
 ## Tests

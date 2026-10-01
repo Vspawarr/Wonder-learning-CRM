@@ -2,15 +2,10 @@
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
-import { SOURCES } from "@/lib/constants";
+import { SOURCES, TEMPERATURE_LABEL } from "@/lib/constants";
 
 const STATUS = ["Active", "All", "Converted", "Disqualified"];
-const TEMPS: [string, string][] = [
-  ["", "All"],
-  ["HOT", "Hot"],
-  ["WARM", "Warm"],
-  ["COLD", "Cold"],
-];
+const TEMPS: [string, string][] = [["", "All"], ...(Object.entries(TEMPERATURE_LABEL) as [string, string][])];
 
 export function LeadFilters() {
   const router = useRouter();
