@@ -110,7 +110,9 @@ function DispatchModal({ so, onClose }: { so: SO; onClose: () => void }) {
                 success: "Dispatched. Print the challan to send with the kits.",
                 onDone: (id) => {
                   onClose();
-                  if (id) window.open(`/api/dispatches/${id}/challan`, "_blank");
+                  // Phones block pop-ups opened after a wait, so fall back to opening it here.
+                  // eslint-disable-next-line @next/next/no-location-assign-relative-destination -- a PDF file, not a page
+                  if (id && !window.open(`/api/dispatches/${id}/challan`, "_blank")) (window.location.href = `/api/dispatches/${id}/challan`);
                 },
               })
             }

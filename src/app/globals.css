@@ -122,6 +122,10 @@
   a {
     color: var(--brand);
   }
+  /* Taps act at once (no double-tap-zoom wait) on every control. */
+  button, a, label, select, summary, [role="button"] {
+    touch-action: manipulation;
+  }
   :focus-visible {
     outline: 2px solid var(--brand2);
     outline-offset: 2px;
@@ -244,6 +248,10 @@
   }
   .in:disabled, .sel:disabled, .ta:disabled { background: var(--surf2); color: var(--ink2); }
   .ta { min-height: 70px; resize: vertical; }
+  /* iPhones zoom the whole page into any field smaller than 16px and stay zoomed; avoid that. */
+  @media (pointer: coarse) {
+    input, select, textarea { font-size: 16px; }
+  }
   .fld { display: flex; flex-direction: column; gap: 4px; margin-bottom: 12px; }
   .fld > label { font-size: 12.5px; font-weight: 600; color: var(--ink2); }
   .fg2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0 12px; }
@@ -280,7 +288,7 @@
   .kc {
     display: block; width: 100%; text-align: left; background: var(--surf); border: 1px solid var(--line); border-radius: 10px;
     padding: 10px 12px; margin-bottom: 9px; cursor: grab; box-shadow: var(--shadow); border-top: 3px solid var(--c, var(--brand));
-    color: var(--ink); touch-action: none;
+    color: var(--ink); touch-action: manipulation; /* page still scrolls; a long press starts a drag */
   }
   .kc.drag { opacity: 0.4; }
   .kc .t { font-weight: 650; }
@@ -289,7 +297,16 @@
   /* modal & drawer */
   .scrim { position: fixed; inset: 0; background: rgba(18, 14, 48, 0.55); z-index: 100; display: grid; place-items: center; padding: 16px; }
   .scrim.dr { place-items: stretch end; padding: 0; }
-  .modal { background: var(--surf); border-radius: 16px; width: min(560px, 100%); max-height: 92vh; overflow: auto; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35); }
+  /* Phones: pop-ups become a sheet from the bottom, sized to the visible screen, so the buttons stay in reach. */
+  @media (max-width: 600px) {
+    .scrim:not(.dr) { place-items: end stretch; padding: 0; }
+    .scrim:not(.dr) .modal { width: 100%; max-height: calc(100dvh - 12px); border-radius: 16px 16px 0 0; }
+    .mf { padding-bottom: calc(12px + env(safe-area-inset-bottom)); }
+    .mf > .btn { flex: 1 1 auto; justify-content: center; }
+    .mf > .mr-auto { flex-basis: 100%; }
+  }
+  .drawer { height: 100dvh; }
+  .modal { background: var(--surf); border-radius: 16px; width: min(560px, 100%); max-height: 92vh; max-height: calc(100dvh - 32px); overflow: auto; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35); }
   .modal.wide { width: min(940px, 100%); }
   .drawer { background: var(--surf); width: min(620px, 100%); height: 100%; overflow: auto; box-shadow: -10px 0 40px rgba(0, 0, 0, 0.3); }
   .mh { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; padding: 18px 20px 8px; }

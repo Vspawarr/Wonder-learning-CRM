@@ -75,6 +75,7 @@ export function Modal({
   drawer?: boolean;
 }) {
   const ref = useRef<HTMLDivElement>(null);
+  const downOnScrim = useRef(false);
   // Callers pass a fresh onClose on every render (i.e. every keystroke), so keep
   // it in a ref: the mount effect below must run once, or it would re-focus the
   // first field and scroll the modal back to the top on each change.
@@ -85,12 +86,21 @@ export function Modal({
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onCloseRef.current();
     document.addEventListener("keydown", onKey);
-    const first = ref.current?.querySelector<HTMLElement>("input:not([type=hidden]),select,textarea");
-    first?.focus({ preventScroll: true });
+    // Phones: don't jump into the first field, or the keyboard pops up and hides the buttons.
+    if (!matchMedia("(pointer: coarse)").matches) {
+      const first = ref.current?.querySelector<HTMLElement>("input:not([type=hidden]),select,textarea");
+      first?.focus({ preventScroll: true });
+    }
     return () => document.removeEventListener("keydown", onKey);
   }, []);
   return (
-    <div className={`scrim ${drawer ? "dr" : ""}`} onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
+    <div
+      className={`scrim ${drawer ? "dr" : ""}`}
+      // Close only on a tap that starts and ends on the dark area, so closing the
+      // phone keyboard or a drag that ends outside the box doesn't lose the form.
+      onPointerDown={(e) => (downOnScrim.current = e.target === e.currentTarget)}
+      onClick={(e) => downOnScrim.current && e.target === e.currentTarget && onClose()}
+    >
       <div ref={ref} className={drawer ? "drawer" : `modal ${wide ? "wide" : ""}`} role="dialog" aria-modal="true">
         <div className="mh">
           <div className="min-w-0">

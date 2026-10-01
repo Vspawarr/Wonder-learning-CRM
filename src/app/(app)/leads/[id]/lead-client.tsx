@@ -56,7 +56,8 @@ export function LeadEditor({
   return (
     <>
       <LeadForm key={lead.id} value={value} onChange={setValue} team={team} locations={locations} idPrefix="el" />
-      <div className="sticky bottom-0 -mx-4 -mb-4 flex justify-end gap-2 rounded-b-xl border-t border-line bg-surf px-4 py-3">
+      <div className="sticky bottom-0 -mx-4 -mb-4 flex flex-wrap justify-end gap-2 rounded-b-xl border-t border-line bg-surf px-4 py-3">
+        {!dirty && !pending ? <span className="small muted mr-auto self-center">Change a field to save</span> : null}
         <button className="btn" disabled={!dirty || pending} onClick={() => setValue(initial)}>
           Discard changes
         </button>

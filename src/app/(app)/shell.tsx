@@ -25,7 +25,7 @@ export function Shell({
   const title = nav.flatMap((g) => g.items).find((i) => path.startsWith(i.href))?.label ?? "";
 
   return (
-    <div className="grid h-full grid-cols-1 min-[901px]:grid-cols-[250px_minmax(0,1fr)]">
+    <div className="grid grid-cols-1 min-[901px]:h-full min-[901px]:grid-cols-[250px_minmax(0,1fr)]">
       {open ? <div className="fixed inset-0 z-30 bg-black/40 min-[901px]:hidden" onClick={() => setOpen(false)} /> : null}
       <aside
         className={`side fixed inset-y-0 z-40 flex w-[270px] flex-col gap-1.5 overflow-y-auto px-3 pt-[18px] pb-6 transition-[left] duration-200 min-[901px]:static min-[901px]:w-auto ${
@@ -74,7 +74,8 @@ export function Shell({
           </div>
         </div>
       </aside>
-      <div className="relative min-w-0 overflow-y-auto">
+      {/* Phones scroll the whole page (not an inner box) so the browser bars and keyboard behave and taps land where they look. */}
+      <div className="relative min-w-0 min-[901px]:overflow-y-auto">
         <header className="sticky top-0 z-20 flex items-center gap-3 border-b border-line bg-bg px-3.5 py-2.5 min-[901px]:px-7 min-[901px]:py-3">
           <button
             className="grid h-[38px] w-[38px] place-items-center rounded-[10px] border border-line bg-surf min-[901px]:hidden"

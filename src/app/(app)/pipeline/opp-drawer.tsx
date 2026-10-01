@@ -95,6 +95,7 @@ export function OppDrawer({
           </button>
         ) : (
           <>
+            {!dirty && !pending ? <span className="small muted mr-auto self-center">Change a field to save</span> : null}
             <button className="btn" disabled={!dirty || pending} onClick={() => setV(initial)}>
               Discard changes
             </button>

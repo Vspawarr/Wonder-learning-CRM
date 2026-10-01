@@ -92,7 +92,10 @@ export function DateInput({
         type="date"
         tabIndex={-1}
         aria-hidden="true"
-        className="pointer-events-none absolute right-0 bottom-0 h-px w-px opacity-0"
+        // Phones: this invisible date box sits right over the calendar button, so a tap
+        // opens the phone's own date picker directly (showPicker isn't on every phone).
+        className="pointer-events-none absolute right-0 bottom-0 h-px w-px opacity-0 [@media(pointer:coarse)]:pointer-events-auto [@media(pointer:coarse)]:top-1/2 [@media(pointer:coarse)]:right-1.5 [@media(pointer:coarse)]:bottom-auto [@media(pointer:coarse)]:h-8 [@media(pointer:coarse)]:w-8 [@media(pointer:coarse)]:-translate-y-1/2"
+        disabled={disabled}
         value={state.iso}
         min={min}
         onChange={(e) => setText(toDmy(e.target.value))}
