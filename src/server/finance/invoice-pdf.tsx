@@ -5,6 +5,9 @@ import type { Style } from "@react-pdf/types";
 import { FooterBand, Header, Money } from "../quotation/pdf";
 
 export type InvoicePdfData = {
+  /** "INVOICE" (default) or "PROFORMA INVOICE". */
+  title?: string;
+  numberLabel?: string;
   number: string;
   date: string; // DD-MM-YYYY
   dueDate: string;
@@ -20,7 +23,10 @@ export type InvoicePdfData = {
   gstAmount: number;
   total: number;
   paid: number;
+  credited: number;
   balance: number;
+  /** Proforma: the payment schedule from the quotation terms. */
+  paymentTerms?: string[];
   payments: { date: string; amount: number; mode: string; reference: string | null }[];
   footerLines: string[];
   company: string;
@@ -72,7 +78,7 @@ export function InvoiceDocument({ d }: { d: InvoicePdfData }) {
   return (
     <Document title={`Invoice ${d.number}`} author="Wonder Learning India Pvt. Ltd." creator="Wonder Learning CRM">
       <Page size="LETTER" style={s.page}>
-        <Header title="INVOICE" align="right" />
+        <Header title={d.title ?? "INVOICE"} align="right" />
         {d.cancelled ? <Text style={s.cancelled}>CANCELLED</Text> : null}
         <View style={s.addressRow}>
           <View style={s.toCol}>
@@ -83,7 +89,7 @@ export function InvoiceDocument({ d }: { d: InvoicePdfData }) {
           </View>
           <View style={s.metaCol}>
             <Text style={s.line}>
-              <Text style={s.bold}>Invoice No.: </Text>
+              <Text style={s.bold}>{d.numberLabel ?? "Invoice No."}: </Text>
               {d.number}
             </Text>
             <Text style={s.line}>
@@ -137,7 +143,8 @@ export function InvoiceDocument({ d }: { d: InvoicePdfData }) {
           <SumRow label="Subtotal" n={d.subtotal} />
           <SumRow label={showGst ? "GST" : "GST (0%)"} n={d.gstAmount} />
           <SumRow label="Total" n={d.total} style={[s.totalRow, s.bold]} />
-          {d.paid > 0 ? <SumRow label="Received" n={d.paid} /> : null}
+          {d.paid > 0 ? <SumRow label={d.title ? "Advance received" : "Received"} n={d.paid} /> : null}
+          {d.credited > 0 ? <SumRow label="Credit notes" n={d.credited} /> : null}
           {!d.cancelled ? <SumRow label="Balance due" n={d.balance} style={[s.balanceRow, s.bold]} /> : null}
         </View>
 
@@ -148,6 +155,17 @@ export function InvoiceDocument({ d }: { d: InvoicePdfData }) {
               <Text key={i} style={s.line}>
                 {p.date} · <Money n={p.amount} /> · {p.mode}
                 {p.reference ? ` (${p.reference})` : ""}
+              </Text>
+            ))}
+          </View>
+        ) : null}
+
+        {d.paymentTerms?.length ? (
+          <View style={s.section} wrap={false}>
+            <Text style={s.h}>Payment terms</Text>
+            {d.paymentTerms.map((t, i) => (
+              <Text key={i} style={s.line}>
+                {i + 1}. {t}
               </Text>
             ))}
           </View>

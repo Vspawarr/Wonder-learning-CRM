@@ -8,7 +8,7 @@ import { addDays, fromDbDate, isDateStr, todayIST, toDbDate, type DateStr } from
 import { seesAllSales, type SessionUser } from "@/lib/permissions";
 import { clientScope } from "../access";
 import { NotFoundError } from "../errors";
-import { r2 } from "./money";
+import { COUNTED_STATUSES, r2 } from "./money";
 
 export type LedgerPeriod = { from: DateStr; to: DateStr; label: string };
 
@@ -38,7 +38,7 @@ const dmy = (s: string) => s.split("-").reverse().join("/");
 
 export type LedgerEntry = {
   date: DateStr;
-  kind: "INVOICE" | "PAYMENT";
+  kind: "INVOICE" | "PAYMENT" | "CREDIT_NOTE";
   ref: string;
   particulars: string;
   debit: number;
@@ -53,12 +53,16 @@ export async function clientLedger(user: SessionUser, clientId: string, period: 
     select: { id: true, number: true, schoolName: true, city: true, owner: { select: { name: true } } },
   });
   if (!client) throw new NotFoundError("Client");
-  const [invoices, payments] = await Promise.all([
+  const [invoices, payments, credits] = await Promise.all([
     db.invoice.findMany({
       where: { clientId, status: "ISSUED", date: { lte: toDbDate(period.to) } },
       include: { salesOrder: { select: { number: true, poNumber: true } } },
     }),
     db.payment.findMany({
+      where: { clientId, date: { lte: toDbDate(period.to) }, status: { in: [...COUNTED_STATUSES] } },
+      include: { invoice: { select: { number: true } }, salesOrder: { select: { number: true } } },
+    }),
+    db.creditNote.findMany({
       where: { clientId, date: { lte: toDbDate(period.to) } },
       include: { invoice: { select: { number: true } } },
     }),
@@ -78,11 +82,25 @@ export async function clientLedger(user: SessionUser, clientId: string, period: 
       at: p.createdAt.getTime(),
       kind: "PAYMENT" as const,
       ref: p.number,
-      particulars: `Payment received · ${p.mode}${p.reference ? ` ${p.reference}` : ""} · against ${p.invoice.number}`,
+      particulars: `${p.invoice ? "Payment received" : "Advance received"} · ${p.mode}${p.reference ? ` ${p.reference}` : ""} · against ${p.invoice?.number ?? `order ${p.salesOrder?.number}`}`,
       debit: 0,
       credit: Number(p.amount),
     })),
-  ].sort((a, b) => (a.date === b.date ? (a.kind === b.kind ? a.at - b.at : a.kind === "INVOICE" ? -1 : 1) : a.date < b.date ? -1 : 1));
+    ...credits.map((c) => ({
+      date: fromDbDate(c.date),
+      at: c.createdAt.getTime(),
+      kind: "CREDIT_NOTE" as const,
+      ref: c.number,
+      particulars: `Credit note on ${c.invoice.number} · ${c.reason}`,
+      debit: 0,
+      credit: Number(c.amount),
+    })),
+  ].sort((a, b) => {
+    if (a.date !== b.date) return a.date < b.date ? -1 : 1;
+    // On the same day the invoice comes before money received against it.
+    if ((a.kind === "INVOICE") !== (b.kind === "INVOICE")) return a.kind === "INVOICE" ? -1 : 1;
+    return a.at - b.at;
+  });
 
   const before = all.filter((e) => e.date < period.from);
   const opening = r2(before.reduce((s, e) => s + e.debit - e.credit, 0));
@@ -125,14 +143,16 @@ export async function ledgerSummary(user: SessionUser, period: LedgerPeriod, f: 
       city: true,
       owner: { select: { name: true } },
       invoices: { where: { status: "ISSUED", date: { lte: to } }, select: { date: true, total: true } },
-      payments: { where: { date: { lte: to } }, select: { date: true, amount: true } },
+      payments: { where: { date: { lte: to }, status: { in: [...COUNTED_STATUSES] } }, select: { date: true, amount: true } },
+      creditNotes: { where: { date: { lte: to } }, select: { date: true, amount: true } },
     },
     orderBy: { schoolName: "asc" },
   });
   const rows: LedgerSummaryRow[] = clients
     .map((c) => {
       const inv = (pred: (d: Date) => boolean) => c.invoices.filter((i) => pred(i.date)).reduce((s, i) => s + Number(i.total), 0);
-      const pay = (pred: (d: Date) => boolean) => c.payments.filter((p) => pred(p.date)).reduce((s, p) => s + Number(p.amount), 0);
+      const pay = (pred: (d: Date) => boolean) =>
+        [...c.payments, ...c.creditNotes].filter((p) => pred(p.date)).reduce((s, p) => s + Number(p.amount), 0);
       const opening = r2(inv((d) => d < from) - pay((d) => d < from));
       const debit = r2(inv((d) => d >= from));
       const credit = r2(pay((d) => d >= from));

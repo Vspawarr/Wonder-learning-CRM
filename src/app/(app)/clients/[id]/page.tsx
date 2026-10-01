@@ -106,7 +106,7 @@ export default async function ClientPage({ params }: { params: Promise<{ id: str
             />
           </Card>
           <Card title="Purchase orders & sales orders">
-            <SalesOrdersPanel client={c} products={products} me={me} />
+            <SalesOrdersPanel client={c} products={products} me={me} emailReady={emailReady} />
           </Card>
           <Card title="Invoices & payments due">
             <InvoicesPanel client={c} emailReady={emailReady} me={me} />

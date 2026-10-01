@@ -58,6 +58,7 @@ model User {
   invoicesCreated    Invoice[]
   paymentsRecorded   Payment[]
   poFilesUploaded    PurchaseOrderFile[]
+  creditNotesCreated CreditNote[]
   activities         Activity[]
   stageChanges       OpportunityStageChange[]
 }
@@ -309,6 +310,9 @@ model Task {
   // What the task is about — later phases add serviceId, invoiceId…
   invoiceId     String?
   invoice       Invoice?     @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  /// "Deposit cheque" reminders belong to the cheque payment.
+  paymentId     String?
+  payment       Payment?     @relation(fields: [paymentId], references: [id], onDelete: Cascade)
   clientId      String?
   client        Client?      @relation(fields: [clientId], references: [id], onDelete: Cascade)
   leadId        String?
@@ -408,6 +412,7 @@ model Client {
   salesOrders SalesOrder[]
   invoices    Invoice[]
   payments    Payment[]
+  creditNotes CreditNote[]
 
   @@index([ownerId, status])
 }
@@ -509,6 +514,11 @@ model SalesOrder {
   poDate   DateTime?          @db.Date
   poFile   PurchaseOrderFile?
 
+  /// Proforma invoice PI/YYYY/MM/NNN, given the first time it is printed.
+  proformaNumber String?   @unique
+  proformaDate   DateTime? @db.Date
+  advances       Payment[]
+
   createdById String
   createdBy   User     @relation(fields: [createdById], references: [id])
   createdAt   DateTime @default(now())
@@ -578,9 +588,10 @@ model Invoice {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  items    InvoiceItem[]
-  payments Payment[]
-  tasks    Task[]
+  items       InvoiceItem[]
+  payments    Payment[]
+  creditNotes CreditNote[]
+  tasks       Task[]
 
   @@unique([year, month, seq])
   @@index([clientId])
@@ -602,23 +613,34 @@ model InvoiceItem {
 }
 
 model Payment {
-  id         String   @id @default(cuid())
+  id           String        @id @default(cuid())
   /// Receipt number RCPT/YYYY/MM/NNN, running per month.
-  number     String   @unique
-  year       Int
-  month      Int
-  seq        Int
+  number       String        @unique
+  year         Int
+  month        Int
+  seq          Int
   /// Secret for the shareable receipt link /r/<token>.
-  shareToken String   @unique
-  invoiceId  String
-  invoice    Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
-  clientId   String
-  client     Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  amount     Decimal  @db.Decimal(14, 2)
-  date       DateTime @db.Date
-  mode       String // PAYMENT_MODES
-  reference  String? // cheque no., UTR…
-  note       String?
+  shareToken   String        @unique
+  /// Set once invoiced. An advance taken on a sales order has no invoice until the order is invoiced.
+  invoiceId    String?
+  invoice      Invoice?      @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  /// The order an advance was taken against.
+  salesOrderId String?
+  salesOrder   SalesOrder?   @relation(fields: [salesOrderId], references: [id], onDelete: Cascade)
+  clientId     String
+  client       Client        @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  amount       Decimal       @db.Decimal(14, 2)
+  date         DateTime      @db.Date
+  mode         String // PAYMENT_MODES
+  reference    String? // cheque no., UTR…
+  note         String?
+  /// Cheques: bank and the date written on the cheque (a PDC is dated later).
+  bank         String?
+  chequeDate   DateTime?     @db.Date
+  /// RECEIVED / CLEARED count as paid; IN_HAND / DEPOSITED are cheques not yet cleared.
+  status       PaymentStatus @default(RECEIVED)
+  statusAt     DateTime?
+  tasks        Task[]
 
   recordedById String
   recordedBy   User     @relation(fields: [recordedById], references: [id])
@@ -626,7 +648,38 @@ model Payment {
 
   @@unique([year, month, seq])
   @@index([invoiceId])
+  @@index([salesOrderId])
   @@index([clientId, date])
+}
+
+enum PaymentStatus {
+  RECEIVED
+  IN_HAND
+  DEPOSITED
+  CLEARED
+  BOUNCED
+}
+
+/// Reduces what a school owes on an invoice (returns, discount, write-off).
+model CreditNote {
+  id          String   @id @default(cuid())
+  number      String   @unique // CN/2026/10/001
+  year        Int
+  month       Int
+  seq         Int
+  clientId    String
+  client      Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  invoiceId   String
+  invoice     Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  date        DateTime @db.Date
+  amount      Decimal  @db.Decimal(14, 2)
+  reason      String
+  createdById String
+  createdBy   User     @relation(fields: [createdById], references: [id])
+  createdAt   DateTime @default(now())
+
+  @@unique([year, month, seq])
+  @@index([invoiceId])
 }
 
 /// One-time "forgot password" link (only the hash of the secret is stored).

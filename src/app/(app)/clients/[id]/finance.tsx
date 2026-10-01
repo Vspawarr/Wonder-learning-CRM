@@ -11,6 +11,10 @@ import { Pill, type Tone } from "@/components/ui";
 import {
   cancelInvoice,
   cancelSalesOrder,
+  createCreditNote,
+  deleteCreditNote,
+  recordAdvance,
+  setChequeStatus,
   createInvoice,
   createSalesOrder,
   deletePayment,
@@ -27,7 +31,11 @@ import {
   setPurchaseOrder,
   updateSalesOrder,
 } from "@/app/actions";
-import { PAYMENT_MODES } from "@/lib/constants";
+import {
+  CHEQUE_MODES,
+  PAYMENT_MODES,
+  PAYMENT_STATUS_LABEL,
+} from "@/lib/constants";
 import { todayIST } from "@/lib/dates";
 import { dmy, inrExact } from "@/lib/format";
 import type { InvoiceState } from "@/server/finance/money";
@@ -143,10 +151,12 @@ export function SalesOrdersPanel({
   client,
   products,
   me,
+  emailReady,
 }: {
   client: ClientDetail;
   products: ProductOption[];
   me: { name: string };
+  emailReady: boolean;
 }) {
   const { pending, run } = useAction();
   const [poTemplate, setPoTemplate] = useState<
@@ -171,6 +181,9 @@ export function SalesOrdersPanel({
   } | null>(null);
   const [delivering, setDelivering] = useState<SO | null>(null);
   const [poFor, setPoFor] = useState<SO | null>(null);
+  const [advanceFor, setAdvanceFor] = useState<SO | null>(null);
+  const [receipt, setReceipt] = useState<ReceiptInfo | null>(null);
+  const { features } = useApp();
   const [invoicing, setInvoicing] = useState<{
     so: SO;
     date: string;
@@ -301,6 +314,28 @@ export function SalesOrdersPanel({
                       <span className="text-sun">PO pending</span>
                     ) : null}
                   </div>
+                  {so.advanceReceived || so.advancePending ? (
+                    <div className="small mt-1">
+                      Advance received <b>{money(so.advanceReceived)}</b>
+                      {so.advancePending ? (
+                        <span className="text-sun">
+                          {" "}
+                          · cheques awaiting clearance{" "}
+                          {money(so.advancePending)}
+                        </span>
+                      ) : null}
+                      {so.proformaNumber ? (
+                        <span className="muted">
+                          {" "}
+                          · proforma {so.proformaNumber}
+                        </span>
+                      ) : null}
+                    </div>
+                  ) : so.proformaNumber ? (
+                    <div className="small muted mt-1">
+                      Proforma {so.proformaNumber}
+                    </div>
+                  ) : null}
                   {so.notes ? (
                     <div className="small mt-1 whitespace-pre-line">
                       {so.notes}
@@ -325,6 +360,27 @@ export function SalesOrdersPanel({
                         >
                           Create invoice
                         </button>
+                      </>
+                    ) : null}
+                    {!so.invoice && features.advance ? (
+                      <>
+                        <a
+                          className="btn sm"
+                          href={`/api/sales-orders/${so.id}/proforma`}
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          Proforma invoice
+                        </a>
+                        {so.total - so.advanceReceived - so.advancePending >
+                        0 ? (
+                          <button
+                            className="btn sm"
+                            onClick={() => setAdvanceFor(so)}
+                          >
+                            Take advance
+                          </button>
+                        ) : null}
                       </>
                     ) : null}
                     <button className="btn sm" onClick={() => setPoFor(so)}>
@@ -415,6 +471,40 @@ export function SalesOrdersPanel({
         <DeliverModal so={delivering} onClose={() => setDelivering(null)} />
       ) : null}
       {poFor ? <PoModal so={poFor} onClose={() => setPoFor(null)} /> : null}
+      {advanceFor ? (
+        <PaymentModal
+          target={{
+            kind: "advance",
+            id: advanceFor.id,
+            number: advanceFor.number,
+            school: client.schoolName,
+            available:
+              Math.round(
+                (advanceFor.total -
+                  advanceFor.advanceReceived -
+                  advanceFor.advancePending) *
+                  100,
+              ) / 100,
+            total: advanceFor.total,
+          }}
+          onClose={() => setAdvanceFor(null)}
+          onSaved={(r) => {
+            const so = advanceFor;
+            setAdvanceFor(null);
+            setReceipt({ ...r, against: `order ${so.number} (advance)` });
+          }}
+        />
+      ) : null}
+      {receipt ? (
+        <SendReceipt
+          r={receipt}
+          contact={client}
+          emailReady={emailReady}
+          me={me}
+          justRecorded
+          onClose={() => setReceipt(null)}
+        />
+      ) : null}
       {poTemplate === "choose" ? (
         <Modal
           title="Send PO template"
@@ -893,12 +983,15 @@ export function InvoiceButtons({
   compact?: boolean;
 }) {
   const [paying, setPaying] = useState(false);
+  const [crediting, setCrediting] = useState(false);
   const [receipt, setReceipt] = useState<ReceiptInfo | null>(null);
   const [sending, setSending] = useState<"invoice" | "reminder" | null>(null);
   const { pending, run } = useAction();
-  const { canFinance } = useApp();
+  const { canFinance, features } = useApp();
   const live = row.state !== "CANCELLED";
   const owed = live && row.balance > 0;
+  // Cheques not yet cleared already cover part of the balance.
+  const payable = Math.round((row.balance - row.pending) * 100) / 100;
   return (
     <div className="flex flex-wrap gap-1.5">
       <a
@@ -911,9 +1004,11 @@ export function InvoiceButtons({
       </a>
       {owed ? (
         <>
-          <button className="btn sm pri" onClick={() => setPaying(true)}>
-            Record payment
-          </button>
+          {payable > 0 ? (
+            <button className="btn sm pri" onClick={() => setPaying(true)}>
+              Record payment
+            </button>
+          ) : null}
           <button className="btn sm" onClick={() => setSending("reminder")}>
             <Icon name="chat" size={14} /> Send reminder
           </button>
@@ -924,7 +1019,17 @@ export function InvoiceButtons({
           Send invoice
         </button>
       ) : null}
-      {live && !compact && row.paid === 0 && canFinance ? (
+      {owed && !compact && canFinance && features.creditNotes ? (
+        <button className="btn sm" onClick={() => setCrediting(true)}>
+          Credit note
+        </button>
+      ) : null}
+      {live &&
+      !compact &&
+      row.paid === 0 &&
+      row.pending === 0 &&
+      row.credited === 0 &&
+      canFinance ? (
         <button
           className="btn sm ghost"
           disabled={pending}
@@ -940,13 +1045,23 @@ export function InvoiceButtons({
       ) : null}
       {paying ? (
         <PaymentModal
-          row={row}
+          target={{
+            kind: "invoice",
+            id: row.id,
+            number: row.number,
+            school: row.client.schoolName,
+            available: payable,
+            total: row.total,
+          }}
           onClose={() => setPaying(false)}
           onSaved={(r) => {
             setPaying(false);
-            setReceipt({ ...r, invoiceNumber: row.number });
+            setReceipt({ ...r, against: `invoice ${row.number}` });
           }}
         />
+      ) : null}
+      {crediting ? (
+        <CreditNoteModal row={row} onClose={() => setCrediting(false)} />
       ) : null}
       {receipt ? (
         <SendReceipt
@@ -1014,6 +1129,20 @@ export function InvoicesPanel({
               </b>
             </div>
           </div>
+          {r.pending || r.credited ? (
+            <div className="small mb-1.5">
+              {r.pending ? (
+                <span className="text-sun">
+                  Cheques awaiting clearance: {money(r.pending)}.{" "}
+                </span>
+              ) : null}
+              {r.credited ? (
+                <span className="muted">
+                  Credit notes: {money(r.credited)}.
+                </span>
+              ) : null}
+            </div>
+          ) : null}
           <InvoiceButtons
             row={r}
             contact={client}
@@ -1026,12 +1155,23 @@ export function InvoicesPanel({
   );
 }
 
-function PaymentModal({
-  row,
+export type PayTarget = {
+  kind: "invoice" | "advance";
+  id: string;
+  number: string;
+  school: string;
+  /** The most that can be recorded now. */
+  available: number;
+  total: number;
+};
+
+/** Record a payment on an invoice, or an advance on a sales order. Cheques get their own details. */
+export function PaymentModal({
+  target,
   onClose,
   onSaved,
 }: {
-  row: InvoiceRow;
+  target: PayTarget;
   onClose: () => void;
   onSaved: (r: {
     paymentId: string;
@@ -1041,53 +1181,64 @@ function PaymentModal({
     balance: number;
   }) => void;
 }) {
+  const { features } = useApp();
   const [p, setP] = useState({
-    amount: String(row.balance),
+    amount: target.kind === "invoice" ? String(target.available) : "",
     date: todayIST(),
     mode: "",
     reference: "",
+    bank: "",
+    chequeDate: "",
     note: "",
     promiseDate: "",
   });
   const { pending, run } = useAction();
   const amt = Number(p.amount.replace(/,/g, ""));
-  const partial = Number.isFinite(amt) && amt > 0 && amt < row.balance;
+  const partial =
+    target.kind === "invoice" &&
+    Number.isFinite(amt) &&
+    amt > 0 &&
+    amt < target.available;
+  const cheque = features.cheques && CHEQUE_MODES.includes(p.mode);
+  const save = () =>
+    run(
+      () => {
+        const data = { ...p, promiseDate: partial ? p.promiseDate : "" };
+        return target.kind === "invoice"
+          ? recordPayment(target.id, data)
+          : recordAdvance(target.id, data);
+      },
+      {
+        success: cheque
+          ? "Cheque recorded. It counts as received once you mark it cleared."
+          : "Payment recorded. Receipt ready to send.",
+        onDone: (r) =>
+          r
+            ? onSaved({
+                paymentId: r.paymentId,
+                number: r.receiptNumber,
+                shareToken: r.shareToken,
+                amount: r.amount,
+                balance: r.balance,
+              })
+            : onClose(),
+      },
+    );
   return (
     <Modal
-      title={`Record payment · ${row.number}`}
-      sub={`${row.client.schoolName} · ${money(row.balance)} still due of ${money(row.total)}`}
+      title={
+        target.kind === "invoice"
+          ? `Record payment · ${target.number}`
+          : `Advance payment · ${target.number}`
+      }
+      sub={`${target.school} · ${target.kind === "invoice" ? `${money(target.available)} still due of ${money(target.total)}` : `order total ${money(target.total)}, up to ${money(target.available)} can be taken now`}`}
       onClose={onClose}
       footer={
         <>
           <button className="btn" onClick={onClose}>
             Cancel
           </button>
-          <button
-            className="btn pri"
-            disabled={pending}
-            onClick={() =>
-              run(
-                () =>
-                  recordPayment(row.id, {
-                    ...p,
-                    promiseDate: partial ? p.promiseDate : "",
-                  }),
-                {
-                  success: "Payment recorded. Receipt ready to send.",
-                  onDone: (r) =>
-                    r
-                      ? onSaved({
-                          paymentId: r.paymentId,
-                          number: r.receiptNumber,
-                          shareToken: r.shareToken,
-                          amount: r.amount,
-                          balance: r.balance,
-                        })
-                      : onClose(),
-                },
-              )
-            }
-          >
+          <button className="btn pri" disabled={pending} onClick={save}>
             {pending ? "Saving…" : "Save payment"}
           </button>
         </>
@@ -1120,19 +1271,49 @@ function PaymentModal({
             <Options list={PAYMENT_MODES} blank="Choose…" />
           </select>
         </Field>
-        <Field label="Reference" htmlFor="pay-ref">
+        <Field
+          label={cheque ? "Cheque number *" : "Reference"}
+          htmlFor="pay-ref"
+        >
           <input
             className="in"
             id="pay-ref"
-            placeholder="UTR / cheque no."
+            placeholder={cheque ? "e.g. 001234" : "UTR / transaction no."}
             value={p.reference}
             onChange={(e) => setP({ ...p, reference: e.target.value })}
           />
         </Field>
+        {cheque ? (
+          <>
+            <Field label="Bank" htmlFor="pay-bank">
+              <input
+                className="in"
+                id="pay-bank"
+                placeholder="e.g. HDFC Bank, Baner"
+                value={p.bank}
+                onChange={(e) => setP({ ...p, bank: e.target.value })}
+              />
+            </Field>
+            <Field label="Date on the cheque" htmlFor="pay-chqdate">
+              <DateInput
+                id="pay-chqdate"
+                value={p.chequeDate}
+                onChange={(chequeDate) => setP({ ...p, chequeDate })}
+              />
+            </Field>
+          </>
+        ) : null}
       </div>
+      {cheque ? (
+        <div className="note">
+          The cheque is kept as <b>In hand</b> and a <b>Deposit cheque</b>{" "}
+          reminder goes to To-do on the cheque date. The money counts as
+          received once the cheque is marked <b>Cleared</b>.
+        </div>
+      ) : null}
       {partial ? (
         <Field
-          label={`Next payment promised on (balance ${money(Math.round((row.balance - amt) * 100) / 100)})`}
+          label={`Next payment promised on (balance ${money(Math.round((target.available - amt) * 100) / 100)})`}
           htmlFor="pay-promise"
         >
           <DateInput
@@ -1156,9 +1337,75 @@ function PaymentModal({
         />
       </Field>
       <p className="small muted">
-        A part payment is fine: record each instalment as it comes in. The
-        balance and follow-up update automatically.
+        {target.kind === "invoice"
+          ? "A part payment is fine: record each instalment as it comes in. The balance and follow-up update automatically."
+          : "The advance is adjusted automatically when this order is invoiced."}
       </p>
+    </Modal>
+  );
+}
+
+function CreditNoteModal({
+  row,
+  onClose,
+}: {
+  row: InvoiceRow;
+  onClose: () => void;
+}) {
+  const [v, setV] = useState({ date: todayIST(), amount: "", reason: "" });
+  const { pending, run } = useAction();
+  return (
+    <Modal
+      title={`Credit note · ${row.number}`}
+      sub={`${row.client.schoolName} · ${money(row.balance)} still due. Use for returned kits, a discount after invoicing, or a small balance written off.`}
+      onClose={onClose}
+      footer={
+        <>
+          <button className="btn" onClick={onClose}>
+            Cancel
+          </button>
+          <button
+            className="btn pri"
+            disabled={pending}
+            onClick={() =>
+              run(() => createCreditNote(row.id, v), {
+                success: "Credit note created. The balance is reduced.",
+                onDone: onClose,
+              })
+            }
+          >
+            {pending ? "Saving…" : "Create credit note"}
+          </button>
+        </>
+      }
+    >
+      <div className="grid grid-cols-1 gap-3 min-[501px]:grid-cols-2">
+        <Field label="Amount (₹) *" htmlFor="cn-amt">
+          <input
+            className="in"
+            id="cn-amt"
+            inputMode="decimal"
+            value={v.amount}
+            onChange={(e) => setV({ ...v, amount: e.target.value })}
+          />
+        </Field>
+        <Field label="Date *" htmlFor="cn-date">
+          <DateInput
+            id="cn-date"
+            value={v.date}
+            onChange={(date) => setV({ ...v, date })}
+          />
+        </Field>
+      </div>
+      <Field label="Reason *" htmlFor="cn-why">
+        <input
+          className="in"
+          id="cn-why"
+          placeholder="e.g. 5 NUR kits returned"
+          value={v.reason}
+          onChange={(e) => setV({ ...v, reason: e.target.value })}
+        />
+      </Field>
     </Modal>
   );
 }
@@ -1329,61 +1576,173 @@ export function PaymentsPanel({
   const { pending, run } = useAction();
   const { canFinance } = useApp();
   const [receipt, setReceipt] = useState<ReceiptInfo | null>(null);
-  if (!client.payments.length)
+  if (!client.payments.length && !client.creditNotes.length)
     return <div className="small muted">No payments recorded yet.</div>;
+  const chequeTone: Record<string, Tone> = {
+    IN_HAND: "warn",
+    DEPOSITED: "info",
+    CLEARED: "ok",
+    BOUNCED: "bad",
+  };
   return (
     <div className="flex flex-col">
-      {client.payments.map((p) => (
-        <div
-          key={p.id}
-          className="flex items-start justify-between gap-2 border-b border-line py-2 last:border-0"
-        >
-          <div className="min-w-0">
-            <b>{money(p.amount)}</b>{" "}
-            <span className="small muted">
-              · {p.invoiceNumber} · {p.number}
-            </span>
-            <div className="small muted">
-              {dmy(p.date)} · {p.mode}
-              {p.reference ? ` · ${p.reference}` : ""} · by {p.recordedBy}
+      {client.payments.map((p) => {
+        const against = p.invoiceNumber
+          ? `invoice ${p.invoiceNumber}`
+          : `order ${p.orderNumber} (advance)`;
+        const open = p.status === "IN_HAND" || p.status === "DEPOSITED";
+        return (
+          <div key={p.id} className="border-b border-line py-2 last:border-0">
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0">
+                <b
+                  className={
+                    p.status === "BOUNCED" ? "text-coral line-through" : ""
+                  }
+                >
+                  {money(p.amount)}
+                </b>{" "}
+                {p.status !== "RECEIVED" ? (
+                  <Pill tone={chequeTone[p.status]}>
+                    {PAYMENT_STATUS_LABEL[p.status]}
+                  </Pill>
+                ) : null}
+                <div className="small muted">
+                  {p.number} · {against}
+                </div>
+                <div className="small muted">
+                  {dmy(p.date)} · {p.mode}
+                  {p.reference ? ` · ${p.reference}` : ""}
+                  {p.bank ? ` · ${p.bank}` : ""}
+                  {p.chequeDate ? ` · cheque dated ${dmy(p.chequeDate)}` : ""} ·
+                  by {p.recordedBy}
+                </div>
+                {p.note ? <div className="small">{p.note}</div> : null}
+              </div>
             </div>
-            {p.note ? <div className="small">{p.note}</div> : null}
-          </div>
-          <div className="flex flex-wrap justify-end gap-1.5">
-            <button
-              className="btn sm"
-              onClick={() =>
-                setReceipt({
-                  paymentId: p.id,
-                  number: p.number,
-                  shareToken: p.shareToken,
-                  amount: p.amount,
-                  invoiceNumber: p.invoiceNumber,
-                })
-              }
-            >
-              Receipt
-            </button>
-            {canFinance ? (
+            <div className="mt-1.5 flex flex-wrap gap-1.5">
               <button
-                className="btn sm ghost"
-                disabled={pending}
-                aria-label={`Delete payment of ${money(p.amount)}`}
+                className="btn sm"
                 onClick={() =>
-                  confirm(
-                    `Delete this payment of ${money(p.amount)}? Only do this if it was recorded by mistake.`,
-                  ) &&
-                  run(() => deletePayment(p.id), {
-                    success: "Payment deleted.",
+                  setReceipt({
+                    paymentId: p.id,
+                    number: p.number,
+                    shareToken: p.shareToken,
+                    amount: p.amount,
+                    against,
                   })
                 }
               >
-                Delete
+                Receipt
               </button>
-            ) : null}
+              {p.status === "IN_HAND" ? (
+                <button
+                  className="btn sm"
+                  disabled={pending}
+                  onClick={() =>
+                    run(() => setChequeStatus(p.id, "DEPOSITED"), {
+                      success: "Marked as deposited.",
+                    })
+                  }
+                >
+                  Deposited
+                </button>
+              ) : null}
+              {open && canFinance ? (
+                <>
+                  <button
+                    className="btn sm pri"
+                    disabled={pending}
+                    onClick={() =>
+                      run(() => setChequeStatus(p.id, "CLEARED"), {
+                        success: "Cheque cleared. Counted as received.",
+                      })
+                    }
+                  >
+                    Cleared
+                  </button>
+                  <button
+                    className="btn sm bad"
+                    disabled={pending}
+                    onClick={() =>
+                      confirm(
+                        `Mark cheque ${p.reference ?? ""} as bounced? The amount becomes due again.`,
+                      ) &&
+                      run(() => setChequeStatus(p.id, "BOUNCED"), {
+                        success: "Marked as bounced. The amount is due again.",
+                      })
+                    }
+                  >
+                    Bounced
+                  </button>
+                </>
+              ) : null}
+              {canFinance ? (
+                <button
+                  className="btn sm ghost"
+                  disabled={pending}
+                  aria-label={`Delete payment of ${money(p.amount)}`}
+                  onClick={() =>
+                    confirm(
+                      `Delete this payment of ${money(p.amount)}? Only do this if it was recorded by mistake.`,
+                    ) &&
+                    run(() => deletePayment(p.id), {
+                      success: "Payment deleted.",
+                    })
+                  }
+                >
+                  Delete
+                </button>
+              ) : null}
+            </div>
           </div>
-        </div>
-      ))}
+        );
+      })}
+      {client.creditNotes.length ? (
+        <>
+          <div className="mt-3 font-semibold">Credit notes</div>
+          {client.creditNotes.map((n) => (
+            <div
+              key={n.id}
+              className="flex items-start justify-between gap-2 border-b border-line py-2 last:border-0"
+            >
+              <div className="min-w-0">
+                <b>{money(n.amount)}</b>{" "}
+                <span className="small muted">
+                  · {n.number} · invoice {n.invoiceNumber}
+                </span>
+                <div className="small muted">
+                  {dmy(n.date)} · {n.reason} · by {n.by}
+                </div>
+              </div>
+              <div className="flex flex-wrap justify-end gap-1.5">
+                <a
+                  className="btn sm"
+                  href={`/api/credit-notes/${n.id}/pdf`}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  PDF
+                </a>
+                {canFinance ? (
+                  <button
+                    className="btn sm ghost"
+                    disabled={pending}
+                    onClick={() =>
+                      confirm(`Delete credit note ${n.number}?`) &&
+                      run(() => deleteCreditNote(n.id), {
+                        success: "Credit note deleted.",
+                      })
+                    }
+                  >
+                    Delete
+                  </button>
+                ) : null}
+              </div>
+            </div>
+          ))}
+        </>
+      ) : null}
       {receipt ? (
         <SendReceipt
           r={receipt}
@@ -1402,7 +1761,8 @@ type ReceiptInfo = {
   number: string;
   shareToken: string;
   amount: number;
-  invoiceNumber: string;
+  /** e.g. "invoice INV/…" or "order SO/… (advance)". */
+  against: string;
   balance?: number;
 };
 
@@ -1423,12 +1783,14 @@ function SendReceipt({
   onClose: () => void;
 }) {
   const { pending, run } = useAction();
-  const body = `Thank you for your payment of ${money(r.amount)} against invoice ${r.invoiceNumber}. Receipt ${r.number}${
+  const body = `Thank you for your payment of ${money(r.amount)} against ${r.against}. Receipt ${r.number}${
     r.balance === undefined
       ? ""
       : r.balance > 0
         ? `. Balance still due: ${money(r.balance)}`
-        : ". The invoice is now fully paid"
+        : r.against.startsWith("invoice")
+          ? ". The invoice is now fully paid"
+          : ""
   }.`;
   const sign = `Regards,\n${me.name}\nWonder Learning India Pvt. Ltd.`;
   const [to, setTo] = useState(contact.email ?? "");
@@ -1462,7 +1824,7 @@ function SendReceipt({
           ? `Payment saved · send receipt ${r.number}`
           : `Receipt ${r.number}`
       }
-      sub={`${contact.schoolName} · ${money(r.amount)} · ${r.invoiceNumber}`}
+      sub={`${contact.schoolName} · ${money(r.amount)} · ${r.against}`}
       wide
       onClose={onClose}
       footer={

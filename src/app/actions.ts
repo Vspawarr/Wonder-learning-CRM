@@ -142,6 +142,10 @@ export const cancelInvoice = async (id: string) => run((u) => fin.cancelInvoice(
 export const recordPayment = async (invoiceId: string, data: unknown) => run((u) => fin.recordPayment(u, invoiceId, data));
 export const logReceiptShared = async (paymentId: string) => run((u) => fin.logReceiptShared(u, paymentId));
 export const emailReceipt = async (paymentId: string, data: unknown) => run((u) => fin.emailReceipt(u, paymentId, data));
+export const recordAdvance = async (salesOrderId: string, data: unknown) => run((u) => fin.recordAdvance(u, salesOrderId, data));
+export const setChequeStatus = async (paymentId: string, status: "DEPOSITED" | "CLEARED" | "BOUNCED") => run((u) => fin.setChequeStatus(u, paymentId, status));
+export const createCreditNote = async (invoiceId: string, data: unknown) => run((u) => fin.createCreditNote(u, invoiceId, data));
+export const deleteCreditNote = async (id: string) => run((u) => fin.deleteCreditNote(u, id));
 export const deletePayment = async (id: string) => run((u) => fin.deletePayment(u, id));
 export const logInvoiceWhatsApp = async (id: string, kind: "invoice" | "reminder") =>
   run(async (u) => (kind === "reminder" ? fin.logReminder(u, id, "whatsapp") : fin.logInvoiceShared(u, id)));

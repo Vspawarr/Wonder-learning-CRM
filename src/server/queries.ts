@@ -7,7 +7,7 @@ import { fmtDateTimeIST, fromDbDate, optDate } from "@/lib/dates";
 import { SALES_ROLES, canAssignOthers, seesAllSales, type SessionUser } from "@/lib/permissions";
 import { clientScope, leadScope, oppScope, taskScope } from "./access";
 import { ACTIVE_LEAD_STATUSES } from "./rules";
-import { outstandingSummary, totals } from "./finance/money";
+import { outstandingSummary, pendingOf, receivedOf, totals } from "./finance/money";
 import { invoiceRows } from "./finance/service";
 
 export type Option = { id: string; name: string };
@@ -407,10 +407,11 @@ export async function clientDetail(user: SessionUser, id: string) {
       activities: { include: { by: { select: { id: true, name: true } } }, orderBy: { occurredAt: "desc" }, take: 100 },
       tasks: { where: { status: "OPEN" }, include: { assignee: { select: { name: true } } }, orderBy: { dueDate: "asc" } },
       salesOrders: {
-        include: { items: true, invoices: { select: { id: true, number: true, status: true } }, quotation: { select: { number: true, createdAt: true } }, poFile: { select: { fileName: true } } },
+        include: { items: true, invoices: { select: { id: true, number: true, status: true } }, quotation: { select: { number: true, createdAt: true } }, poFile: { select: { fileName: true } }, advances: { where: { invoiceId: null }, select: { amount: true, status: true } } },
         orderBy: { createdAt: "desc" },
       },
-      payments: { include: { invoice: { select: { number: true } }, recordedBy: { select: { name: true } } }, orderBy: [{ date: "desc" }, { createdAt: "desc" }] },
+      creditNotes: { include: { invoice: { select: { number: true } }, createdBy: { select: { name: true } } }, orderBy: { createdAt: "desc" } },
+      payments: { include: { invoice: { select: { number: true } }, salesOrder: { select: { number: true } }, recordedBy: { select: { name: true } } }, orderBy: [{ date: "desc" }, { createdAt: "desc" }] },
     },
   });
   if (!c) return null;
@@ -456,6 +457,9 @@ export async function clientDetail(user: SessionUser, id: string) {
       poNumber: so.poNumber,
       poDate: so.poDate ? fromDbDate(so.poDate) : null,
       poFileName: so.poFile?.fileName ?? null,
+      proformaNumber: so.proformaNumber,
+      advanceReceived: receivedOf(so.advances),
+      advancePending: pendingOf(so.advances),
       createdAt: fmtDateTimeIST(so.createdAt),
       kits: so.items.reduce((n, i) => n + i.qty, 0),
       lines: so.items.length,
@@ -467,7 +471,11 @@ export async function clientDetail(user: SessionUser, id: string) {
       id: p.id,
       number: p.number,
       shareToken: p.shareToken,
-      invoiceNumber: p.invoice.number,
+      invoiceNumber: p.invoice?.number ?? null,
+      orderNumber: p.salesOrder?.number ?? null,
+      status: p.status,
+      bank: p.bank,
+      chequeDate: p.chequeDate ? fromDbDate(p.chequeDate) : null,
       amount: Number(p.amount),
       date: fromDbDate(p.date),
       mode: p.mode,
@@ -476,6 +484,15 @@ export async function clientDetail(user: SessionUser, id: string) {
       recordedBy: p.recordedBy.name,
     })),
     money: outstandingSummary(invoices),
+    creditNotes: c.creditNotes.map((n) => ({
+      id: n.id,
+      number: n.number,
+      invoiceNumber: n.invoice.number,
+      date: fromDbDate(n.date),
+      amount: Number(n.amount),
+      reason: n.reason,
+      by: n.createdBy.name,
+    })),
     activities: c.activities.map((a) => ({
       id: a.id,
       type: a.type,

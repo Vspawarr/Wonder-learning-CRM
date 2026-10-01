@@ -12,10 +12,15 @@ export type ReceiptPdfData = {
   amountWords: string;
   mode: string;
   reference: string | null;
+  bank: string | null;
+  chequeDate: string | null;
   note: string | null;
-  invoiceNumber: string;
-  invoiceDate: string;
-  invoiceTotal: number;
+  /** e.g. "Invoice INV/… dated …" or "Advance on order SO/…". */
+  against: string;
+  totalLabel: string;
+  total: number;
+  /** e.g. "Subject to realisation of the cheque." */
+  statusNote: string | null;
   receivedToDate: number;
   balance: number;
   receivedBy: string;
@@ -82,16 +87,17 @@ export function ReceiptDocument({ d }: { d: ReceiptPdfData }) {
             <Money n={d.amount} />
           </Text>
           <Text style={s.words}>{d.amountWords}</Text>
+          {d.statusNote ? <Text style={[s.words, { color: "#B42318", fontFamily: "Helvetica-Bold" }]}>{d.statusNote}</Text> : null}
         </View>
 
         <View style={s.table}>
           <Row k="Payment mode">{d.mode}</Row>
           {d.reference ? <Row k="Reference (UTR / cheque no.)">{d.reference}</Row> : null}
-          <Row k="Against invoice">
-            {d.invoiceNumber} dated {d.invoiceDate}
-          </Row>
-          <Row k="Invoice total">
-            <Money n={d.invoiceTotal} />
+          {d.bank ? <Row k="Bank">{d.bank}</Row> : null}
+          {d.chequeDate ? <Row k="Cheque date">{d.chequeDate}</Row> : null}
+          <Row k="Against">{d.against}</Row>
+          <Row k={d.totalLabel}>
+            <Money n={d.total} />
           </Row>
           <Row k="Total received so far">
             <Money n={d.receivedToDate} />

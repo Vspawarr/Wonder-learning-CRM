@@ -160,6 +160,17 @@ export const CLIENT_STATUS_LABEL = { ONBOARDING: "Onboarding", ACTIVE: "Active" 
 export const PAYMENT_MODES = ["NEFT/RTGS", "UPI", "Cheque", "CDC (Current Dated Cheque)", "PDC (Post Dated Cheque)", "Cash", "Other"] as const;
 
 /** Days after the invoice date when payment is due, unless changed on the invoice. */
+/** Payment modes that are cheques (tracked In hand → Deposited → Cleared when cheque tracking is on). */
+export const CHEQUE_MODES: readonly string[] = ["Cheque", "CDC (Current Dated Cheque)", "PDC (Post Dated Cheque)"];
+
+export const PAYMENT_STATUS_LABEL = {
+  RECEIVED: "Received",
+  IN_HAND: "Cheque in hand",
+  DEPOSITED: "Cheque deposited",
+  CLEARED: "Cheque cleared",
+  BOUNCED: "Cheque bounced",
+} as const;
+
 export const DEFAULT_PAYMENT_DAYS = 45;
 
 export const leadCode = (n: number) => `L-${n}`;

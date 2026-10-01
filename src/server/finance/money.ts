@@ -26,13 +26,13 @@ export const INVOICE_STATE_LABEL: Record<InvoiceState, string> = {
   CANCELLED: "Cancelled",
 };
 
-/** Paid / balance / status of an invoice from its total, payments and due date. */
+/** Paid / balance / status of an invoice from its total, payments, credit notes and due date. */
 export function invoiceState(
-  inv: { total: number; status: "ISSUED" | "CANCELLED"; dueDate: DateStr },
+  inv: { total: number; status: "ISSUED" | "CANCELLED"; dueDate: DateStr; credited?: number },
   paid: number,
   today: DateStr = todayIST(),
 ): { paid: number; balance: number; state: InvoiceState; daysOverdue: number } {
-  const balance = r2(Math.max(0, inv.total - paid));
+  const balance = r2(Math.max(0, inv.total - paid - (inv.credited ?? 0)));
   if (inv.status === "CANCELLED") return { paid: r2(paid), balance: 0, state: "CANCELLED", daysOverdue: 0 };
   if (balance <= 0) return { paid: r2(paid), balance: 0, state: "PAID", daysOverdue: 0 };
   const late = -daysFrom(inv.dueDate, today);
@@ -51,3 +51,16 @@ export function outstandingSummary(rows: { total: number; paid: number; balance:
     overdueCount: live.filter((r) => r.state === "OVERDUE").length,
   };
 }
+
+/** Payment statuses that count as money received (cheques only once cleared). */
+export const COUNTED_STATUSES = ["RECEIVED", "CLEARED"] as const;
+/** Cheques taken but not yet cleared. */
+export const PENDING_STATUSES = ["IN_HAND", "DEPOSITED"] as const;
+
+type Pay = { amount: { toString(): string } | number; status: string };
+const sumIf = (ps: Pay[], ok: readonly string[]) => r2(ps.filter((p) => ok.includes(p.status)).reduce((s, p) => s + Number(p.amount), 0));
+/** Money actually received. */
+export const receivedOf = (ps: Pay[]) => sumIf(ps, COUNTED_STATUSES);
+/** Cheques in hand or deposited, not yet cleared. */
+export const pendingOf = (ps: Pay[]) => sumIf(ps, PENDING_STATUSES);
+export const creditedOf = (cns: { amount: { toString(): string } | number }[]) => r2(cns.reduce((s, c) => s + Number(c.amount), 0));

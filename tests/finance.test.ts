@@ -266,7 +266,7 @@ describe("invoices and payments", () => {
       await recordPayment(
         exA,
         id,
-        pay("1,47,000", { mode: "Cheque", reference: "001234" }),
+        pay("1,47,000", { mode: "NEFT/RTGS", reference: "UTR001234" }),
       ),
     ).toMatchObject({ state: "PAID", balance: 0 });
     expect(
@@ -513,5 +513,82 @@ describe("payment promise date", () => {
     const t = await db.task.findFirstOrThrow({ where: { invoiceId: id, status: "OPEN" } });
     expect(fromDbDate(t.dueDate)).toBe(addDays(today, 10));
     expect(t.remark).toMatch(/promised/);
+  });
+});
+
+describe("advances and proforma", () => {
+  it("takes an advance on an order and adjusts it on the invoice", async () => {
+    const { recordAdvance, proformaPdf } = await import("@/server/finance/service");
+    const so = await createSalesOrder(exA, clientId, order()); // ₹1,97,000
+    const pi = await proformaPdf(exA, so);
+    expect(pi.number).toMatch(new RegExp(`^PI/${Y}/${M}/\\d{3}$`));
+    expect((await proformaPdf(exA, so)).number).toBe(pi.number); // same number every time
+    await recordAdvance(exA, so, pay(78800, { mode: "NEFT/RTGS" }));
+    await expect(recordAdvance(exA, so, pay(200000))).rejects.toThrow(/remaining/);
+    const id = await createInvoice(exA, so, { date: today, dueDate: addDays(today, 45) });
+    const [row] = await invoiceRows(exA);
+    expect(row).toMatchObject({ id, paid: 78800, balance: 118200, state: "PARTIAL" });
+    const task = await db.task.findFirstOrThrow({ where: { invoiceId: id, status: "OPEN" } });
+    expect(task.title).toMatch(/^Collect ₹1,18,200/);
+    await expect(recordAdvance(exA, so, pay(1000))).rejects.toThrow(/invoiced/);
+  });
+});
+
+describe("cheques", () => {
+  it("count as received only when cleared; bounced makes the amount due again", async () => {
+    const { setChequeStatus, receiptPdf } = await import("@/server/finance/service");
+    const so = await createSalesOrder(exA, clientId, order());
+    const id = await createInvoice(exA, so, { date: today, dueDate: addDays(today, 45) });
+    const r = await recordPayment(exA, id, pay(100000, { mode: "PDC (Post Dated Cheque)", reference: "000111", bank: "HDFC", chequeDate: addDays(today, 20) }));
+    let [row] = await invoiceRows(exA);
+    expect(row).toMatchObject({ paid: 0, pending: 100000, balance: 197000 });
+    const deposit = await db.task.findFirstOrThrow({ where: { paymentId: r.paymentId } });
+    expect(fromDbDate(deposit.dueDate)).toBe(addDays(today, 20));
+    await expect(recordPayment(exA, id, pay(100000))).rejects.toThrow(/more than/); // only 97,000 left to take
+    expect((await receiptPdf(exA, r.paymentId)).pdf.subarray(0, 4).toString()).toBe("%PDF");
+    await setChequeStatus(exA, r.paymentId, "DEPOSITED");
+    await expect(setChequeStatus(exA, r.paymentId, "CLEARED")).rejects.toThrow(/Admin or the Sales Head/);
+    await setChequeStatus(head, r.paymentId, "CLEARED");
+    [row] = await invoiceRows(exA);
+    expect(row).toMatchObject({ paid: 100000, pending: 0, balance: 97000 });
+    expect((await db.task.findUniqueOrThrow({ where: { id: deposit.id } })).status).toBe("DONE");
+
+    const r2 = await recordPayment(exA, id, pay(97000, { mode: "Cheque", reference: "000222" }));
+    await setChequeStatus(head, r2.paymentId, "BOUNCED");
+    [row] = await invoiceRows(exA);
+    expect(row).toMatchObject({ paid: 100000, pending: 0, balance: 97000 });
+    expect(await db.task.findFirst({ where: { invoiceId: id, status: "OPEN", priority: "CRITICAL" } })).not.toBeNull();
+  });
+
+  it("with cheque tracking switched off, cheques count straight away", async () => {
+    const { setFeature } = await import("@/server/features");
+    const admin = await makeUser("ADMIN");
+    await setFeature(admin, "cheques", false);
+    try {
+      const so = await createSalesOrder(exA, clientId, order());
+      const id = await createInvoice(exA, so, { date: today, dueDate: addDays(today, 45) });
+      await recordPayment(exA, id, pay(1000, { mode: "Cheque", reference: "1" }));
+      expect((await invoiceRows(exA))[0]).toMatchObject({ paid: 1000, pending: 0 });
+    } finally {
+      await setFeature(admin, "cheques", true);
+    }
+  });
+});
+
+describe("credit notes", () => {
+  it("reduce the balance, only for Admin / Sales Head, and show in the ledger", async () => {
+    const { createCreditNote, deleteCreditNote, creditNotePdf } = await import("@/server/finance/service");
+    const { clientLedger, financialYear } = await import("@/server/finance/ledger");
+    const so = await createSalesOrder(exA, clientId, order());
+    const id = await createInvoice(exA, so, { date: today, dueDate: addDays(today, 45) });
+    await expect(createCreditNote(exA, id, { date: today, amount: 1000, reason: "Discount" })).rejects.toThrow(/Admin or the Sales Head/);
+    await expect(createCreditNote(head, id, { date: today, amount: 999999, reason: "Too much" })).rejects.toThrow(/can't be more/);
+    const cn = await createCreditNote(head, id, { date: today, amount: 17000, reason: "5 NUR kits returned" });
+    expect((await invoiceRows(exA))[0]).toMatchObject({ credited: 17000, balance: 180000 });
+    expect((await creditNotePdf(exA, cn)).number).toMatch(/^CN\//);
+    const l = await clientLedger(exA, clientId, financialYear(today));
+    expect(l.closing).toBe(180000);
+    await deleteCreditNote(head, cn);
+    expect((await invoiceRows(exA))[0].balance).toBe(197000);
   });
 });
