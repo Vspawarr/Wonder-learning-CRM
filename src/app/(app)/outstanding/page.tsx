@@ -1,9 +1,9 @@
+import { ExportButtons } from "@/components/export-buttons";
 import Link from "next/link";
 import { seesAllSales } from "@/lib/permissions";
 import { dmy, inr, inrExact as money } from "@/lib/format";
 import { AvatarName, Empty, Kpi, PageHeader, Table } from "@/components/ui";
-import { outstandingSummary } from "@/server/finance/money";
-import { invoiceRows } from "@/server/finance/service";
+import { outstandingList } from "@/server/finance/service";
 import { isEmailConfigured } from "@/server/mailer";
 import { assignees } from "@/server/queries";
 import { requireUser } from "@/server/session";
@@ -16,26 +16,16 @@ export default async function OutstandingPage({ searchParams }: { searchParams: 
   const user = await requireUser();
   const sp = await searchParams;
   const all = seesAllSales(user.role);
-  const [rows, owners] = await Promise.all([
-    invoiceRows(user, all && sp.owner ? { client: { ownerId: sp.owner } } : {}),
-    all ? assignees(user) : Promise.resolve(null),
-  ]);
-  const sum = outstandingSummary(rows);
-  const q = (sp.q ?? "").toLowerCase();
-  const shown = rows.filter((r) => {
-    if (q && !r.client.schoolName.toLowerCase().includes(q) && !r.number.toLowerCase().includes(q)) return false;
-    if (sp.show === "overdue") return r.state === "OVERDUE";
-    if (sp.show === "paid") return r.state === "PAID";
-    if (sp.show === "all") return true;
-    return r.state === "UNPAID" || r.state === "PARTIAL" || r.state === "OVERDUE";
-  });
+  const [{ all: rows, shown, summary: sum }, owners] = await Promise.all([outstandingList(user, sp), all ? assignees(user) : Promise.resolve(null)]);
   const emailReady = isEmailConfigured();
   const me = { name: user.name };
   const empty = rows.length ? "No invoices match these filters." : "No invoices yet. Raise one from a client's sales order.";
 
   return (
     <>
-      <PageHeader title="Outstanding" sub={`${all ? "" : "Your clients only. "}Invoices, payments received and what is still to collect.`} />
+      <PageHeader title="Outstanding" sub={`${all ? "" : "Your clients only. "}Invoices, payments received and what is still to collect.`}>
+        <ExportButtons report="outstanding" />
+      </PageHeader>
       <div className="kgrid kgrid-2 mb-4">
         <Kpi label="Invoiced" value={inr(sum.invoiced)} color="#1C86C4" />
         <Kpi label="Received" value={inr(sum.received)} color="#0E8F79" />

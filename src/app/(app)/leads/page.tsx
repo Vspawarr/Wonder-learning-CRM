@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ExportButtons } from "@/components/export-buttons";
 import { LEAD_STATUS_LABEL, leadCode } from "@/lib/constants";
 import { todayIST } from "@/lib/dates";
 import { seesAllSales } from "@/lib/permissions";
@@ -35,6 +36,7 @@ export default async function LeadsPage({ searchParams }: { searchParams: SP }) 
         sub={`${seesAllSales(user.role) ? "" : "Your leads only. "}Sorted by next follow-up so the most urgent are on top.`}
       >
         <BulkLeadButtons />
+        <ExportButtons report="leads" />
         <NewLeadButton team={team} locations={locations} defaultAssignee={team.some((t) => t.id === user.id) ? user.id : ""} />
       </PageHeader>
       <LeadFilters />

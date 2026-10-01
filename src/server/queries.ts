@@ -71,6 +71,7 @@ export async function leadsList(user: SessionUser, f: LeadFilters) {
     number: l.number,
     schoolName: l.schoolName,
     contactName: l.contactName,
+    mobile: l.mobile,
     city: l.city,
     source: l.source,
     interests: l.interests.map((i) => i.product.name),

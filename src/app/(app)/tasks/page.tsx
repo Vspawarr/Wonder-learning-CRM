@@ -1,3 +1,4 @@
+import { ExportButtons } from "@/components/export-buttons";
 import { seesAllSales } from "@/lib/permissions";
 import { todayIST } from "@/lib/dates";
 import { PageHeader } from "@/components/ui";
@@ -23,6 +24,7 @@ export default async function TasksPage({ searchParams }: { searchParams: Promis
   return (
     <>
       <PageHeader title="To-do" sub="School follow-ups and your own work in one list. Items marked Auto were scheduled by the system.">
+        <ExportButtons report="todo" />
         <NewTaskButton people={people} targets={targets} me={user.id} />
       </PageHeader>
       <TodoFilters canTeam={canTeam} />

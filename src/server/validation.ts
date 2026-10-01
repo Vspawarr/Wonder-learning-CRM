@@ -68,7 +68,7 @@ const leadDetails = {
   interests: z.array(z.string()).max(50).default([]),
   remarks: optText(),
   /** The opportunity's category; only used (and required) when the lead is saved as Qualified. */
-  temperature: z.enum(["HOT", "WARM", "COLD"]).nullish(),
+  temperature: z.preprocess((v) => (v === "" ? null : v), z.enum(["HOT", "WARM", "COLD"]).nullish()),
   assignedToId: z.string({ error: "Assigned to is required." }).min(1, "Assigned to is required."),
   nextFollowUpDate: reqDate("Next follow-up date"),
   followUpType: optOneOf(FOLLOWUP_TYPES, "follow-up type"),

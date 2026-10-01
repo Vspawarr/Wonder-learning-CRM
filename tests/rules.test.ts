@@ -75,3 +75,11 @@ describe("dates", () => {
     expect(todayIST(new Date("2026-09-30T19:00:00Z"))).toBe("2026-10-01");
   });
 });
+
+describe("lead category", () => {
+  it("a blank category is fine unless the lead is Qualified", () => {
+    const base = { schoolName: "A", contactName: "B", mobile: "9876543210", state: "Goa", city: "Panaji", source: "Website", assignedToId: "u", nextFollowUpDate: "2026-10-05" };
+    expect(parse(leadInput, { ...base, temperature: "" }).temperature).toBeNull();
+    expect(() => parse(leadInput, { ...base, temperature: "", status: "QUALIFIED" })).toThrow(/category/);
+  });
+});

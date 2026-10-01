@@ -1,3 +1,4 @@
+import { ExportButtons } from "@/components/export-buttons";
 import Link from "next/link";
 import { CLIENT_STATUS_LABEL, clientCode } from "@/lib/constants";
 import { fmtDate, istDate, todayIST } from "@/lib/dates";
@@ -22,7 +23,9 @@ export default async function ClientsPage({ searchParams }: { searchParams: Prom
       <PageHeader
         title="Clients"
         sub={`${seesAllSales(user.role) ? "" : "Your clients only. "}Schools that signed up. New clients start in Onboarding.`}
-      />
+      >
+        <ExportButtons report="clients" />
+      </PageHeader>
       <ClientFilterBar />
 
       <div className="hidden min-[901px]:block">

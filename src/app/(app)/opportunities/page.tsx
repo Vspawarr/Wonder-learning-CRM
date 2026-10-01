@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ExportButtons } from "@/components/export-buttons";
 import { STAGE_COLOR, STAGE_LABEL, oppCode, TEMPERATURE_LABEL } from "@/lib/constants";
 import { fmtDate, todayIST } from "@/lib/dates";
 import { inrS } from "@/lib/format";
@@ -40,6 +41,7 @@ export default async function OpportunitiesPage({ searchParams }: { searchParams
         title="Opportunities"
         sub={`${all ? "" : "Your opportunities only. "}${rows.length} shown · ${inrS(total)} total value.`}
       >
+        <ExportButtons report="opportunities" />
         <Link className="btn" href="/pipeline">
           Board view
         </Link>

@@ -7,7 +7,7 @@ import { db, type Tx } from "@/lib/db";
 import { DEFAULT_PAYMENT_DAYS, PAYMENT_MODES } from "@/lib/constants";
 import { addDays, fmtDateTimeIST, fromDbDate, isDateStr, todayIST, toDbDate } from "@/lib/dates";
 import { inr } from "@/lib/format";
-import type { SessionUser } from "@/lib/permissions";
+import { seesAllSales, type SessionUser } from "@/lib/permissions";
 import { clientScope } from "../access";
 import { DomainError, NotFoundError } from "../errors";
 import { isEmailConfigured, sendMail } from "../mailer";
@@ -682,4 +682,20 @@ export async function collectionsSummary(user: SessionUser, f: { exec?: string; 
     }),
   ]);
   return { ...outstandingSummary(rows), collected: Number(collected._sum.amount ?? 0), collectedCount: collected._count._all };
+}
+
+export type OutstandingFilters = { q?: string; show?: string; owner?: string };
+
+/** The Outstanding page's rows and totals (same filters for the screen and its exports). */
+export async function outstandingList(user: SessionUser, f: OutstandingFilters) {
+  const rows = await invoiceRows(user, seesAllSales(user.role) && f.owner ? { client: { ownerId: f.owner } } : {});
+  const q = (f.q ?? "").toLowerCase();
+  const shown = rows.filter((r) => {
+    if (q && !r.client.schoolName.toLowerCase().includes(q) && !r.number.toLowerCase().includes(q)) return false;
+    if (f.show === "overdue") return r.state === "OVERDUE";
+    if (f.show === "paid") return r.state === "PAID";
+    if (f.show === "all") return true;
+    return r.state === "UNPAID" || r.state === "PARTIAL" || r.state === "OVERDUE";
+  });
+  return { all: rows, shown, summary: outstandingSummary(rows) };
 }

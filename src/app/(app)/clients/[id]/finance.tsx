@@ -1,6 +1,7 @@
 "use client";
 
 // Client page: sales orders, invoices, payments and reminders.
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Field, Modal, Options, useAction } from "@/components/client";
 import { DateInput } from "@/components/date-input";
@@ -449,6 +450,7 @@ function OrderEditor({
   const [d, setD] = useState<OrderDraft>(initial);
   const [add, setAdd] = useState("");
   const [poFile, setPoFile] = useState<File | null>(null);
+  const router = useRouter();
   const { pending, run } = useAction();
   const setItem = (i: number, patch: Partial<OrderLine>) =>
     setD({
@@ -479,7 +481,10 @@ function OrderEditor({
       },
       {
         success: id ? "Sales order saved." : "Sales order created.",
-        onDone: onClose,
+        onDone: () => {
+          onClose();
+          if (poFile) router.refresh(); // the PO file went up separately
+        },
       },
     );
 
@@ -669,6 +674,7 @@ function PoModal({ so, onClose }: { so: SO; onClose: () => void }) {
   });
   const [file, setFile] = useState<File | null>(null);
   const { pending, run } = useAction();
+  const router = useRouter();
   return (
     <Modal
       title={`Purchase order · ${so.number}`}
@@ -691,7 +697,10 @@ function PoModal({ so, onClose }: { so: SO; onClose: () => void }) {
                 },
                 {
                   success: file ? "PO saved and file uploaded." : "PO saved.",
-                  onDone: onClose,
+                  onDone: () => {
+                    onClose();
+                    router.refresh();
+                  },
                 },
               )
             }

@@ -1,3 +1,4 @@
+import { ExportButtons } from "@/components/export-buttons";
 import Link from "next/link";
 import { STAGE_COLOR, STAGE_LABEL } from "@/lib/constants";
 import { fmtDate, todayIST } from "@/lib/dates";
@@ -43,7 +44,9 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
       <PageHeader
         title={`Hello, ${first}`}
         sub={`${all ? "Sales across the team" : "Your numbers"} · ${fmtDate(d.range.from, today)} – ${fmtDate(d.range.to, today)}`}
-      />
+      >
+        <ExportButtons report="dashboard" />
+      </PageHeader>
       <DashFilterBar team={all ? team : null} states={locations.states} />
 
       <div className="kgrid kgrid-2 my-4">

@@ -50,6 +50,9 @@ action goes through it.
 - `src/server/lead-excel/` — bulk lead upload: `columns.ts` (the template's columns, built from `src/lib/constants.ts`), `template.ts` (generated on each download), `import.ts` (re-checks every row, then uses `createLead`).
 - `src/server/quotation/` — quotations: `service.ts` (drafts, numbering QUO/YYYY/MM/NNN, send/revise, email), `pdf.tsx` (3-page PDF in the Wonder Learning format), `content.ts` (standard text, edited in Settings → Quotation). `src/server/mailer.ts` sends email once SMTP_* is set (see DEPLOY.md).
 - `src/server/finance/` — after-sale money for clients: `service.ts` (sales orders SO/…, invoices INV/…, instalment payments with receipts RCPT/… (PDF, link `/r/<token>`), collection follow-ups, reminders, share link `/i/<token>`), `money.ts` (totals, GST per line, Unpaid / Partially paid / Paid / Overdue rules), `invoice-pdf.tsx` (provisional layout until the business's invoice sample is matched). Screens: client page sections and `/outstanding`.
+- `src/server/finance/po.ts`, `po-pdf.tsx`: purchase orders, i.e. the PO template made from a sent quotation, PO number/date on sales orders and the uploaded signed PO (stored in the database, 4 MB max).
+- `src/server/finance/ledger.ts`: the client ledger, built from invoices (debit) and payments (credit), by financial year (April–March) or custom dates, for one client or all.
+- `src/server/reports/`: PDF and Excel exports. `index.ts` defines each screen's report with the same filters and access as the screen; `render.ts`/`pdf.tsx` draw them. Route: `/api/export/<report>?format=pdf|xlsx`.
 - `android/`: the Android app (APK), which opens the live site and works online only. See `android/README.md`. The public `/download-app` page serves `public/downloads/wonder-crm.apk`.
 - `src/components/date-input.tsx` — every date field; always DD/MM/YYYY regardless of browser language.
 

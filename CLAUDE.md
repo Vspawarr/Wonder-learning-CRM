@@ -14,6 +14,8 @@ See README.md for setup, roles and the code map.
   those; never hardcode a second copy.
 - Visibility rules live only in `src/server/access.ts` / `src/lib/permissions.ts`.
 - The Android app (`android/`) points at the live address in `Config.java`. If the domain changes, rebuild it (see `android/README.md`).
+- Every report-like screen has PDF + Excel export (`ExportButtons` + a builder in `src/server/reports/index.ts`); add one for new reports.
+- Opportunity "Category" (Hot/Warm/Cold, stored as `temperature`) belongs to the opportunity, not the lead.
 - Deploys: pushing to the `claude/kind-pasteur-jpzqm5` branch auto-deploys to Vercel (see DEPLOY.md).
 
 ## Mobile backlog for Phase 1
