@@ -32,6 +32,7 @@ import { dmy, inrExact } from "@/lib/format";
 import type { InvoiceState } from "@/server/finance/money";
 import type { InvoiceRow } from "@/server/finance/service";
 import type { ClientDetail, ProductOption } from "@/server/queries";
+import { PoTemplateModal, type QuoteTarget } from "../../pipeline/quotations";
 
 const money = inrExact;
 
@@ -140,11 +141,26 @@ const SO_LABEL: Record<SO["status"], string> = {
 export function SalesOrdersPanel({
   client,
   products,
+  me,
 }: {
   client: ClientDetail;
   products: ProductOption[];
+  me: { name: string };
 }) {
   const { pending, run } = useAction();
+  const [poTemplate, setPoTemplate] = useState<
+    "choose" | ClientDetail["quotations"][number] | null
+  >(null);
+  const sentQuotes = client.quotations.filter((q) => q.status === "SENT");
+  const target: QuoteTarget = {
+    parent: { clientId: client.id },
+    schoolName: client.schoolName,
+    closed: false,
+    stage: null,
+    email: client.email,
+    mobile: client.mobile,
+    quotations: client.quotations,
+  };
   const [choosing, setChoosing] = useState<
     { id: string; label: string }[] | null
   >(null);
@@ -186,6 +202,43 @@ export function SalesOrdersPanel({
 
   return (
     <>
+      <div className="mb-3 rounded-lg border border-line bg-surf2 p-3">
+        <div className="font-semibold">Purchase order (PO)</div>
+        <ol className="small mt-2 flex flex-col gap-2.5">
+          <li className="flex flex-wrap items-center justify-between gap-2">
+            <span className="min-w-0">
+              <b>1.</b> Send the school a PO template made from your quotation,
+              to sign and seal.
+            </span>
+            <button
+              className="btn sm pri"
+              disabled={!sentQuotes.length}
+              title={sentQuotes.length ? "" : "Send a quotation first"}
+              onClick={() =>
+                setPoTemplate(
+                  sentQuotes.length === 1 ? sentQuotes[0] : "choose",
+                )
+              }
+            >
+              <Icon name="doc" size={14} /> Send PO template
+            </button>
+          </li>
+          {!sentQuotes.length ? (
+            <li className="faint">
+              Send a quotation (below) first; the PO template is made from it.
+            </li>
+          ) : null}
+          <li className="flex flex-wrap items-center justify-between gap-2">
+            <span className="min-w-0">
+              <b>2.</b> Got the signed PO back? Upload it with its PO number;
+              this creates the sales order.
+            </span>
+            <button className="btn sm pri" disabled={pending} onClick={start}>
+              <Icon name="upload" size={14} /> Upload signed PO
+            </button>
+          </li>
+        </ol>
+      </div>
       <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
         <span className="small muted">
           Kits ordered by the school. Raise an invoice from an order.
@@ -361,6 +414,37 @@ export function SalesOrdersPanel({
         <DeliverModal so={delivering} onClose={() => setDelivering(null)} />
       ) : null}
       {poFor ? <PoModal so={poFor} onClose={() => setPoFor(null)} /> : null}
+      {poTemplate === "choose" ? (
+        <Modal
+          title="Send PO template"
+          sub="Which quotation is the PO for?"
+          onClose={() => setPoTemplate(null)}
+          footer={
+            <button className="btn" onClick={() => setPoTemplate(null)}>
+              Cancel
+            </button>
+          }
+        >
+          <div className="flex flex-col gap-2">
+            {sentQuotes.map((q) => (
+              <button
+                key={q.id}
+                className="btn justify-start"
+                onClick={() => setPoTemplate(q)}
+              >
+                <Icon name="doc" size={16} /> {q.number} · created {q.createdAt}
+              </button>
+            ))}
+          </div>
+        </Modal>
+      ) : poTemplate ? (
+        <PoTemplateModal
+          q={poTemplate}
+          target={target}
+          me={me}
+          onClose={() => setPoTemplate(null)}
+        />
+      ) : null}
 
       {invoicing ? (
         <Modal

@@ -82,12 +82,6 @@ export default async function ClientPage({ params }: { params: Promise<{ id: str
 
       <div className="grid grid-cols-1 gap-4 min-[1101px]:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
         <div className="flex flex-col gap-4">
-          <Card title="Invoices & payments due">
-            <InvoicesPanel client={c} emailReady={emailReady} me={me} />
-          </Card>
-          <Card title="Sales orders">
-            <SalesOrdersPanel client={c} products={products} />
-          </Card>
           <Card title="Quotations">
             <QuotationsPanel
               heading={false}
@@ -104,6 +98,12 @@ export default async function ClientPage({ params }: { params: Promise<{ id: str
               emailReady={emailReady}
               me={me}
             />
+          </Card>
+          <Card title="Purchase orders & sales orders">
+            <SalesOrdersPanel client={c} products={products} me={me} />
+          </Card>
+          <Card title="Invoices & payments due">
+            <InvoicesPanel client={c} emailReady={emailReady} me={me} />
           </Card>
           <Card title="School details">
             <dl className="facts">

@@ -121,8 +121,8 @@ export function QuotationsPanel({
                       <button className="btn sm" onClick={() => setSending(q)}>
                         Send again
                       </button>
-                      <button className="btn sm" onClick={() => setPoFor(q)}>
-                        PO template
+                      <button className="btn sm pri" onClick={() => setPoFor(q)}>
+                        Send PO template
                       </button>
                       {!opp.closed ? (
                         <button
@@ -399,7 +399,7 @@ function SendQuotation({
 }
 
 /** A purchase order form pre-filled from the quotation, for schools without their own PO format. */
-function PoTemplateModal({ q, target, me, onClose }: { q: Q; target: QuoteTarget; me: { name: string }; onClose: () => void }) {
+export function PoTemplateModal({ q, target, me, onClose }: { q: Q; target: QuoteTarget; me: { name: string }; onClose: () => void }) {
   const [kits, setKits] = useState<string[]>(q.itemNames.map(() => ""));
   const qs = kits.some((k) => k.trim()) ? `?kits=${encodeURIComponent(kits.map((k) => k.trim()).join(","))}` : "";
   const pdf = `/api/quotations/${q.id}/po-template${qs}`;
@@ -413,7 +413,7 @@ function PoTemplateModal({ q, target, me, onClose }: { q: Q; target: QuoteTarget
 
   return (
     <Modal
-      title={`PO template · ${q.number}`}
+      title={`Send PO template · ${q.number}`}
       sub={`A purchase order in ${target.schoolName}'s name for them to sign, seal and send back.`}
       onClose={onClose}
       footer={
