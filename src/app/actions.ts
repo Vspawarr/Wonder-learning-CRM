@@ -24,7 +24,6 @@ import * as contacts from "@/server/contacts";
 import * as renewals from "@/server/renewals";
 import * as targets from "@/server/targets";
 import * as search from "@/server/search";
-import * as reset from "@/server/reset";
 import { contentSchema, resetQuotationContent, saveQuotationContent } from "@/server/quotation/content";
 import { canManageSettings } from "@/lib/permissions";
 import { parse } from "@/server/validation";
@@ -49,9 +48,6 @@ async function run<T>(fn: (u: SessionUser) => Promise<T>): Promise<ActionResult<
 /* top bar (read-only, so no revalidate) */
 export const globalSearch = async (q: string) => search.globalSearch(await requireUser(), q);
 export const attentionAlerts = async () => search.attentionAlerts(await requireUser());
-
-/* settings: clear test data (Admin / Director only, checked in the service) */
-export const clearTestData = async (confirm: string) => run((u) => reset.clearTestData(u, confirm));
 
 /* auth */
 export async function login(_: string | null, form: FormData): Promise<string | null> {

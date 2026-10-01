@@ -190,3 +190,30 @@ export async function lifecycleCounts(user: SessionUser) {
     todos,
   };
 }
+
+/** "Service & delivery" section: what still has to be done for signed clients. */
+export async function serviceSummary(user: SessionUser, f: DashFilters) {
+  const all = seesAllSales(user.role);
+  const exec = all && f.exec ? f.exec : undefined;
+  const today = todayIST();
+  const clientWhere: Prisma.ClientWhereInput = { ...clientScope(user), ...(exec ? { ownerId: exec } : {}), ...(f.state ? { state: f.state } : {}) };
+  const taskWhere: Prisma.TaskWhereInput = { ...taskScope(user), ...(exec ? { assigneeId: exec } : {}), status: "OPEN" };
+  const [orders, inTransit, onboarding, overdue, dueToday, nextWeek] = await Promise.all([
+    db.salesOrder.findMany({
+      where: { status: "CONFIRMED", client: { is: clientWhere } },
+      select: { id: true, number: true, date: true, client: { select: { id: true, schoolName: true } } },
+      orderBy: { date: "asc" },
+    }),
+    db.dispatch.count({ where: { receivedOn: null, salesOrder: { client: { is: clientWhere } } } }),
+    db.client.count({ where: { ...clientWhere, status: "ONBOARDING" } }),
+    db.task.count({ where: { ...taskWhere, dueDate: { lt: toDbDate(today) } } }),
+    db.task.count({ where: { ...taskWhere, dueDate: toDbDate(today) } }),
+    db.task.count({ where: { ...taskWhere, dueDate: { gt: toDbDate(today), lte: toDbDate(addDays(today, 7)) } } }),
+  ]);
+  return {
+    orders: orders.map((o) => ({ id: o.id, number: o.number, date: fromDbDate(o.date), client: o.client })),
+    inTransit,
+    onboarding,
+    tasks: { overdue, dueToday, nextWeek },
+  };
+}

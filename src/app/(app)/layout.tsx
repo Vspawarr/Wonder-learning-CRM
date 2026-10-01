@@ -46,7 +46,6 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     ...(canManageSettings(user.role) ? [{ href: "/admin/quotation", label: "Quotation", icon: "doc" as const }] : []),
     ...(seesAllSales(user.role) && features.targets ? [{ href: "/admin/targets", label: "Targets", icon: "rupee" as const }] : []),
     ...(canManageSettings(user.role) ? [{ href: "/admin/features", label: "Features", icon: "grid" as const }] : []),
-    ...(canManageSettings(user.role) ? [{ href: "/admin/clear-data", label: "Clear test data", icon: "refresh" as const }] : []),
   ];
   if (admin.length) nav.push({ group: "Settings", items: admin });
 
