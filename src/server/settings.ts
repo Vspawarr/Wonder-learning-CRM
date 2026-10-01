@@ -4,7 +4,7 @@ import { Prisma } from "@/generated/prisma/client";
 import { db } from "@/lib/db";
 import { canManageProducts, canManageSettings, type SessionUser } from "@/lib/permissions";
 import { DomainError, NotFoundError } from "./errors";
-import { cityInput, parse, productInput, userInput } from "./validation";
+import { cityInput, parse, productInput, stateInput, userInput } from "./validation";
 
 function assertSettings(user: SessionUser) {
   if (!canManageSettings(user.role)) throw new DomainError("Only a Director or Admin can change settings.");
@@ -86,15 +86,38 @@ export async function saveProduct(actor: SessionUser, id: string | null, raw: un
   return p.id;
 }
 
+export async function addState(actor: SessionUser, raw: unknown) {
+  assertSettings(actor);
+  const d = parse(stateInput, raw);
+  const existing = await db.state.findFirst({ where: { name: { equals: d.name, mode: "insensitive" } } });
+  if (existing) {
+    if (existing.active) throw new DomainError(`${existing.name} is already in the list.`);
+    await db.state.update({ where: { id: existing.id }, data: { active: true } });
+    return;
+  }
+  const last = await db.state.aggregate({ _max: { sortOrder: true } });
+  await db.state.create({ data: { name: d.name, sortOrder: (last._max.sortOrder ?? 0) + 1 } });
+}
+
+export async function setStateActive(actor: SessionUser, id: string, active: boolean) {
+  assertSettings(actor);
+  await db.state.update({ where: { id }, data: { active } });
+}
+
 export async function addCity(actor: SessionUser, raw: unknown) {
   assertSettings(actor);
   const d = parse(cityInput, raw);
-  try {
-    await db.city.create({ data: { stateName: d.stateName, name: d.name } });
-  } catch (e) {
-    if (isUniqueViolation(e)) throw new DomainError(`${d.name} is already listed under ${d.stateName}.`);
-    throw e;
+  const state = await db.state.findUnique({ where: { name: d.stateName } });
+  if (!state) throw new DomainError("Choose a state from the list.");
+  const existing = await db.city.findFirst({
+    where: { stateName: d.stateName, name: { equals: d.name, mode: "insensitive" } },
+  });
+  if (existing) {
+    if (existing.active) throw new DomainError(`${existing.name} is already listed under ${d.stateName}.`);
+    await db.city.update({ where: { id: existing.id }, data: { active: true } });
+    return;
   }
+  await db.city.create({ data: { stateName: d.stateName, name: d.name } });
 }
 
 export async function setCityActive(actor: SessionUser, id: string, active: boolean) {

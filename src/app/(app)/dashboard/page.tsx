@@ -8,6 +8,7 @@ import { requireUser } from "@/server/session";
 import { salesDashboard, type DashFilters } from "@/server/dashboard";
 import { assignees } from "@/server/queries";
 import { DashFilterBar } from "./filters";
+import { getLocations } from "@/server/locations";
 
 export const metadata = { title: "Dashboard" };
 
@@ -26,7 +27,11 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   const user = await requireUser();
   const f = await searchParams;
   const all = seesAllSales(user.role);
-  const [d, team] = await Promise.all([salesDashboard(user, f), all ? assignees(user) : Promise.resolve([])]);
+  const [d, team, locations] = await Promise.all([
+    salesDashboard(user, f),
+    all ? assignees(user) : Promise.resolve([]),
+    getLocations(),
+  ]);
   const today = todayIST();
   const k = d.kpis;
   const first = user.name.split(" ")[0];
@@ -37,7 +42,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
         title={`Hello, ${first}`}
         sub={`${all ? "Sales across the team" : "Your numbers"} · ${fmtDate(d.range.from, today)} – ${fmtDate(d.range.to, today)}`}
       />
-      <DashFilterBar team={all ? team : null} />
+      <DashFilterBar team={all ? team : null} states={locations.states} />
 
       <div className="kgrid my-4">
         <Kpi label="Leads created" value={k.leads} sub={<Delta now={k.leads} prev={k.leadsPrev} />} color="#1C86C4" href="/leads?status=All" />

@@ -7,7 +7,6 @@ import {
   MANUAL_LEAD_STATUSES,
   SOURCES,
   STAGES,
-  STATES,
 } from "@/lib/constants";
 import { isDateStr } from "@/lib/dates";
 import { DomainError } from "./errors";
@@ -56,7 +55,7 @@ const leadDetails = {
     .nullish()
     .transform((s) => s || null)
     .refine((s) => s === null || z.email().safeParse(s).success, "Enter a valid email address."),
-  state: oneOf(STATES, "state"),
+  state: reqText("State", 100), // checked against Settings → Locations in the service
   city: reqText("City", 100),
   area: optText(200),
   address: optText(),
@@ -168,7 +167,8 @@ export const productInput = z.object({
   active: z.boolean().default(true),
 });
 
-export const cityInput = z.object({ stateName: oneOf(STATES, "state"), name: reqText("City", 100) });
+export const cityInput = z.object({ stateName: reqText("State", 100), name: reqText("City", 100) });
+export const stateInput = z.object({ name: reqText("State", 100) });
 
 /** Parse or throw a DomainError carrying the first message. */
 export function parse<S extends z.ZodType>(schema: S, data: unknown): z.output<S> {

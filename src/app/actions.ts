@@ -75,5 +75,7 @@ export const logActivity = async (data: unknown) => run((u) => activities.logAct
 export const createUser = async (data: unknown) => run((u) => settings.createUser(u, data));
 export const updateUser = async (id: string, data: unknown) => run((u) => settings.updateUser(u, id, data));
 export const saveProduct = async (id: string | null, data: unknown) => run((u) => settings.saveProduct(u, id, data));
+export const addState = async (data: unknown) => run((u) => settings.addState(u, data));
+export const setStateActive = async (id: string, active: boolean) => run((u) => settings.setStateActive(u, id, active));
 export const addCity = async (data: unknown) => run((u) => settings.addCity(u, data));
 export const setCityActive = async (id: string, active: boolean) => run((u) => settings.setCityActive(u, id, active));

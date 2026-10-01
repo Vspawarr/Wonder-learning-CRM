@@ -2,18 +2,6 @@
 // from the prototype). Stored as text in the database and validated against
 // these lists, so editing a list here needs no migration.
 
-export const STATES = [
-  "Maharashtra",
-  "Gujarat",
-  "Goa",
-  "Madhya Pradesh",
-  "Rajasthan",
-  "Karnataka",
-  "Telangana",
-  "Chhattisgarh",
-  "Other",
-] as const;
-
 export const SOURCES = [
   "Facebook",
   "Instagram",

@@ -2,12 +2,11 @@
 
 import { DateInput } from "@/components/date-input";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { STATES } from "@/lib/constants";
 import { PERIODS } from "@/server/dashboard-periods";
 import type { Option } from "@/server/queries";
 
 /** Period for everyone; executive and state filters for managers and above. */
-export function DashFilterBar({ team }: { team: Option[] | null }) {
+export function DashFilterBar({ team, states }: { team: Option[] | null; states: string[] }) {
   const router = useRouter();
   const path = usePathname();
   const sp = useSearchParams();
@@ -48,7 +47,7 @@ export function DashFilterBar({ team }: { team: Option[] | null }) {
           </select>
           <select className="sel w-auto min-w-[150px]" aria-label="State" value={sp.get("state") ?? ""} onChange={(e) => set({ state: e.target.value })}>
             <option value="">All states</option>
-            {STATES.map((s) => (
+            {states.map((s) => (
               <option key={s}>{s}</option>
             ))}
           </select>

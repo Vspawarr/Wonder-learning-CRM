@@ -1,7 +1,6 @@
 "use client";
 
 import { DateInput } from "@/components/date-input";
-import { useState } from "react";
 import { Field, Options } from "@/components/client";
 import {
   DESIGNATIONS,
@@ -10,10 +9,10 @@ import {
   MANUAL_LEAD_STATUSES,
   REF_SOURCES,
   SOURCES,
-  STATES,
   TEMPERATURE_LABEL,
 } from "@/lib/constants";
 import type { Option } from "@/server/queries";
+import type { Locations } from "@/server/locations";
 
 export type LeadValues = {
   schoolName: string;
@@ -38,27 +37,26 @@ export type LeadValues = {
   followUpRemark: string;
 };
 
-const TYPE_CITY = "__type__";
-
 export function LeadForm({
   value,
   onChange,
   team,
-  cities,
+  locations,
   idPrefix = "lf",
 }: {
   value: LeadValues;
   onChange: (v: LeadValues) => void;
   team: Option[];
-  cities: Record<string, string[]>;
+  locations: Locations;
   idPrefix?: string;
 }) {
   const set = <K extends keyof LeadValues>(k: K, v: LeadValues[K]) => onChange({ ...value, [k]: v });
   const id = (k: string) => `${idPrefix}-${k}`;
-  const stateCities = cities[value.state] ?? [];
-  const cityListed = stateCities.includes(value.city);
-  const [typing, setTyping] = useState(!cityListed && (value.city !== "" || stateCities.length === 0));
-  const showTyped = typing || stateCities.length === 0;
+  // Lists come from Settings → Locations. A saved lead whose state/city has since been
+  // removed from the list keeps showing it so the record can still be edited.
+  const withCurrent = (list: string[], current: string) => (current && !list.includes(current) ? [current, ...list] : list);
+  const stateOptions = withCurrent(locations.states, value.state);
+  const cityOptions = withCurrent(locations.cities[value.state] ?? [], value.city);
 
 
   return (
@@ -83,46 +81,19 @@ export function LeadForm({
           <input className="in" id={id("email")} type="email" placeholder="owner@example.com" value={value.email} onChange={(e) => set("email", e.target.value)} />
         </Field>
         <Field label="State *" htmlFor={id("state")}>
-          <select
-            className="sel"
-            id={id("state")}
-            value={value.state}
-            onChange={(e) => {
-              const st = e.target.value;
-              onChange({ ...value, state: st, city: "" });
-              setTyping((cities[st] ?? []).length === 0);
-            }}
-          >
-            <Options list={STATES} />
+          <select className="sel" id={id("state")} value={value.state} onChange={(e) => onChange({ ...value, state: e.target.value, city: "" })}>
+            <option value="">Choose a state</option>
+            <Options list={stateOptions} />
           </select>
         </Field>
         <Field label="City *" htmlFor={id("city")}>
-          {showTyped ? (
-            <div className="flex gap-2">
-              <input className="in" id={id("city")} placeholder="City name" value={value.city} onChange={(e) => set("city", e.target.value)} />
-              {stateCities.length ? (
-                <button type="button" className="btn sm" onClick={() => (setTyping(false), set("city", ""))}>
-                  List
-                </button>
-              ) : null}
-            </div>
-          ) : (
-            <select
-              className="sel"
-              id={id("city")}
-              value={value.city}
-              onChange={(e) => {
-                if (e.target.value === TYPE_CITY) {
-                  setTyping(true);
-                  set("city", "");
-                } else set("city", e.target.value);
-              }}
-            >
-              <option value="">Choose a city</option>
-              <Options list={stateCities} />
-              <option value={TYPE_CITY}>Other – type a city…</option>
-            </select>
-          )}
+          <select className="sel" id={id("city")} value={value.city} disabled={!value.state} onChange={(e) => set("city", e.target.value)}>
+            <option value="">{value.state && !cityOptions.length ? "No cities listed yet" : "Choose a city"}</option>
+            <Options list={cityOptions} />
+          </select>
+          {value.state && !cityOptions.length ? (
+            <span className="small text-coral">No cities for {value.state} yet. Ask an admin to add them in Settings → Locations.</span>
+          ) : null}
         </Field>
         <Field label="Area / location" htmlFor={id("area")}>
           <input className="in" id={id("area")} placeholder="e.g. Baner" value={value.area} onChange={(e) => set("area", e.target.value)} />

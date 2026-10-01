@@ -76,10 +76,22 @@ model Product {
   opportunityItems OpportunityItem[]
 }
 
-// Cities are managed in-app per state; the lead form also accepts a typed city.
+// States and cities are managed in-app (Settings → Locations). They are the single
+// list behind the lead form's State/City dropdowns, the Excel template and the upload check.
+model State {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  active    Boolean  @default(true)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+
+  cities City[]
+}
+
 model City {
   id        String  @id @default(cuid())
   stateName String
+  state     State   @relation(fields: [stateName], references: [name], onUpdate: Cascade)
   name      String
   active    Boolean @default(true)
 

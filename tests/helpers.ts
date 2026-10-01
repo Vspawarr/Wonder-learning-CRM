@@ -18,6 +18,9 @@ export async function resetData() {
     db.city.deleteMany(),
     db.user.deleteMany(),
   ]);
+  // Leads need a listed state + city (Settings → Locations).
+  await db.state.upsert({ where: { name: "Maharashtra" }, update: { active: true }, create: { name: "Maharashtra" } });
+  await db.city.create({ data: { stateName: "Maharashtra", name: "Pune" } });
 }
 
 let n = 0;

@@ -214,6 +214,24 @@ describe("tasks and activity", () => {
   });
 });
 
+describe("locations", () => {
+  it("state and city must be listed and active", async () => {
+    await expect(createLead(exA, leadData(exA.id, { state: "Kerala" }))).rejects.toThrow(/not in the list of states/);
+    await expect(createLead(exA, leadData(exA.id, { city: "Nashik" }))).rejects.toThrow(/not a listed city of Maharashtra/);
+    await db.city.create({ data: { stateName: "Maharashtra", name: "Nashik", active: false } });
+    await expect(createLead(exA, leadData(exA.id, { city: "Nashik" }))).rejects.toThrow(/not a listed city/);
+    await db.city.updateMany({ where: { name: "Nashik" }, data: { active: true } });
+    await expect(createLead(exA, leadData(exA.id, { city: "Nashik" }))).resolves.toBeTruthy();
+  });
+
+  it("an existing lead keeps a state/city that was later hidden, but can't switch to another unlisted one", async () => {
+    const id = await createLead(exA, leadData(exA.id));
+    await db.city.updateMany({ where: { name: "Pune" }, data: { active: false } });
+    await expect(updateLead(exA, id, leadData(exA.id, { schoolName: "Renamed" }))).resolves.toBeUndefined();
+    await expect(updateLead(exA, id, leadData(exA.id, { city: "Mumbai" }))).rejects.toThrow(/not a listed city/);
+  });
+});
+
 describe("qualified leads convert automatically", () => {
   it("creating a lead as Qualified creates its opportunity", async () => {
     const id = await createLead(exA, leadData(exA.id, { status: "QUALIFIED", currentCurriculum: "Our own books" }));

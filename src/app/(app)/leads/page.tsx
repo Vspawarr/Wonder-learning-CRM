@@ -4,7 +4,8 @@ import { todayIST } from "@/lib/dates";
 import { seesAllSales } from "@/lib/permissions";
 import { AvatarName, FollowUp, PageHeader, Pill, Table } from "@/components/ui";
 import { requireUser } from "@/server/session";
-import { assignees, citiesByState, leadsList } from "@/server/queries";
+import { assignees, leadsList } from "@/server/queries";
+import { getLocations } from "@/server/locations";
 import { LeadFilters } from "./lead-filters";
 import { NewLeadButton } from "./new-lead";
 
@@ -15,10 +16,10 @@ type SP = Promise<{ q?: string; status?: string; temp?: string; src?: string }>;
 export default async function LeadsPage({ searchParams }: { searchParams: SP }) {
   const user = await requireUser();
   const sp = await searchParams;
-  const [rows, team, cities] = await Promise.all([
+  const [rows, team, locations] = await Promise.all([
     leadsList(user, sp),
     assignees(user),
-    citiesByState(),
+    getLocations(),
   ]);
   const today = todayIST();
 
@@ -28,7 +29,7 @@ export default async function LeadsPage({ searchParams }: { searchParams: SP }) 
         title="Leads"
         sub={`${seesAllSales(user.role) ? "" : "Your leads only. "}Sorted by next follow-up so the most urgent are on top.`}
       >
-        <NewLeadButton team={team} cities={cities} defaultAssignee={team.some((t) => t.id === user.id) ? user.id : ""} />
+        <NewLeadButton team={team} locations={locations} defaultAssignee={team.some((t) => t.id === user.id) ? user.id : ""} />
       </PageHeader>
       <LeadFilters />
       <Table

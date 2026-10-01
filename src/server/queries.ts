@@ -32,12 +32,6 @@ export async function productOptions(): Promise<ProductOption[]> {
   return ps.map((p) => ({ id: p.id, name: p.name, price: p.price === null ? null : Number(p.price), active: p.active }));
 }
 
-export async function citiesByState(): Promise<Record<string, string[]>> {
-  const cs = await db.city.findMany({ where: { active: true }, orderBy: { name: "asc" } });
-  const out: Record<string, string[]> = {};
-  for (const c of cs) (out[c.stateName] ??= []).push(c.name);
-  return out;
-}
 
 /* ---------- leads ---------- */
 

@@ -9,6 +9,7 @@ import { disqualifyLead, updateLead } from "@/app/actions";
 import { LOST_REASONS } from "@/lib/constants";
 import type { LeadDetail, Option } from "@/server/queries";
 import { LeadForm, type LeadValues } from "../lead-form";
+import type { Locations } from "@/server/locations";
 
 const ACTIVE = ["NEW", "CONTACTED", "QUALIFIED"];
 
@@ -41,11 +42,11 @@ function toValues(l: LeadDetail): LeadValues {
 export function LeadEditor({
   lead,
   team,
-  cities,
+  locations,
 }: {
   lead: LeadDetail;
   team: Option[];
-  cities: Record<string, string[]>;
+  locations: Locations;
 }) {
   const initial = toValues(lead);
   const [value, setValue] = useState(initial);
@@ -53,7 +54,7 @@ export function LeadEditor({
   const dirty = JSON.stringify(value) !== JSON.stringify(initial);
   return (
     <>
-      <LeadForm key={lead.id} value={value} onChange={setValue} team={team} cities={cities} idPrefix="el" />
+      <LeadForm key={lead.id} value={value} onChange={setValue} team={team} locations={locations} idPrefix="el" />
       <div className="sticky bottom-0 -mx-4 -mb-4 flex justify-end gap-2 rounded-b-xl border-t border-line bg-surf px-4 py-3">
         <button className="btn" disabled={!dirty || pending} onClick={() => setValue(initial)}>
           Discard changes

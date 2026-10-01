@@ -45,7 +45,6 @@ describe("lead validation", () => {
     ["schoolName", "", /School name/],
     ["mobile", "123", /mobile/],
     ["source", "Twitter", /lead source/],
-    ["state", "Kerala!", /state/],
     ["nextFollowUpDate", "", /follow-up date/],
     ["email", "nope", /email/],
   ])("rejects bad %s", (k, v, msg) => expect(() => parse(leadInput, { ...base, [k]: v })).toThrow(msg));

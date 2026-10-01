@@ -7,15 +7,16 @@ import { Icon } from "@/components/icons";
 import { createLead } from "@/app/actions";
 import { addDays, fmtDate, todayIST } from "@/lib/dates";
 import type { Option } from "@/server/queries";
+import type { Locations } from "@/server/locations";
 import { LeadForm, type LeadValues } from "./lead-form";
 
-const blank = (assignedToId: string): LeadValues => ({
+const blank = (assignedToId: string, state: string): LeadValues => ({
   schoolName: "",
   contactName: "",
   designation: "",
   mobile: "",
   email: "",
-  state: "Maharashtra",
+  state,
   city: "",
   area: "",
   address: "",
@@ -34,16 +35,18 @@ const blank = (assignedToId: string): LeadValues => ({
 
 export function NewLeadButton({
   team,
-  cities,
+  locations,
   defaultAssignee,
 }: {
   team: Option[];
-  cities: Record<string, string[]>;
+  locations: Locations;
   defaultAssignee: string;
 }) {
   const router = useRouter();
+  // Most leads are in Maharashtra; otherwise start empty.
+  const defaultState = locations.states.includes("Maharashtra") ? "Maharashtra" : "";
   const [open, setOpen] = useState(false);
-  const [value, setValue] = useState(() => blank(defaultAssignee));
+  const [value, setValue] = useState(() => blank(defaultAssignee, defaultState));
   const { pending, run } = useAction();
   const close = () => setOpen(false);
 
@@ -52,7 +55,7 @@ export function NewLeadButton({
       <button
         className="btn pri"
         onClick={() => {
-          setValue(blank(defaultAssignee));
+          setValue(blank(defaultAssignee, defaultState));
           setOpen(true);
         }}
       >
@@ -90,7 +93,7 @@ export function NewLeadButton({
             </>
           }
         >
-          <LeadForm value={value} onChange={setValue} team={team} cities={cities} idPrefix="nl" />
+          <LeadForm value={value} onChange={setValue} team={team} locations={locations} idPrefix="nl" />
         </Modal>
       ) : null}
     </>

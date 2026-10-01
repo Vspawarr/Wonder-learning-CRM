@@ -5,6 +5,7 @@ import type { SessionUser } from "@/lib/permissions";
 import { assertAssignable, leadScope } from "./access";
 import { DomainError, NotFoundError } from "./errors";
 import { isActiveLead } from "./rules";
+import { assertLocation } from "./locations";
 import { disqualifyInput, leadInput, parse } from "./validation";
 
 async function loadLead(tx: Tx, user: SessionUser, id: string) {
@@ -28,6 +29,7 @@ export async function createLead(user: SessionUser, raw: unknown) {
   const d = parse(leadInput, raw);
   return db.$transaction(async (tx) => {
     await assertAssignable(tx, user, d.assignedToId);
+    await assertLocation(tx, d.state, d.city);
     const interests = await checkProducts(tx, d.interests);
     const lead = await tx.lead.create({
       data: {
@@ -86,6 +88,7 @@ export async function updateLead(user: SessionUser, id: string, raw: unknown) {
     if (!isActiveLead(lead.status))
       throw new DomainError(`This lead is ${LEAD_STATUS_LABEL[lead.status].toLowerCase()} and can no longer be edited.`);
     if (d.assignedToId !== lead.assignedToId) await assertAssignable(tx, user, d.assignedToId);
+    await assertLocation(tx, d.state, d.city, lead);
 
     // "Interested in" and "Remarks" are no longer on the form; existing values are kept as they are.
     await tx.lead.update({
