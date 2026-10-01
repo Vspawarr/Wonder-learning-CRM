@@ -5,7 +5,7 @@ import { z } from "zod";
 import { Prisma } from "@/generated/prisma/client";
 import { db, type Tx } from "@/lib/db";
 import { DEFAULT_PAYMENT_DAYS, PAYMENT_MODES } from "@/lib/constants";
-import { addDays, fromDbDate, isDateStr, todayIST, toDbDate } from "@/lib/dates";
+import { addDays, fmtDateTimeIST, fromDbDate, isDateStr, todayIST, toDbDate } from "@/lib/dates";
 import { inr } from "@/lib/format";
 import type { SessionUser } from "@/lib/permissions";
 import { clientScope } from "../access";
@@ -32,6 +32,13 @@ const optDate = z
 
 export const salesOrderInput = z.object({
   date: z.string().refine(isDateStr, "Enter the order date."),
+  poNumber: z
+    .string()
+    .trim()
+    .max(60)
+    .nullish()
+    .transform((s) => s || null),
+  poDate: optDate,
   expectedDelivery: optDate,
   notes: z
     .string()
@@ -118,7 +125,12 @@ async function loadClient(user: SessionUser, clientId: string) {
 async function loadOrder(user: SessionUser, id: string) {
   const so = await db.salesOrder.findFirst({
     where: { id, client: clientScope(user) },
-    include: { items: { orderBy: { sortOrder: "asc" } }, invoices: { select: { id: true, status: true } }, client: true },
+    include: {
+      items: { orderBy: { sortOrder: "asc" } },
+      invoices: { select: { id: true, status: true } },
+      client: true,
+      quotation: { select: { number: true, createdAt: true } },
+    },
   });
   if (!so) throw new NotFoundError("Sales order");
   return so;
@@ -143,14 +155,15 @@ export async function orderableQuotations(user: SessionUser, clientId: string) {
   const rows = await db.quotation.findMany({
     where: { status: "SENT", OR: [{ clientId: c.id }, { opportunityId: c.opportunityId }] },
     orderBy: { createdAt: "desc" },
-    select: { id: true, number: true, date: true },
+    select: { id: true, number: true, createdAt: true },
   });
-  return rows.map((q) => ({ id: q.id, label: `${q.number} (${fromDbDate(q.date).split("-").reverse().join("/")})` }));
+  return rows.map((q) => ({ id: q.id, label: `${q.number} · created ${fmtDateTimeIST(q.createdAt)}` }));
 }
 
 /** Lines for a new order: copied from the chosen quotation (kits left for the user to fill in). */
 export async function salesOrderDefaults(user: SessionUser, clientId: string, quotationId?: string | null) {
   await loadClient(user, clientId);
+  const q = quotationId ? await db.quotation.findUnique({ where: { id: quotationId }, select: { number: true, createdAt: true } }) : null;
   const items = quotationId
     ? (
         await db.quotationItem.findMany({
@@ -159,7 +172,16 @@ export async function salesOrderDefaults(user: SessionUser, clientId: string, qu
         })
       ).map((i) => ({ productId: i.productId, description: i.description, qty: "", price: String(Number(i.price)), gstRate: "0" }))
     : [];
-  return { date: todayIST(), expectedDelivery: "", notes: "", quotationId: quotationId ?? "", items };
+  return {
+    date: todayIST(),
+    expectedDelivery: "",
+    notes: "",
+    poNumber: "",
+    poDate: "",
+    quotationId: quotationId ?? "",
+    quotationLabel: q ? `${q.number} · created ${fmtDateTimeIST(q.createdAt)}` : "",
+    items,
+  };
 }
 
 export async function createSalesOrder(user: SessionUser, clientId: string, raw: unknown) {
@@ -178,6 +200,8 @@ export async function createSalesOrder(user: SessionUser, clientId: string, raw:
         date: toDbDate(d.date),
         expectedDelivery: d.expectedDelivery ? toDbDate(d.expectedDelivery) : null,
         notes: d.notes,
+        poNumber: d.poNumber,
+        poDate: d.poDate ? toDbDate(d.poDate) : null,
         createdById: user.id,
         items: { create: d.items.map((it, i) => ({ ...it, sortOrder: i })) },
       },
@@ -202,6 +226,8 @@ export async function updateSalesOrder(user: SessionUser, id: string, raw: unkno
         date: toDbDate(d.date),
         expectedDelivery: d.expectedDelivery ? toDbDate(d.expectedDelivery) : null,
         notes: d.notes,
+        poNumber: d.poNumber,
+        poDate: d.poDate ? toDbDate(d.poDate) : null,
         items: { create: d.items.map((it, i) => ({ ...it, sortOrder: i })) },
       },
     }),
@@ -214,7 +240,10 @@ export async function salesOrderForEdit(user: SessionUser, id: string) {
     date: fromDbDate(so.date),
     expectedDelivery: so.expectedDelivery ? fromDbDate(so.expectedDelivery) : "",
     notes: so.notes ?? "",
+    poNumber: so.poNumber ?? "",
+    poDate: so.poDate ? fromDbDate(so.poDate) : "",
     quotationId: so.quotationId ?? "",
+    quotationLabel: so.quotation ? `${so.quotation.number} · created ${fmtDateTimeIST(so.quotation.createdAt)}` : "",
     items: so.items.map((i) => ({
       productId: i.productId,
       description: i.description,
@@ -435,6 +464,8 @@ async function pdfFor(inv: Awaited<ReturnType<typeof loadInvoice>>) {
     date: dmy(inv.date),
     dueDate: dmy(inv.dueDate),
     orderNumber: inv.salesOrder.number,
+    poNumber: inv.salesOrder.poNumber,
+    poDate: inv.salesOrder.poDate ? dmy(inv.salesOrder.poDate) : null,
     schoolName: c.schoolName,
     contactName: c.contactName,
     address: [c.address, c.area, c.city].filter(Boolean).join(", ") || null,
@@ -587,7 +618,7 @@ export async function emailReceipt(user: SessionUser, paymentId: string, raw: un
 
 /* ---------- reading ---------- */
 
-export { invoiceState, paidOf, loadInvoice };
+export { invoiceState, paidOf, loadInvoice, loadOrder };
 
 export type InvoiceRow = {
   id: string;
@@ -600,7 +631,7 @@ export type InvoiceRow = {
   state: ReturnType<typeof invoiceState>["state"];
   daysOverdue: number;
   shareToken: string;
-  salesOrder: { id: string; number: string };
+  salesOrder: { id: string; number: string; poNumber: string | null };
   client: { id: string; schoolName: string; mobile: string; email: string | null; owner: { id: string; name: string } };
 };
 
@@ -609,7 +640,7 @@ export async function invoiceRows(user: SessionUser, where: Prisma.InvoiceWhereI
     where: { ...where, client: { is: { ...clientScope(user), ...((where.client as Prisma.ClientWhereInput) ?? {}) } } },
     include: {
       payments: { select: { amount: true } },
-      salesOrder: { select: { id: true, number: true } },
+      salesOrder: { select: { id: true, number: true, poNumber: true } },
       client: { select: { id: true, schoolName: true, mobile: true, email: true, owner: { select: { id: true, name: true } } } },
     },
     orderBy: [{ dueDate: "asc" }, { createdAt: "asc" }],

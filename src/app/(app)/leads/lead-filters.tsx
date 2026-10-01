@@ -2,10 +2,9 @@
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
-import { SOURCES, TEMPERATURE_LABEL } from "@/lib/constants";
+import { SOURCES } from "@/lib/constants";
 
 const STATUS = ["Active", "All", "Converted", "Disqualified"];
-const TEMPS: [string, string][] = [["", "All"], ...(Object.entries(TEMPERATURE_LABEL) as [string, string][])];
 
 export function LeadFilters() {
   const router = useRouter();
@@ -29,7 +28,6 @@ export function LeadFilters() {
   }, [q]);
 
   const status = sp.get("status") ?? "Active";
-  const temp = sp.get("temp") ?? "";
   return (
     <div className="mb-3 flex flex-wrap items-center gap-2.5">
       <input
@@ -43,13 +41,6 @@ export function LeadFilters() {
         {STATUS.map((s) => (
           <button key={s} className={`chip ${status === s ? "on" : ""}`} onClick={() => set("status", s === "Active" ? "" : s)}>
             {s}
-          </button>
-        ))}
-      </div>
-      <div className="flex flex-wrap gap-1.5" role="group" aria-label="Category">
-        {TEMPS.map(([v, l]) => (
-          <button key={l} className={`chip ${temp === v ? "on" : ""}`} onClick={() => set("temp", v)}>
-            {l}
           </button>
         ))}
       </div>

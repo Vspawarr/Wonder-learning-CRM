@@ -10,7 +10,6 @@ import { oppValue } from "./queries";
 import { periodRange, type DashFilters } from "./dashboard-periods";
 
 export type { DashFilters };
-import { ACTIVE_LEAD_STATUSES } from "./rules";
 
 const span = (from: DateStr, to: DateStr) => ({ gte: istDayStart(from), lt: istDayStart(addDays(to, 1)) });
 
@@ -40,7 +39,7 @@ export async function salesDashboard(user: SessionUser, f: DashFilters) {
   const [leadsNow, leadsPrev, hot, converted, openOpps, closed, weekly, people, interactions, due] = await Promise.all([
     db.lead.findMany({ where: { ...leadBase, createdAt: period }, select: { source: true, status: true, assignedToId: true } }),
     db.lead.count({ where: { ...leadBase, createdAt: span(prevFrom, prevTo) } }),
-    db.lead.count({ where: { ...leadBase, temperature: "HOT", status: { in: [...ACTIVE_LEAD_STATUSES] } } }),
+    db.opportunity.count({ where: { ...oppBase, temperature: "HOT", stage: { notIn: ["WON", "LOST"] } } }),
     db.lead.count({ where: { ...leadBase, convertedAt: period } }),
     db.opportunity.findMany({
       where: { ...oppBase, stage: { notIn: ["WON", "LOST"] } },

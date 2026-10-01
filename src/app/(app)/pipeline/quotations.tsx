@@ -51,6 +51,7 @@ export function QuotationsPanel({
 }) {
   const [editing, setEditing] = useState<{ id: string | null; draft: Draft } | null>(null);
   const [sending, setSending] = useState<Q | null>(null);
+  const [poFor, setPoFor] = useState<Q | null>(null);
   const { pending, run } = useAction();
   const today = todayIST();
 
@@ -91,7 +92,7 @@ export function QuotationsPanel({
                 <div className="min-w-0">
                   <b>{q.number}</b> <Pill tone={q.status === "SENT" ? "ok" : "mute"}>{q.status === "SENT" ? "Sent" : "Draft"}</Pill>
                   <div className="small muted">
-                    {fmtDate(q.date, today)} · {q.lines} product{q.lines === 1 ? "" : "s"} · {q.preparedBy}
+                    Created {q.createdAt} · {q.lines} product{q.lines === 1 ? "" : "s"} · {q.preparedBy}
                     {q.sentAt ? ` · sent ${fmtDate(istDate(q.sentAt), today)} by ${VIA[q.sentVia ?? ""] ?? q.sentVia}` : ""}
                   </div>
                 </div>
@@ -119,6 +120,9 @@ export function QuotationsPanel({
                     <>
                       <button className="btn sm" onClick={() => setSending(q)}>
                         Send again
+                      </button>
+                      <button className="btn sm" onClick={() => setPoFor(q)}>
+                        PO template
                       </button>
                       {!opp.closed ? (
                         <button
@@ -150,6 +154,7 @@ export function QuotationsPanel({
           onClose={() => setEditing(null)}
         />
       ) : null}
+      {poFor ? <PoTemplateModal q={poFor} target={opp} me={me} onClose={() => setPoFor(null)} /> : null}
       {sending ? <SendQuotation q={sending} opp={opp} emailReady={emailReady} me={me} onClose={() => setSending(null)} /> : null}
     </div>
   );
@@ -389,6 +394,64 @@ function SendQuotation({
           quotation from here. Until then, use Download or WhatsApp above.
         </div>
       )}
+    </Modal>
+  );
+}
+
+/** A purchase order form pre-filled from the quotation, for schools without their own PO format. */
+function PoTemplateModal({ q, target, me, onClose }: { q: Q; target: QuoteTarget; me: { name: string }; onClose: () => void }) {
+  const [kits, setKits] = useState<string[]>(q.itemNames.map(() => ""));
+  const qs = kits.some((k) => k.trim()) ? `?kits=${encodeURIComponent(kits.map((k) => k.trim()).join(","))}` : "";
+  const pdf = `/api/quotations/${q.id}/po-template${qs}`;
+  const mobile = (target.mobile ?? "").replace(/\D/g, "").replace(/^(\d{10})$/, "91$1");
+
+  const whatsapp = () => {
+    const link = `${window.location.origin}/q/${q.shareToken}/po${qs}`;
+    const text = `Dear Sir/Madam,\nAs discussed, here is the purchase order format for ${target.schoolName} against our quotation ${q.number}. Please fill in the PO number and date, sign, put the school seal and send it back to us:\n${link}\n\nRegards,\n${me.name}\nWonder Learning`;
+    window.open(`https://wa.me/${mobile}?text=${encodeURIComponent(text)}`, "_blank", "noopener");
+  };
+
+  return (
+    <Modal
+      title={`PO template · ${q.number}`}
+      sub={`A purchase order in ${target.schoolName}'s name for them to sign, seal and send back.`}
+      onClose={onClose}
+      footer={
+        <button className="btn" onClick={onClose}>
+          Close
+        </button>
+      }
+    >
+      <p className="small muted">Number of kits (optional): leave blank for the school to fill in by hand.</p>
+      <div className="mt-2 flex flex-col gap-2">
+        {q.itemNames.map((name, i) => (
+          <div key={i} className="grid grid-cols-[minmax(0,1fr)_96px] items-center gap-2">
+            <label className="min-w-0 truncate" htmlFor={`pot-${i}`}>
+              {name}
+            </label>
+            <input
+              className="in text-right"
+              id={`pot-${i}`}
+              inputMode="numeric"
+              placeholder="Kits"
+              value={kits[i]}
+              onChange={(e) => setKits(kits.map((k, j) => (j === i ? e.target.value : k)))}
+            />
+          </div>
+        ))}
+      </div>
+      <div className="mt-4 grid grid-cols-1 gap-2 min-[501px]:grid-cols-3">
+        <a className="btn justify-center" href={pdf} target="_blank" rel="noreferrer">
+          Preview
+        </a>
+        <a className="btn justify-center" href={`${pdf}${qs ? "&" : "?"}download=1`}>
+          <Icon name="download" size={16} /> Download
+        </a>
+        <button className="btn pri justify-center" disabled={!mobile} onClick={whatsapp}>
+          <Icon name="chat" size={16} /> WhatsApp
+        </button>
+      </div>
+      <p className="small muted mt-3">When the signed PO comes back, add it on the sales order with its PO number.</p>
     </Modal>
   );
 }

@@ -94,7 +94,7 @@ const quotationScope = (user: SessionUser): Prisma.QuotationWhereInput => ({
   OR: [{ opportunity: { is: oppScope(user) } }, { client: { is: clientScope(user) } }],
 });
 
-async function loadQuotation(user: SessionUser, id: string) {
+export async function loadQuotation(user: SessionUser, id: string) {
   const q = await db.quotation.findFirst({
     where: { id, ...quotationScope(user) },
     include: { opportunity: true, items: { orderBy: { sortOrder: "asc" } }, preparedBy: true },

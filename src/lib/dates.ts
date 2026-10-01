@@ -38,3 +38,23 @@ export const istDayStart = (s: DateStr) => new Date(s + "T00:00:00+05:30");
 
 /** The IST calendar date of a timestamp. */
 export const istDate = (iso: string | Date) => todayIST(new Date(iso));
+
+/** "01/10/2026, 03:45:12 PM" in India time, for record timestamps. */
+export function fmtDateTimeIST(at: Date | string): string {
+  const d = new Date(at);
+  const p = Object.fromEntries(
+    new Intl.DateTimeFormat("en-IN", {
+      timeZone: "Asia/Kolkata",
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: true,
+    })
+      .formatToParts(d)
+      .map((x) => [x.type, x.value]),
+  );
+  return `${p.day}/${p.month}/${p.year}, ${p.hour}:${p.minute}:${p.second} ${String(p.dayPeriod).toUpperCase()}`;
+}

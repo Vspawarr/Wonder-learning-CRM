@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { STAGE_COLOR, STAGE_LABEL, oppCode } from "@/lib/constants";
+import { STAGE_COLOR, STAGE_LABEL, oppCode, TEMPERATURE_LABEL } from "@/lib/constants";
 import { fmtDate, todayIST } from "@/lib/dates";
 import { inrS } from "@/lib/format";
 import { seesAllSales } from "@/lib/permissions";
@@ -12,7 +12,7 @@ import { OppFilterBar } from "./filters";
 
 export const metadata = { title: "Opportunities" };
 
-type SP = Promise<{ q?: string; stage?: string; owner?: string; opp?: string }>;
+type SP = Promise<{ q?: string; stage?: string; owner?: string; cat?: string; opp?: string }>;
 
 export default async function OpportunitiesPage({ searchParams }: { searchParams: SP }) {
   const user = await requireUser();
@@ -20,14 +20,14 @@ export default async function OpportunitiesPage({ searchParams }: { searchParams
   const all = seesAllSales(user.role);
   const stage = sp.stage ?? "Open";
   const [rows, team, detail, products] = await Promise.all([
-    pipelineCards(user, { q: sp.q, stage: stage === "All" ? undefined : stage, owner: sp.owner }),
+    pipelineCards(user, { q: sp.q, stage: stage === "All" ? undefined : stage, owner: sp.owner, cat: sp.cat }),
     assignees(user),
     sp.opp ? oppDetail(user, sp.opp) : null,
     sp.opp ? productOptions() : [],
   ]);
   const today = todayIST();
   const total = rows.reduce((n, r) => n + r.value, 0);
-  const filtered = !!(sp.q || sp.owner || stage !== "Open");
+  const filtered = !!(sp.q || sp.owner || sp.cat || stage !== "Open");
   const href = (id: string) => {
     const p = new URLSearchParams(Object.entries(sp).filter(([k, v]) => k !== "opp" && v) as [string, string][]);
     p.set("opp", id);
@@ -130,6 +130,7 @@ function StagePill({ o }: { o: PipelineCard }) {
   return (
     <span className="inline-flex flex-wrap items-center gap-1">
       <Pill>{STAGE_LABEL[o.stage]}</Pill>
+      <Pill>{TEMPERATURE_LABEL[o.temperature]}</Pill>
       {o.clientId ? <Pill tone="ok">Client</Pill> : null}
     </span>
   );

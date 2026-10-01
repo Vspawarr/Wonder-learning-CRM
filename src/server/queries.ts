@@ -3,7 +3,7 @@
 import type { Prisma } from "@/generated/prisma/client";
 import { db } from "@/lib/db";
 import { CLOSED_STAGES, STAGES, type Stage } from "@/lib/constants";
-import { fromDbDate, optDate } from "@/lib/dates";
+import { fmtDateTimeIST, fromDbDate, optDate } from "@/lib/dates";
 import { SALES_ROLES, canAssignOthers, seesAllSales, type SessionUser } from "@/lib/permissions";
 import { clientScope, leadScope, oppScope, taskScope } from "./access";
 import { ACTIVE_LEAD_STATUSES } from "./rules";
@@ -37,7 +37,7 @@ export async function productOptions(): Promise<ProductOption[]> {
 
 /* ---------- leads ---------- */
 
-export type LeadFilters = { q?: string; status?: string; temp?: string; src?: string };
+export type LeadFilters = { q?: string; status?: string; src?: string };
 
 export async function leadsList(user: SessionUser, f: LeadFilters) {
   const where: Prisma.LeadWhereInput = { ...leadScope(user) };
@@ -45,7 +45,6 @@ export async function leadsList(user: SessionUser, f: LeadFilters) {
   if (status === "Active") where.status = { in: [...ACTIVE_LEAD_STATUSES] };
   else if (status === "Converted") where.status = "CONVERTED";
   else if (status === "Disqualified") where.status = "DISQUALIFIED";
-  if (f.temp && ["HOT", "WARM", "COLD"].includes(f.temp)) where.temperature = f.temp as "HOT";
   if (f.src) where.source = f.src;
   const q = f.q?.trim();
   if (q) {
@@ -76,7 +75,6 @@ export async function leadsList(user: SessionUser, f: LeadFilters) {
     source: l.source,
     interests: l.interests.map((i) => i.product.name),
     status: l.status,
-    temperature: l.temperature,
     owner: l.assignedTo,
     nextFollowUpDate: optDate(l.nextFollowUpDate),
   }));
@@ -118,7 +116,6 @@ export async function leadDetail(user: SessionUser, id: string) {
     referenceName: l.referenceName,
     remarks: l.remarks,
     status: l.status,
-    temperature: l.temperature,
     assignedTo: l.assignedTo,
     createdBy: l.createdBy.name,
     createdAt: l.createdAt.toISOString(),
@@ -151,12 +148,13 @@ export function oppValue(o: { expectedValue: Prisma.Decimal | null }) {
   return { value: o.expectedValue === null ? 0 : Number(o.expectedValue), noValue: o.expectedValue === null };
 }
 
-export type OppFilters = { owner?: string; q?: string; stage?: string };
+export type OppFilters = { owner?: string; q?: string; stage?: string; cat?: string };
 
 /** Opportunities for the pipeline board and the Opportunities list. */
 export async function pipelineCards(user: SessionUser, f: OppFilters = {}) {
   const where: Prisma.OpportunityWhereInput = { ...oppScope(user) };
   if (f.owner && seesAllSales(user.role)) where.ownerId = f.owner;
+  if (f.cat && ["HOT", "WARM", "COLD"].includes(f.cat)) where.temperature = f.cat as "HOT";
   if (f.stage === "Open") where.stage = { notIn: [...CLOSED_STAGES] };
   else if (f.stage && (STAGES as readonly string[]).includes(f.stage)) where.stage = f.stage as Stage;
   const q = f.q?.trim();
@@ -184,6 +182,7 @@ export async function pipelineCards(user: SessionUser, f: OppFilters = {}) {
     schoolName: o.schoolName,
     stage: o.stage as Stage,
     probability: o.probability,
+    temperature: o.temperature,
     competitor: o.competitor,
     lostReason: o.lostReason,
     expectedCloseDate: optDate(o.expectedCloseDate),
@@ -206,10 +205,7 @@ export async function oppDetail(user: SessionUser, id: string) {
       items: { include: { product: { select: { name: true } } } },
       owner: { select: { id: true, name: true } },
       lead: { select: { id: true, number: true, contactName: true, mobile: true, email: true, city: true, state: true } },
-      quotations: {
-        include: { _count: { select: { items: true } }, preparedBy: { select: { name: true } } },
-        orderBy: { createdAt: "desc" },
-      },
+      quotations: { include: quoteInclude, orderBy: { createdAt: "desc" } },
       stageChanges: { include: { changedBy: { select: { name: true } } }, orderBy: { changedAt: "desc" } },
       activities: { include: { by: { select: { id: true, name: true } } }, orderBy: { occurredAt: "desc" }, take: 50 },
       tasks: { where: { status: "OPEN" }, orderBy: { dueDate: "asc" } },
@@ -223,6 +219,7 @@ export async function oppDetail(user: SessionUser, id: string) {
     schoolName: o.schoolName,
     stage: o.stage as Stage,
     probability: o.probability,
+    temperature: o.temperature,
     closed: CLOSED_STAGES.includes(o.stage),
     expectedValue: o.expectedValue === null ? null : Number(o.expectedValue),
     expectedCloseDate: optDate(o.expectedCloseDate),
@@ -361,7 +358,11 @@ export async function clientsList(user: SessionUser, f: { q?: string; status?: s
   }));
 }
 
-const quoteInclude = { _count: { select: { items: true } }, preparedBy: { select: { name: true } } } as const;
+const quoteInclude = {
+  _count: { select: { items: true } },
+  preparedBy: { select: { name: true } },
+  items: { select: { description: true }, orderBy: { sortOrder: "asc" } },
+} as const;
 
 function quoteSummary(q: Prisma.QuotationGetPayload<{ include: typeof quoteInclude }>) {
   return {
@@ -372,6 +373,8 @@ function quoteSummary(q: Prisma.QuotationGetPayload<{ include: typeof quoteInclu
     sentVia: q.sentVia,
     sentAt: q.sentAt?.toISOString() ?? null,
     lines: q._count.items,
+    createdAt: fmtDateTimeIST(q.createdAt),
+    itemNames: q.items.map((i) => i.description),
     preparedBy: q.preparedBy.name,
     shareToken: q.shareToken,
   };
@@ -387,7 +390,7 @@ export async function clientDetail(user: SessionUser, id: string) {
       activities: { include: { by: { select: { id: true, name: true } } }, orderBy: { occurredAt: "desc" }, take: 100 },
       tasks: { where: { status: "OPEN" }, include: { assignee: { select: { name: true } } }, orderBy: { dueDate: "asc" } },
       salesOrders: {
-        include: { items: true, invoices: { select: { id: true, number: true, status: true } }, quotation: { select: { number: true } } },
+        include: { items: true, invoices: { select: { id: true, number: true, status: true } }, quotation: { select: { number: true, createdAt: true } }, poFile: { select: { fileName: true } } },
         orderBy: { createdAt: "desc" },
       },
       payments: { include: { invoice: { select: { number: true } }, recordedBy: { select: { name: true } } }, orderBy: [{ date: "desc" }, { createdAt: "desc" }] },
@@ -432,6 +435,11 @@ export async function clientDetail(user: SessionUser, id: string) {
       status: so.status,
       notes: so.notes,
       quotationNumber: so.quotation?.number ?? null,
+      quotationCreatedAt: so.quotation ? fmtDateTimeIST(so.quotation.createdAt) : null,
+      poNumber: so.poNumber,
+      poDate: so.poDate ? fromDbDate(so.poDate) : null,
+      poFileName: so.poFile?.fileName ?? null,
+      createdAt: fmtDateTimeIST(so.createdAt),
       kits: so.items.reduce((n, i) => n + i.qty, 0),
       lines: so.items.length,
       total: totals(so.items.map((i) => ({ qty: i.qty, price: Number(i.price), gstRate: Number(i.gstRate) }))).total,

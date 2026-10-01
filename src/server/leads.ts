@@ -6,7 +6,8 @@ import { assertAssignable, leadScope } from "./access";
 import { DomainError, NotFoundError } from "./errors";
 import { isActiveLead } from "./rules";
 import { assertLocation } from "./locations";
-import { disqualifyInput, leadInput, parse } from "./validation";
+import { convertInput, disqualifyInput, leadInput, parse } from "./validation";
+import type { Temperature } from "@/generated/prisma/enums";
 
 async function loadLead(tx: Tx, user: SessionUser, id: string) {
   const lead = await tx.lead.findFirst({ where: { id, ...leadScope(user) } });
@@ -49,7 +50,6 @@ export async function createLead(user: SessionUser, raw: unknown) {
         referenceName: REF_SOURCES.includes(d.source) ? d.referenceName : null,
         remarks: d.remarks,
         status: d.status,
-        temperature: d.temperature,
         assignedToId: d.assignedToId,
         createdById: user.id,
         nextFollowUpDate: toDbDate(d.nextFollowUpDate),
@@ -76,7 +76,7 @@ export async function createLead(user: SessionUser, raw: unknown) {
       data: { type: "SYSTEM", subject: `Lead ${leadCode(lead.number)} created`, byId: user.id, leadId: lead.id },
     });
     // A lead created as Qualified becomes an opportunity straight away.
-    if (d.status === "QUALIFIED") await convertInTx(tx, user, lead);
+    if (d.status === "QUALIFIED") await convertInTx(tx, user, lead, d.temperature!);
     return lead.id;
   });
 }
@@ -109,7 +109,6 @@ export async function updateLead(user: SessionUser, id: string, raw: unknown) {
         source: d.source,
         referenceName: REF_SOURCES.includes(d.source) ? d.referenceName : null,
         status: d.status,
-        temperature: d.temperature,
         assignedToId: d.assignedToId,
         nextFollowUpDate: toDbDate(d.nextFollowUpDate),
         followUpType: d.followUpType,
@@ -119,8 +118,6 @@ export async function updateLead(user: SessionUser, id: string, raw: unknown) {
 
     const notes: string[] = [];
     if (d.status !== lead.status) notes.push(`Status: ${LEAD_STATUS_LABEL[lead.status]} → ${LEAD_STATUS_LABEL[d.status]}`);
-    if (d.temperature !== lead.temperature)
-      notes.push(`Category: ${TEMPERATURE_LABEL[lead.temperature]} → ${TEMPERATURE_LABEL[d.temperature]}`);
     if (d.assignedToId !== lead.assignedToId) {
       const to = await tx.user.findUniqueOrThrow({ where: { id: d.assignedToId }, select: { name: true } });
       notes.push(`Reassigned to ${to.name}`);
@@ -161,7 +158,7 @@ export async function updateLead(user: SessionUser, id: string, raw: unknown) {
       await tx.activity.create({ data: { type: "SYSTEM", subject: notes.join(" · "), byId: user.id, leadId: id } });
 
     // A lead marked Qualified becomes an opportunity straight away.
-    if (d.status === "QUALIFIED") await convertInTx(tx, user, await tx.lead.findUniqueOrThrow({ where: { id } }));
+    if (d.status === "QUALIFIED") await convertInTx(tx, user, await tx.lead.findUniqueOrThrow({ where: { id } }), d.temperature!);
   });
 }
 
@@ -191,14 +188,15 @@ export async function disqualifyLead(user: SessionUser, id: string, raw: unknown
 }
 
 /** Creates an Opportunity from an active lead. Returns the opportunity id. */
-export async function convertLead(user: SessionUser, id: string) {
-  return db.$transaction(async (tx) => convertInTx(tx, user, await loadLead(tx, user, id)));
+export async function convertLead(user: SessionUser, id: string, raw: unknown) {
+  const { temperature } = parse(convertInput, raw);
+  return db.$transaction(async (tx) => convertInTx(tx, user, await loadLead(tx, user, id), temperature));
 }
 
 type LeadRow = Awaited<ReturnType<typeof loadLead>>;
 
 /** Shared by convertLead and the automatic conversion when a lead is marked Qualified. */
-async function convertInTx(tx: Tx, user: SessionUser, lead: LeadRow) {
+async function convertInTx(tx: Tx, user: SessionUser, lead: LeadRow, temperature: Temperature) {
   const id = lead.id;
   if (!isActiveLead(lead.status)) throw new DomainError("Only an active lead can be converted.");
   const existing = await tx.opportunity.findFirst({ where: { leadId: id }, select: { id: true } });
@@ -212,6 +210,7 @@ async function convertInTx(tx: Tx, user: SessionUser, lead: LeadRow) {
       schoolName: lead.schoolName,
       stage: "INTERESTED",
       probability: 20,
+      temperature,
       expectedCloseDate: toDbDate(addDays(today, 30)),
       decisionMaker: lead.contactName,
       nextAction: "Schedule demo",
@@ -244,7 +243,7 @@ async function convertInTx(tx: Tx, user: SessionUser, lead: LeadRow) {
   await tx.activity.create({
     data: {
       type: "SYSTEM",
-      subject: `Converted to opportunity ${oppCode(opp.number)}`,
+      subject: `Converted to opportunity ${oppCode(opp.number)} · ${TEMPERATURE_LABEL[temperature]}`,
       byId: user.id,
       leadId: id,
       opportunityId: opp.id,

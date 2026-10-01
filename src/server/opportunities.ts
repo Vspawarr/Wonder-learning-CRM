@@ -53,6 +53,7 @@ export async function updateOpportunity(user: SessionUser, id: string, raw: unkn
       where: { id },
       data: {
         ...(d.expectedValue !== undefined ? { expectedValue: d.expectedValue } : {}),
+        ...(d.temperature ? { temperature: d.temperature } : {}),
         expectedCloseDate: d.expectedCloseDate ? toDbDate(d.expectedCloseDate) : null,
         competitor: d.competitor,
         decisionMaker: d.decisionMaker,

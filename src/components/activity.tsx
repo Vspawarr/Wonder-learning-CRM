@@ -5,6 +5,7 @@ import { useState } from "react";
 import { Field, Modal, Options, useAction } from "./client";
 import { Icon } from "./icons";
 import { useRouter } from "next/navigation";
+import { CategoryPicker } from "./category-picker";
 import { convertLead, logActivity } from "@/app/actions";
 import { fmtDate, todayIST } from "@/lib/dates";
 
@@ -96,12 +97,14 @@ export function LogInteractionButton({
 }) {
   const [open, setOpen] = useState(false);
   const [convert, setConvert] = useState(false);
+  const [cat, setCat] = useState("");
   const router = useRouter();
   const [v, setV] = useState({ type: "PHONE", subject: "", summary: "", nextAction: "", followUpDate: "" });
   const { pending, run } = useAction();
   const close = () => {
     setOpen(false);
     setConvert(false);
+    setCat("");
     setV({ type: "PHONE", subject: "", summary: "", nextAction: "", followUpDate: "" });
   };
   return (
@@ -121,13 +124,13 @@ export function LogInteractionButton({
               </button>
               <button
                 className="btn pri"
-                disabled={pending}
+                disabled={pending || (convert && !cat)}
                 onClick={() =>
                   run(
                     async () => {
                       const r = await logActivity({ ...v, leadId, opportunityId, clientId });
                       if (!r.ok || !(convert && leadId)) return { ...r, data: undefined as string | undefined };
-                      return convertLead(leadId);
+                      return convertLead(leadId, { temperature: cat });
                     },
                     {
                       success: convert
@@ -177,6 +180,12 @@ export function LogInteractionButton({
                 <span className="small muted block">The school is interested: after saving, it moves to the Pipeline as Interested.</span>
               </span>
             </label>
+          ) : null}
+          {convert ? (
+            <div className="mt-3">
+              <div className="mb-1.5 font-semibold">Category *</div>
+              <CategoryPicker value={cat} onChange={setCat} />
+            </div>
           ) : null}
         </Modal>
       ) : null}

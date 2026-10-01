@@ -8,7 +8,7 @@ import { Field, Modal, Options, useAction } from "@/components/client";
 import { ActivityLog, LogInteractionButton } from "@/components/activity";
 import { Pill, DueTag } from "@/components/ui";
 import { convertToClient, moveOpportunity, updateOpportunity } from "@/app/actions";
-import { COMPETITORS, STAGES, STAGE_LABEL, STAGE_PROBABILITY, clientCode, leadCode, oppCode, type Stage } from "@/lib/constants";
+import { COMPETITORS, STAGES, STAGE_LABEL, STAGE_PROBABILITY, TEMPERATURE_LABEL, clientCode, leadCode, oppCode, type Stage } from "@/lib/constants";
 import { fmtDate, istDate, todayIST } from "@/lib/dates";
 import { inr } from "@/lib/format";
 import type { OppDetail, Option, ProductOption } from "@/server/queries";
@@ -37,6 +37,7 @@ export function OppDrawer({
     router.push(next.size ? `${path}?${next}` : path, { scroll: false });
   };
   const initial = {
+    temperature: opp.temperature as string,
     expectedValue: opp.expectedValue === null ? "" : String(opp.expectedValue),
     expectedCloseDate: opp.expectedCloseDate ?? "",
     competitor: opp.competitor ?? "",
@@ -72,6 +73,7 @@ export function OppDrawer({
           <h2 className="text-xl">{opp.schoolName}</h2>
           <div className="mt-1.5 flex flex-wrap items-center gap-2">
             <Pill>{STAGE_LABEL[opp.stage]}</Pill>
+            <Pill>{TEMPERATURE_LABEL[opp.temperature]}</Pill>
             <span className="tag">{oppCode(opp.number)}</span>
             <span className="small muted">
               {opp.probability}% · {opp.noValue ? "no expected value yet" : inr(opp.value)}
@@ -169,6 +171,11 @@ export function OppDrawer({
       />
 
       <div className="fg2">
+        <Field label="Category" htmlFor="op-cat">
+          <select className="sel" id="op-cat" disabled={opp.closed} value={v.temperature} onChange={(e) => setV({ ...v, temperature: e.target.value })}>
+            <Options list={Object.entries(TEMPERATURE_LABEL) as [string, string][]} />
+          </select>
+        </Field>
         <Field label="Expected deal value (₹)" htmlFor="op-value">
           <input
             className="in"

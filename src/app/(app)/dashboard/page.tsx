@@ -48,7 +48,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
 
       <div className="kgrid kgrid-2 my-4">
         <Kpi label="Leads created" value={k.leads} sub={<Delta now={k.leads} prev={k.leadsPrev} />} color="#1C86C4" href="/leads?status=All" />
-        <Kpi label="Hot leads" value={k.hot} sub="Active right now" color="#D9412D" href="/leads?temp=HOT" />
+        <Kpi label="Hot opportunities" value={k.hot} sub="Open, category Hot" color="#D9412D" href="/opportunities?cat=HOT" />
         <Kpi label="Converted" value={k.converted} sub="Leads converted in period" color="#0E8F79" href="/leads?status=Converted" />
         <Kpi label="Open pipeline" value={inrS(k.openValue)} sub={`${k.openCount} opportunit${k.openCount === 1 ? "y" : "ies"}`} color="#7A48B8" href="/pipeline" />
         <Kpi label="Weighted forecast" value={inrS(k.weighted)} sub="Value × probability" color="#C77A00" href="/pipeline" />

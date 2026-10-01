@@ -26,7 +26,7 @@ const blank = (assignedToId: string, state: string): LeadValues => ({
   source: "",
   referenceName: "",
   status: "NEW",
-  temperature: "WARM",
+  temperature: "",
   assignedToId,
   nextFollowUpDate: addDays(todayIST(), 1),
   followUpType: "",

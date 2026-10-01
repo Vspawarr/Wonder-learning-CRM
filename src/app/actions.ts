@@ -16,6 +16,7 @@ import * as settings from "@/server/settings";
 import * as clients from "@/server/clients";
 import * as quotes from "@/server/quotation/service";
 import * as fin from "@/server/finance/service";
+import * as po from "@/server/finance/po";
 import { contentSchema, resetQuotationContent, saveQuotationContent } from "@/server/quotation/content";
 import { canManageSettings } from "@/lib/permissions";
 import { parse } from "@/server/validation";
@@ -63,7 +64,7 @@ export const createLead = async (data: unknown) => run((u) => leads.createLead(u
 export const updateLead = async (id: string, data: unknown) => run((u) => leads.updateLead(u, id, data));
 export const disqualifyLead = async (id: string, data: unknown) => run((u) => leads.disqualifyLead(u, id, data));
 
-export const convertLead = async (id: string) => run((u) => leads.convertLead(u, id));
+export const convertLead = async (id: string, data: unknown) => run((u) => leads.convertLead(u, id, data));
 
 /* opportunities */
 export const updateOpportunity = async (id: string, data: unknown) => run((u) => opps.updateOpportunity(u, id, data));
@@ -100,6 +101,7 @@ export const salesOrderDefaults = async (clientId: string, quotationId: string |
 export const salesOrderForEdit = async (id: string) => run((u) => fin.salesOrderForEdit(u, id));
 export const createSalesOrder = async (clientId: string, data: unknown) => run((u) => fin.createSalesOrder(u, clientId, data));
 export const updateSalesOrder = async (id: string, data: unknown) => run((u) => fin.updateSalesOrder(u, id, data));
+export const setPurchaseOrder = async (salesOrderId: string, data: unknown) => run((u) => po.setPurchaseOrder(u, salesOrderId, data));
 export const markDelivered = async (id: string, date: string) => run((u) => fin.markDelivered(u, id, date));
 export const cancelSalesOrder = async (id: string) => run((u) => fin.cancelSalesOrder(u, id));
 export const invoiceDefaults = async (salesOrderId: string) => run((u) => fin.invoiceDefaults(u, salesOrderId));

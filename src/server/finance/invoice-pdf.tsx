@@ -9,6 +9,8 @@ export type InvoicePdfData = {
   date: string; // DD-MM-YYYY
   dueDate: string;
   orderNumber: string;
+  poNumber: string | null;
+  poDate: string | null;
   schoolName: string;
   contactName: string;
   address: string | null;
@@ -96,6 +98,13 @@ export function InvoiceDocument({ d }: { d: InvoicePdfData }) {
               <Text style={s.bold}>Order No.: </Text>
               {d.orderNumber}
             </Text>
+            {d.poNumber ? (
+              <Text style={{ marginTop: 4 }}>
+                <Text style={s.bold}>PO No.: </Text>
+                {d.poNumber}
+                {d.poDate ? ` dated ${d.poDate}` : ""}
+              </Text>
+            ) : null}
           </View>
         </View>
 

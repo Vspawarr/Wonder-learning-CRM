@@ -52,6 +52,7 @@ model User {
   salesOrdersCreated SalesOrder[]
   invoicesCreated    Invoice[]
   paymentsRecorded   Payment[]
+  poFilesUploaded    PurchaseOrderFile[]
   activities         Activity[]
   stageChanges       OpportunityStageChange[]
 }
@@ -147,12 +148,11 @@ model Lead {
   remarks       String?
 
   // CRM control
-  status       LeadStatus  @default(NEW)
-  temperature  Temperature @default(WARM)
+  status       LeadStatus @default(NEW)
   assignedToId String
-  assignedTo   User        @relation("LeadAssignedTo", fields: [assignedToId], references: [id])
+  assignedTo   User       @relation("LeadAssignedTo", fields: [assignedToId], references: [id])
   createdById  String
-  createdBy    User        @relation("LeadCreatedBy", fields: [createdById], references: [id])
+  createdBy    User       @relation("LeadCreatedBy", fields: [createdById], references: [id])
 
   // Follow-up
   nextFollowUpDate DateTime? @db.Date // required on create; cleared once closed
@@ -209,6 +209,8 @@ model Opportunity {
   schoolName        String
   stage             OpportunityStage @default(INTERESTED)
   probability       Int // auto-set from STAGE_PROBABILITY on every stage change
+  /// "Category" on screen: Hot / Warm / Cold, chosen when the lead is converted.
+  temperature       Temperature      @default(WARM)
   expectedValue     Decimal?         @db.Decimal(14, 2) // ₹, typed by the salesperson; drives pipeline totals
   expectedCloseDate DateTime?        @db.Date
   competitor        String? // COMPETITORS
@@ -493,6 +495,11 @@ model SalesOrder {
   status           SalesOrderStatus @default(CONFIRMED)
   notes            String?
 
+  /// The school's purchase order (also printed on the invoice).
+  poNumber String?
+  poDate   DateTime?          @db.Date
+  poFile   PurchaseOrderFile?
+
   createdById String
   createdBy   User     @relation(fields: [createdById], references: [id])
   createdAt   DateTime @default(now())
@@ -503,6 +510,20 @@ model SalesOrder {
 
   @@unique([year, month, seq])
   @@index([clientId])
+}
+
+/// The signed PO the school sent back (PDF or photo), kept apart so order lists don't load it.
+model PurchaseOrderFile {
+  id           String     @id @default(cuid())
+  salesOrderId String     @unique
+  salesOrder   SalesOrder @relation(fields: [salesOrderId], references: [id], onDelete: Cascade)
+  fileName     String
+  contentType  String
+  size         Int
+  data         Bytes
+  uploadedById String
+  uploadedBy   User       @relation(fields: [uploadedById], references: [id])
+  uploadedAt   DateTime   @default(now())
 }
 
 model SalesOrderItem {

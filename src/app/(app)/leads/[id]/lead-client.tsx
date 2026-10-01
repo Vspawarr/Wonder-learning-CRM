@@ -32,7 +32,7 @@ function toValues(l: LeadDetail): LeadValues {
     source: l.source,
     referenceName: s(l.referenceName),
     status: l.status,
-    temperature: l.temperature,
+    temperature: "",
     assignedToId: l.assignedTo.id,
     nextFollowUpDate: s(l.nextFollowUpDate),
     followUpType: s(l.followUpType),

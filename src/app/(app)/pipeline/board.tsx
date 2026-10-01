@@ -17,7 +17,7 @@ import {
 import { useAction } from "@/components/client";
 import { Avatar, DueTag } from "@/components/ui";
 import { moveOpportunity } from "@/app/actions";
-import { CLOSED_STAGES, STAGES, STAGE_COLOR, STAGE_LABEL, STAGE_PROBABILITY, type Stage } from "@/lib/constants";
+import { CLOSED_STAGES, STAGES, STAGE_COLOR, STAGE_LABEL, STAGE_PROBABILITY, type Stage, TEMPERATURE_LABEL } from "@/lib/constants";
 import { fmtDate, todayIST } from "@/lib/dates";
 import { inrS } from "@/lib/format";
 import type { PipelineCard } from "@/server/queries";
@@ -142,7 +142,7 @@ function CardBody({ card: c, today, className }: { card: PipelineCard; today: st
     <div className={`kc ${className ?? ""}`} style={{ "--c": STAGE_COLOR[c.stage] } as React.CSSProperties}>
       <div className="t">{c.schoolName}</div>
       <div className="m">
-        {c.noValue ? <span className="faint">No value yet</span> : inrS(c.value)} · {c.probability}%
+        {c.noValue ? <span className="faint">No value yet</span> : inrS(c.value)} · {c.probability}% · {TEMPERATURE_LABEL[c.temperature]}
       </div>
       {c.competitor ? <div className="m">vs {c.competitor}</div> : null}
       {c.stage === "LOST" ? (

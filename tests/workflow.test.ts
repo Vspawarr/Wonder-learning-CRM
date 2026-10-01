@@ -68,14 +68,14 @@ describe("access control", () => {
     const id = await createLead(head, leadData(exB.id));
     await expect(updateLead(exA, id, leadData(exA.id))).rejects.toThrow(/not found/);
     await expect(disqualifyLead(exA, id, { reason: "No Budget" })).rejects.toThrow(/not found/);
-    await expect(convertLead(exA, id)).rejects.toThrow(/not found/);
+    await expect(convertLead(exA, id, { temperature: "WARM" })).rejects.toThrow(/not found/);
     await expect(logActivity(exA, { leadId: id, type: "PHONE", summary: "hi" })).rejects.toThrow(/not found/);
     await expect(createTask(exA, { title: "x", type: "Call", dueDate: today, assigneeId: exA.id, leadId: id })).rejects.toThrow(/not found/);
   });
 
   it("an executive cannot move, edit or complete tasks on another's opportunity", async () => {
     const lead = await createLead(head, leadData(exB.id));
-    const oppId = await convertLead(head, lead);
+    const oppId = await convertLead(head, lead, { temperature: "WARM" });
     await expect(moveOpportunity(exA, oppId, { stage: "DEMO_SCHEDULED" })).rejects.toThrow(/not found/);
     await expect(updateOpportunity(exA, oppId, { ownerId: exA.id, items: [] })).rejects.toThrow(/not found/);
     const task = await db.task.findFirstOrThrow({ where: { opportunityId: oppId } });
@@ -92,10 +92,10 @@ describe("access control", () => {
   it("a sales manager sees only their own leads and opportunities", async () => {
     const other = await createLead(head, leadData(exA.id));
     await expect(updateLead(mgr, other, leadData(mgr.id))).rejects.toThrow(/not found/);
-    await expect(convertLead(mgr, other)).rejects.toThrow(/not found/);
+    await expect(convertLead(mgr, other, { temperature: "WARM" })).rejects.toThrow(/not found/);
     await expect(createLead(mgr, leadData(exA.id))).rejects.toThrow(/yourself/);
     const own = await createLead(mgr, leadData(mgr.id));
-    const oppId = await convertLead(mgr, own);
+    const oppId = await convertLead(mgr, own, { temperature: "WARM" });
     await expect(moveOpportunity(mgr, oppId, { stage: "DEMO_SCHEDULED" })).resolves.toBeUndefined();
     await expect(moveOpportunity(exA, oppId, { stage: "PROPOSAL_SENT" })).rejects.toThrow(/not found/);
   });
@@ -122,7 +122,7 @@ describe("disqualifying", () => {
     expect(lead).toMatchObject({ status: "DISQUALIFIED", disqualifyReason: "Competitor", nextFollowUpDate: null });
     expect(lead.tasks.every((t) => t.status === "CANCELLED")).toBe(true);
     await expect(updateLead(exA, id, leadData(exA.id))).rejects.toThrow(/no longer be edited/);
-    await expect(convertLead(exA, id)).rejects.toThrow(/active/);
+    await expect(convertLead(exA, id, { temperature: "WARM" })).rejects.toThrow(/active/);
   });
 });
 
@@ -131,7 +131,7 @@ describe("converting and the pipeline", () => {
     const priced = await makeProduct("Curriculum License", 60000);
     const unpriced = await makeProduct("School Audit");
     const leadId = await createLead(exA, leadData(exA.id, { interests: [priced.id, unpriced.id] }));
-    const oppId = await convertLead(exA, leadId);
+    const oppId = await convertLead(exA, leadId, { temperature: "WARM" });
     const opp = await db.opportunity.findUniqueOrThrow({ where: { id: oppId }, include: { items: true, tasks: true, stageChanges: true } });
     expect(opp).toMatchObject({ stage: "INTERESTED", probability: 20, ownerId: exA.id, leadId });
     expect(opp.items.map((i) => (i.unitPrice === null ? null : Number(i.unitPrice))).sort()).toEqual([60000, null]);
@@ -139,11 +139,11 @@ describe("converting and the pipeline", () => {
     expect(opp.stageChanges).toHaveLength(1);
     const lead = await db.lead.findUniqueOrThrow({ where: { id: leadId } });
     expect(lead.status).toBe("CONVERTED");
-    await expect(convertLead(exA, leadId)).rejects.toThrow();
+    await expect(convertLead(exA, leadId, { temperature: "WARM" })).rejects.toThrow();
   });
 
   it("moves through stages, sets probability and adds follow-up tasks", async () => {
-    const oppId = await convertLead(exA, await createLead(exA, leadData(exA.id)));
+    const oppId = await convertLead(exA, await createLead(exA, leadData(exA.id)), { temperature: "WARM" });
     await moveOpportunity(exA, oppId, { stage: "DEMO_SCHEDULED" });
     await moveOpportunity(exA, oppId, { stage: "PROPOSAL_SENT" });
     await moveOpportunity(exA, oppId, { stage: "NEGOTIATION" });
@@ -154,7 +154,7 @@ describe("converting and the pipeline", () => {
   });
 
   it("lost requires a reason, closes the deal and cancels its tasks", async () => {
-    const oppId = await convertLead(exA, await createLead(exA, leadData(exA.id)));
+    const oppId = await convertLead(exA, await createLead(exA, leadData(exA.id)), { temperature: "WARM" });
     await expect(moveOpportunity(exA, oppId, { stage: "LOST", lostReason: "Price Issue" })).rejects.toThrow(/Remarks/);
     await moveOpportunity(exA, oppId, { stage: "LOST", lostReason: "Price Issue", lostRemarks: "Too costly", competitor: "EuroKids" });
     const opp = await db.opportunity.findUniqueOrThrow({ where: { id: oppId }, include: { tasks: true } });
@@ -165,7 +165,7 @@ describe("converting and the pipeline", () => {
   });
 
   it("won simply closes the deal at 100%", async () => {
-    const oppId = await convertLead(exA, await createLead(exA, leadData(exA.id)));
+    const oppId = await convertLead(exA, await createLead(exA, leadData(exA.id)), { temperature: "WARM" });
     await moveOpportunity(exA, oppId, { stage: "WON" });
     const opp = await db.opportunity.findUniqueOrThrow({ where: { id: oppId } });
     expect(opp).toMatchObject({ stage: "WON", probability: 100 });
@@ -175,7 +175,7 @@ describe("converting and the pipeline", () => {
   it("editing items keeps existing prices and snapshots new ones", async () => {
     const a = await makeProduct("A", 1000);
     const b = await makeProduct("B", 500);
-    const oppId = await convertLead(exA, await createLead(exA, leadData(exA.id, { interests: [a.id] })));
+    const oppId = await convertLead(exA, await createLead(exA, leadData(exA.id, { interests: [a.id] })), { temperature: "WARM" });
     await db.product.update({ where: { id: a.id }, data: { price: 9999 } });
     await updateOpportunity(exA, oppId, { ownerId: exA.id, items: [{ productId: a.id, qty: 2 }, { productId: b.id, qty: 3 }] });
     const items = await db.opportunityItem.findMany({ where: { opportunityId: oppId } });
@@ -188,7 +188,7 @@ describe("converting and the pipeline", () => {
 
 describe("expected deal value", () => {
   it("is typed on the opportunity and drives pipeline values", async () => {
-    const oppId = await convertLead(exA, await createLead(exA, leadData(exA.id)));
+    const oppId = await convertLead(exA, await createLead(exA, leadData(exA.id)), { temperature: "WARM" });
     let card = (await pipelineCards(exA)).find((c) => c.id === oppId)!;
     expect(card).toMatchObject({ value: 0, noValue: true });
     await updateOpportunity(exA, oppId, { ownerId: exA.id, expectedValue: "2,50,000" });
@@ -252,7 +252,7 @@ describe("locations", () => {
 
 describe("qualified leads convert automatically", () => {
   it("creating a lead as Qualified creates its opportunity", async () => {
-    const id = await createLead(exA, leadData(exA.id, { status: "QUALIFIED", currentCurriculum: "Our own books" }));
+    const id = await createLead(exA, leadData(exA.id, { status: "QUALIFIED", temperature: "HOT", currentCurriculum: "Our own books" }));
     const lead = await db.lead.findUniqueOrThrow({ where: { id }, include: { opportunities: true } });
     expect(lead.status).toBe("CONVERTED");
     expect(lead.currentCurriculum).toBe("Our own books");
@@ -267,7 +267,7 @@ describe("qualified leads convert automatically", () => {
     const id = await createLead(exA, leadData(exA.id));
     await updateLead(exA, id, leadData(exA.id, { status: "CONTACTED" }));
     expect(await db.opportunity.count({ where: { leadId: id } })).toBe(0);
-    await updateLead(exA, id, leadData(exA.id, { status: "QUALIFIED" }));
+    await updateLead(exA, id, leadData(exA.id, { status: "QUALIFIED", temperature: "WARM" }));
     expect(await db.opportunity.count({ where: { leadId: id } })).toBe(1);
     expect((await db.lead.findUniqueOrThrow({ where: { id } })).status).toBe("CONVERTED");
   });
@@ -284,7 +284,7 @@ describe("qualified leads convert automatically", () => {
 
 describe("clients", () => {
   async function wonDeal(owner: SessionUser) {
-    const oppId = await convertLead(owner, await createLead(owner, leadData(owner.id, { schoolName: "Happy Kids" })));
+    const oppId = await convertLead(owner, await createLead(owner, leadData(owner.id, { schoolName: "Happy Kids" })), { temperature: "WARM" });
     return oppId;
   }
 
@@ -346,5 +346,27 @@ describe("user management", () => {
   it("an admin cannot create a director or lock themselves out", async () => {
     await expect(createUser(admin, { name: "D", email: "d@x.in", role: "DIRECTOR", password: "abcd1234" })).rejects.toThrow(/Director/);
     await expect(updateUser(admin, admin.id, { name: admin.name, email: admin.email, role: "ADMIN", active: false })).rejects.toThrow(/yourself/);
+  });
+});
+
+describe("opportunity category", () => {
+  it("is chosen when converting, not on the lead", async () => {
+    const id = await createLead(exA, leadData(exA.id));
+    await expect(convertLead(exA, id, {})).rejects.toThrow(/Hot, Warm or Cold/);
+    const oppId = await convertLead(exA, id, { temperature: "HOT" });
+    expect((await db.opportunity.findUniqueOrThrow({ where: { id: oppId } })).temperature).toBe("HOT");
+  });
+
+  it("a lead saved as Qualified needs the category for its opportunity", async () => {
+    await expect(createLead(exA, leadData(exA.id, { status: "QUALIFIED" }))).rejects.toThrow(/category/);
+    const id = await createLead(exA, leadData(exA.id, { status: "QUALIFIED", temperature: "COLD" }));
+    const opp = await db.opportunity.findFirstOrThrow({ where: { leadId: id } });
+    expect(opp.temperature).toBe("COLD");
+  });
+
+  it("can be changed on the opportunity", async () => {
+    const oppId = await convertLead(exA, await createLead(exA, leadData(exA.id)), { temperature: "WARM" });
+    await updateOpportunity(exA, oppId, { ownerId: exA.id, temperature: "HOT" });
+    expect((await db.opportunity.findUniqueOrThrow({ where: { id: oppId } })).temperature).toBe("HOT");
   });
 });

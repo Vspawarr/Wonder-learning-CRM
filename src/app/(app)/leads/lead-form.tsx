@@ -154,11 +154,13 @@ export function LeadForm({
             <span className="small text-mint">Saving as Qualified turns this lead into an opportunity.</span>
           ) : null}
         </Field>
-        <Field label="Category" htmlFor={id("temp")}>
-          <select className="sel" id={id("temp")} value={value.temperature} onChange={(e) => set("temperature", e.target.value)}>
-            <Options list={Object.entries(TEMPERATURE_LABEL) as [string, string][]} />
-          </select>
-        </Field>
+        {value.status === "QUALIFIED" ? (
+          <Field label="Opportunity category *" htmlFor={id("temp")}>
+            <select className="sel" id={id("temp")} value={value.temperature} onChange={(e) => set("temperature", e.target.value)}>
+              <Options list={Object.entries(TEMPERATURE_LABEL) as [string, string][]} blank="Hot, Warm or Cold?" />
+            </select>
+          </Field>
+        ) : null}
         <Field label="Assigned to *" htmlFor={id("by")}>
           <select className="sel" id={id("by")} value={value.assignedToId} disabled={team.length === 1} onChange={(e) => set("assignedToId", e.target.value)}>
             {team.length > 1 ? <option value="">Choose a person</option> : null}

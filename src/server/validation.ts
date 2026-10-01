@@ -66,14 +66,24 @@ const leadDetails = {
   referenceName: optText(200),
   interests: z.array(z.string()).max(50).default([]),
   remarks: optText(),
-  temperature: z.enum(["HOT", "WARM", "COLD"]),
+  /** The opportunity's category; only used (and required) when the lead is saved as Qualified. */
+  temperature: z.enum(["HOT", "WARM", "COLD"]).nullish(),
   assignedToId: z.string({ error: "Assigned to is required." }).min(1, "Assigned to is required."),
   nextFollowUpDate: reqDate("Next follow-up date"),
   followUpType: optOneOf(FOLLOWUP_TYPES, "follow-up type"),
   followUpRemark: optText(),
 };
 
-export const leadInput = z.object({ ...leadDetails, status: z.enum(MANUAL_LEAD_STATUSES).default("NEW") });
+export const leadInput = z
+  .object({ ...leadDetails, status: z.enum(MANUAL_LEAD_STATUSES).default("NEW") })
+  .refine((d) => d.status !== "QUALIFIED" || !!d.temperature, {
+    message: "A Qualified lead becomes an opportunity: choose its category (Hot, Warm or Cold).",
+    path: ["temperature"],
+  });
+
+export const convertInput = z.object({
+  temperature: z.enum(["HOT", "WARM", "COLD"], { error: "Choose the category: Hot, Warm or Cold." }),
+});
 export type LeadInput = z.input<typeof leadInput>;
 
 export const disqualifyInput = z.object({ reason: oneOf(LOST_REASONS, "reason"), remarks: optText() });
@@ -92,6 +102,8 @@ export const activityInput = z
   .refine((a) => [a.leadId, a.opportunityId, a.clientId].filter(Boolean).length === 1, "Choose a lead, opportunity or client.");
 
 export const oppUpdateInput = z.object({
+  /** Left out = keep the saved category. */
+  temperature: z.enum(["HOT", "WARM", "COLD"]).optional(),
   expectedValue: z
     .union([z.number(), z.string()])
     .nullish()

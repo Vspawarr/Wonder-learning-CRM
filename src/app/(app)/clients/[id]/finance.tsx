@@ -22,6 +22,7 @@ import {
   recordPayment,
   salesOrderDefaults,
   salesOrderForEdit,
+  setPurchaseOrder,
   updateSalesOrder,
 } from "@/app/actions";
 import { PAYMENT_MODES } from "@/lib/constants";
@@ -76,9 +77,53 @@ type OrderDraft = {
   date: string;
   expectedDelivery: string;
   notes: string;
+  poNumber: string;
+  poDate: string;
   quotationId: string;
+  quotationLabel: string;
   items: OrderLine[];
 };
+
+/** Uploads the signed PO file for an order. */
+async function uploadPo(
+  salesOrderId: string,
+  file: File,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const body = new FormData();
+  body.append("file", file);
+  try {
+    const r = await fetch(`/api/sales-orders/${salesOrderId}/po`, {
+      method: "POST",
+      body,
+    });
+    return (await r.json()) as { ok: true } | { ok: false; error: string };
+  } catch {
+    return {
+      ok: false,
+      error: "The upload failed. Check your internet connection and try again.",
+    };
+  }
+}
+
+const PO_ACCEPT = "application/pdf,image/jpeg,image/png,image/webp";
+
+function PoFileInput({
+  id,
+  onChange,
+}: {
+  id: string;
+  onChange: (f: File | null) => void;
+}) {
+  return (
+    <input
+      className="in"
+      id={id}
+      type="file"
+      accept={PO_ACCEPT}
+      onChange={(e) => onChange(e.target.files?.[0] ?? null)}
+    />
+  );
+}
 
 const SO_TONE: Record<SO["status"], Tone> = {
   CONFIRMED: "info",
@@ -107,6 +152,7 @@ export function SalesOrdersPanel({
     draft: OrderDraft;
   } | null>(null);
   const [delivering, setDelivering] = useState<SO | null>(null);
+  const [poFor, setPoFor] = useState<SO | null>(null);
   const [invoicing, setInvoicing] = useState<{
     so: SO;
     date: string;
@@ -164,12 +210,41 @@ export function SalesOrdersPanel({
                   <div className="small muted">
                     {dmy(so.date)} · {so.kits} kit{so.kits === 1 ? "" : "s"} ·{" "}
                     <b className="text-ink">{money(so.total)}</b>
-                    {so.quotationNumber ? ` · from ${so.quotationNumber}` : ""}
+                    {so.quotationNumber
+                      ? ` · from ${so.quotationNumber} (quotation created ${so.quotationCreatedAt})`
+                      : ""}
                     {so.deliveredOn
                       ? ` · delivered ${dmy(so.deliveredOn)}`
                       : so.expectedDelivery
                         ? ` · delivery by ${dmy(so.expectedDelivery)}`
                         : ""}
+                  </div>
+                  <div className="small mt-1">
+                    {so.poNumber ? (
+                      <>
+                        <b>PO {so.poNumber}</b>
+                        {so.poDate ? ` dated ${dmy(so.poDate)}` : ""}
+                        {so.poFileName ? (
+                          <>
+                            {" · "}
+                            <a
+                              href={`/api/sales-orders/${so.id}/po`}
+                              target="_blank"
+                              rel="noreferrer"
+                            >
+                              View signed PO
+                            </a>
+                          </>
+                        ) : (
+                          <span className="faint">
+                            {" "}
+                            · signed PO not uploaded
+                          </span>
+                        )}
+                      </>
+                    ) : so.status !== "CANCELLED" ? (
+                      <span className="text-sun">PO pending</span>
+                    ) : null}
                   </div>
                   {so.notes ? (
                     <div className="small mt-1 whitespace-pre-line">
@@ -197,6 +272,10 @@ export function SalesOrdersPanel({
                         </button>
                       </>
                     ) : null}
+                    <button className="btn sm" onClick={() => setPoFor(so)}>
+                      <Icon name="upload" size={14} />{" "}
+                      {so.poNumber ? "PO" : "Add PO"}
+                    </button>
                     {so.status === "CONFIRMED" ? (
                       <button
                         className="btn sm"
@@ -280,6 +359,7 @@ export function SalesOrdersPanel({
       {delivering ? (
         <DeliverModal so={delivering} onClose={() => setDelivering(null)} />
       ) : null}
+      {poFor ? <PoModal so={poFor} onClose={() => setPoFor(null)} /> : null}
 
       {invoicing ? (
         <Modal
@@ -368,6 +448,7 @@ function OrderEditor({
 }) {
   const [d, setD] = useState<OrderDraft>(initial);
   const [add, setAdd] = useState("");
+  const [poFile, setPoFile] = useState<File | null>(null);
   const { pending, run } = useAction();
   const setItem = (i: number, patch: Partial<OrderLine>) =>
     setD({
@@ -380,12 +461,22 @@ function OrderEditor({
 
   const save = () =>
     run(
-      () =>
-        (id
-          ? updateSalesOrder(id, d)
-          : createSalesOrder(clientId, d)) as Promise<
-          { ok: true } | { ok: false; error: string }
-        >,
+      async () => {
+        const r = id
+          ? await updateSalesOrder(id, d)
+          : await createSalesOrder(clientId, d);
+        if (!r.ok) return r;
+        const soId = id ?? (r.data as string);
+        if (poFile && soId) {
+          const u = await uploadPo(soId, poFile);
+          if (!u.ok)
+            return {
+              ok: false as const,
+              error: `Order saved, but the PO file wasn't uploaded: ${u.error}`,
+            };
+        }
+        return { ok: true as const };
+      },
       {
         success: id ? "Sales order saved." : "Sales order created.",
         onDone: onClose,
@@ -395,7 +486,11 @@ function OrderEditor({
   return (
     <Modal
       title={id ? "Edit sales order" : "New sales order"}
-      sub="Enter the number of kits for each product. GST is 0% for educational material unless you change it."
+      sub={
+        d.quotationLabel
+          ? `From quotation ${d.quotationLabel}. Enter the number of kits for each product; GST is 0% unless you change it.`
+          : "Enter the number of kits for each product. GST is 0% for educational material unless you change it."
+      }
       wide
       onClose={onClose}
       footer={
@@ -413,6 +508,29 @@ function OrderEditor({
       }
     >
       <div className="grid grid-cols-1 gap-3 min-[501px]:grid-cols-2">
+        <Field label="School's PO number" htmlFor="so-po">
+          <input
+            className="in"
+            id="so-po"
+            placeholder="As written on their PO"
+            value={d.poNumber}
+            onChange={(e) => setD({ ...d, poNumber: e.target.value })}
+          />
+        </Field>
+        <Field label="PO date" htmlFor="so-podate">
+          <DateInput
+            id="so-podate"
+            value={d.poDate}
+            onChange={(poDate) => setD({ ...d, poDate })}
+          />
+        </Field>
+        <Field label="Signed PO (PDF or photo, up to 4 MB)" htmlFor="so-pofile">
+          <PoFileInput id="so-pofile" onChange={setPoFile} />
+        </Field>
+        <div className="small muted self-center">
+          No PO yet? Save the order now and add the PO later with the <b>PO</b>{" "}
+          button. The PO number prints on the invoice.
+        </div>
         <Field label="Order date" htmlFor="so-date">
           <DateInput
             id="so-date"
@@ -540,6 +658,86 @@ function OrderEditor({
           onChange={(e) => setD({ ...d, notes: e.target.value })}
         />
       </Field>
+    </Modal>
+  );
+}
+
+function PoModal({ so, onClose }: { so: SO; onClose: () => void }) {
+  const [v, setV] = useState({
+    poNumber: so.poNumber ?? "",
+    poDate: so.poDate ?? "",
+  });
+  const [file, setFile] = useState<File | null>(null);
+  const { pending, run } = useAction();
+  return (
+    <Modal
+      title={`Purchase order · ${so.number}`}
+      sub="The school's PO number prints on the invoice, even if the invoice is already made."
+      onClose={onClose}
+      footer={
+        <>
+          <button className="btn" onClick={onClose}>
+            Cancel
+          </button>
+          <button
+            className="btn pri"
+            disabled={pending}
+            onClick={() =>
+              run(
+                async () => {
+                  const r = await setPurchaseOrder(so.id, v);
+                  if (!r.ok || !file) return r;
+                  return uploadPo(so.id, file);
+                },
+                {
+                  success: file ? "PO saved and file uploaded." : "PO saved.",
+                  onDone: onClose,
+                },
+              )
+            }
+          >
+            {pending ? "Saving…" : "Save PO"}
+          </button>
+        </>
+      }
+    >
+      <div className="grid grid-cols-1 gap-3 min-[501px]:grid-cols-2">
+        <Field label="PO number *" htmlFor="po-no">
+          <input
+            className="in"
+            id="po-no"
+            value={v.poNumber}
+            onChange={(e) => setV({ ...v, poNumber: e.target.value })}
+          />
+        </Field>
+        <Field label="PO date" htmlFor="po-date">
+          <DateInput
+            id="po-date"
+            value={v.poDate}
+            onChange={(poDate) => setV({ ...v, poDate })}
+          />
+        </Field>
+      </div>
+      <Field
+        label={
+          so.poFileName
+            ? `Replace signed PO (now: ${so.poFileName})`
+            : "Upload signed PO (PDF or photo, up to 4 MB)"
+        }
+        htmlFor="po-file"
+      >
+        <PoFileInput id="po-file" onChange={setFile} />
+      </Field>
+      {so.poFileName ? (
+        <a
+          className="small"
+          href={`/api/sales-orders/${so.id}/po`}
+          target="_blank"
+          rel="noreferrer"
+        >
+          View the uploaded PO
+        </a>
+      ) : null}
     </Modal>
   );
 }
@@ -703,6 +901,7 @@ export function InvoicesPanel({
           </div>
           <div className="small muted">
             {dmy(r.date)} · due {dmy(r.dueDate)} · order {r.salesOrder.number}
+            {r.salesOrder.poNumber ? ` · PO ${r.salesOrder.poNumber}` : ""}
           </div>
           <div className="my-1.5 grid grid-cols-3 gap-2 text-[13px]">
             <div>

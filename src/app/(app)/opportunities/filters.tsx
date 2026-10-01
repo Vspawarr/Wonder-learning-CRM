@@ -2,7 +2,7 @@
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
-import { STAGES, STAGE_LABEL } from "@/lib/constants";
+import { STAGES, STAGE_LABEL, TEMPERATURE_LABEL } from "@/lib/constants";
 import type { Option } from "@/server/queries";
 
 const CHIPS: [string, string][] = [["Open", "Open"], ["All", "All"], ...STAGES.map((s) => [s, STAGE_LABEL[s]] as [string, string])];
@@ -29,6 +29,7 @@ export function OppFilterBar({ team }: { team: Option[] | null }) {
   }, [q]);
 
   const stage = sp.get("stage") ?? "Open";
+  const cat = sp.get("cat") ?? "";
   return (
     <div className="mb-3 flex flex-wrap items-center gap-2.5">
       <input
@@ -41,6 +42,13 @@ export function OppFilterBar({ team }: { team: Option[] | null }) {
       <div className="flex flex-wrap gap-1.5" role="group" aria-label="Stage">
         {CHIPS.map(([v, l]) => (
           <button key={v} className={`chip ${stage === v ? "on" : ""}`} onClick={() => set("stage", v === "Open" ? "" : v)}>
+            {l}
+          </button>
+        ))}
+      </div>
+      <div className="flex flex-wrap gap-1.5" role="group" aria-label="Category">
+        {([["", "Any category"], ...Object.entries(TEMPERATURE_LABEL)] as [string, string][]).map(([v, l]) => (
+          <button key={l} className={`chip ${cat === v ? "on" : ""}`} onClick={() => set("cat", v)}>
             {l}
           </button>
         ))}

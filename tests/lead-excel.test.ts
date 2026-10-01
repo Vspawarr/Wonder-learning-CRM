@@ -133,7 +133,7 @@ describe("upload", () => {
     expect(r.skipped).toEqual([]);
     expect(r.created).toEqual([{ row: 2, school: "Tiny Tots" }]);
     const lead = await db.lead.findFirstOrThrow({ where: { schoolName: "Tiny Tots" }, include: { tasks: true } });
-    expect(lead).toMatchObject({ status: "NEW", temperature: "HOT", assignedToId: exA.id, city: "Pune", createdById: head.id });
+    expect(lead).toMatchObject({ status: "NEW", assignedToId: exA.id, city: "Pune", createdById: head.id });
     expect(fromDbDate(lead.nextFollowUpDate!)).toBe(addDays(today, 3));
     expect(lead.tasks[0]).toMatchObject({ type: "Email", title: "Send deck", isAuto: true, assigneeId: exA.id });
   });

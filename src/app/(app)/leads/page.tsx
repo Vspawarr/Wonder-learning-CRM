@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { LEAD_STATUS_LABEL, TEMPERATURE_LABEL, leadCode } from "@/lib/constants";
+import { LEAD_STATUS_LABEL, leadCode } from "@/lib/constants";
 import { todayIST } from "@/lib/dates";
 import { seesAllSales } from "@/lib/permissions";
 import { AvatarName, Empty, FollowUp, PageHeader, Pill, Table } from "@/components/ui";
@@ -13,7 +13,7 @@ import { BulkLeadButtons } from "./bulk-upload";
 
 export const metadata = { title: "Leads" };
 
-type SP = Promise<{ q?: string; status?: string; temp?: string; src?: string }>;
+type SP = Promise<{ q?: string; status?: string; src?: string }>;
 
 export default async function LeadsPage({ searchParams }: { searchParams: SP }) {
   const user = await requireUser();
@@ -24,7 +24,7 @@ export default async function LeadsPage({ searchParams }: { searchParams: SP }) 
     getLocations(),
   ]);
   const today = todayIST();
-  const empty = sp.q || sp.temp || sp.src || (sp.status && sp.status !== "Active") ? "No leads match these filters." : "No leads yet. Add your first lead.";
+  const empty = sp.q || sp.src || (sp.status && sp.status !== "Active") ? "No leads match these filters." : "No leads yet. Add your first lead.";
   // Leads that haven't become an opportunity yet (Qualified ones convert automatically).
   const convertible = (status: string) => status === "NEW" || status === "CONTACTED";
 
@@ -39,7 +39,7 @@ export default async function LeadsPage({ searchParams }: { searchParams: SP }) 
       </PageHeader>
       <LeadFilters />
       <div className="hidden min-[901px]:block">
-        <Table head={["Lead", "School", "City", "Source", "Status", "Category", "Owner", "Next follow-up", ""]} empty={empty}>
+        <Table head={["Lead", "School", "City", "Source", "Status", "Owner", "Next follow-up", ""]} empty={empty}>
           {rows.map((l) => (
             <tr key={l.id} className="click">
               <td className="faint">
@@ -57,9 +57,6 @@ export default async function LeadsPage({ searchParams }: { searchParams: SP }) 
               <td>{l.source}</td>
               <td>
                 <Pill>{LEAD_STATUS_LABEL[l.status]}</Pill>
-              </td>
-              <td>
-                <Pill>{TEMPERATURE_LABEL[l.temperature]}</Pill>
               </td>
               <td>
                 <AvatarName id={l.owner.id} name={l.owner.name} />
@@ -85,7 +82,6 @@ export default async function LeadsPage({ searchParams }: { searchParams: SP }) 
                 {l.contactName} · {l.city}
               </div>
               <div className="small mt-1.5 flex flex-wrap items-center gap-2">
-                <Pill>{TEMPERATURE_LABEL[l.temperature]}</Pill>
                 <span>
                   Next: <FollowUp date={l.nextFollowUpDate} today={today} />
                 </span>

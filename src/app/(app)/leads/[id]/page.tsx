@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { LEAD_STATUS_LABEL, STAGE_LABEL, TEMPERATURE_LABEL, leadCode, oppCode } from "@/lib/constants";
+import { LEAD_STATUS_LABEL, STAGE_LABEL, leadCode, oppCode } from "@/lib/constants";
 import { fmtDate, istDate, todayIST } from "@/lib/dates";
 import { ActivityLog } from "@/components/activity";
 import { Card, DueTag, FollowUp, Pill } from "@/components/ui";
@@ -42,7 +42,6 @@ export default async function LeadPage({ params }: { params: Promise<{ id: strin
           </div>
           <div className="mt-2 flex flex-wrap items-center gap-2">
             <Pill>{LEAD_STATUS_LABEL[lead.status]}</Pill>
-            <Pill>{TEMPERATURE_LABEL[lead.temperature]}</Pill>
             <span className="tag">{lead.source}</span>
             <span className="tag">{leadCode(lead.number)}</span>
             <span className="small faint">

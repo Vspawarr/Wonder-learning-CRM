@@ -50,7 +50,10 @@ export default async function OutstandingPage({ searchParams }: { searchParams: 
             <tr key={r.id}>
               <td className="whitespace-nowrap">
                 <b>{r.number}</b>
-                <div className="small muted">{dmy(r.date)}</div>
+                <div className="small muted">
+                  {dmy(r.date)}
+                  {r.salesOrder.poNumber ? ` · PO ${r.salesOrder.poNumber}` : ""}
+                </div>
               </td>
               <td>
                 <Link href={`/clients/${r.client.id}`} className="font-bold text-ink no-underline hover:underline">

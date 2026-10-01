@@ -43,7 +43,6 @@ export function leadData(assignedToId: string, over: Partial<LeadInput> = {}): L
     state: "Maharashtra",
     city: "Pune",
     source: "Google",
-    temperature: "WARM",
     assignedToId,
     nextFollowUpDate: addDays(todayIST(), 1),
     interests: [],

@@ -36,7 +36,6 @@ describe("lead validation", () => {
     state: "Goa",
     city: "Panaji",
     source: "Website",
-    temperature: "HOT",
     assignedToId: "u",
     nextFollowUpDate: "2026-10-05",
   };

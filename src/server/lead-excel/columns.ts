@@ -90,7 +90,7 @@ export const COLUMNS: Column[] = [
   { key: "source", header: "Lead Source*", required: true, width: 22, list: "source" },
   { key: "referenceName", header: "Reference Name", required: false, width: 20, note: "Only kept for Reference / Existing School Reference" },
   { key: "status", header: "Lead Status", required: false, width: 13, list: "status", note: "Blank = New. Qualified creates an opportunity" },
-  { key: "category", header: "Category", required: false, width: 11, list: "category", note: "Blank = Warm" },
+  { key: "category", header: "Category (if Qualified)", required: false, width: 14, list: "category", note: "Only for Status = Qualified (it becomes an opportunity). Blank = Warm" },
   { key: "assignedTo", header: "Assigned To*", required: true, width: 20, list: "assignee" },
   { key: "nextFollowUpDate", header: "Next Follow-up Date*", required: true, width: 14, kind: "date", note: "DD/MM/YYYY" },
   { key: "followUpType", header: "Follow-up Type", required: false, width: 18, list: "followUpType" },
