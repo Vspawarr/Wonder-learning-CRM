@@ -37,6 +37,7 @@ export function OppDrawer({
     router.push(next.size ? `${path}?${next}` : path, { scroll: false });
   };
   const initial = {
+    expectedValue: opp.expectedValue === null ? "" : String(opp.expectedValue),
     expectedCloseDate: opp.expectedCloseDate ?? "",
     competitor: opp.competitor ?? "",
     decisionMaker: opp.decisionMaker ?? "",
@@ -73,8 +74,7 @@ export function OppDrawer({
             <Pill>{STAGE_LABEL[opp.stage]}</Pill>
             <span className="tag">{oppCode(opp.number)}</span>
             <span className="small muted">
-              {opp.probability}% · {inr(opp.value)}
-              {opp.unpriced ? ` + ${opp.unpriced} unpriced` : ""}
+              {opp.probability}% · {opp.noValue ? "no expected value yet" : inr(opp.value)}
             </span>
           </div>
         </div>
@@ -156,6 +156,17 @@ export function OppDrawer({
       <QuotationsPanel opp={opp} products={products} emailReady={emailReady} me={me} />
 
       <div className="fg2">
+        <Field label="Expected deal value (₹)" htmlFor="op-value">
+          <input
+            className="in"
+            id="op-value"
+            inputMode="numeric"
+            placeholder="e.g. 250000"
+            disabled={opp.closed}
+            value={v.expectedValue}
+            onChange={(e) => setV({ ...v, expectedValue: e.target.value })}
+          />
+        </Field>
         <Field label="Expected close date" htmlFor="op-close">
           <DateInput id="op-close" disabled={opp.closed} value={v.expectedCloseDate} onChange={(expectedCloseDate) => setV({ ...v, expectedCloseDate })} />
         </Field>

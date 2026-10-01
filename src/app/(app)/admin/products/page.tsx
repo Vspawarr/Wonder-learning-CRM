@@ -18,14 +18,12 @@ export default async function ProductsPage() {
     gstRate: p.gstRate === null ? null : Number(p.gstRate),
     active: p.active,
   }));
-  const unpriced = rows.filter((r) => r.active && r.price === null).length;
 
   return (
     <>
-      <PageHeader title="Products" sub="What a lead can be interested in and an opportunity can include. Prices feed pipeline values.">
+      <PageHeader title="Products" sub="The products offered on quotations. Price and GST here are optional reference values; quotations have MRP and price typed on each one.">
         <ProductButton />
       </PageHeader>
-      {unpriced ? <div className="note warn">{unpriced} active product(s) have no price yet, so pipeline values leave them out.</div> : null}
       <Table head={["Code", "Name", "Category", ["Price", "num"], ["GST", "num"], "Status", ""]}>
         {rows.map((p) => (
           <tr key={p.id}>

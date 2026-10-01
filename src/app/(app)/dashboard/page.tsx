@@ -54,10 +54,9 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
         <Kpi label="Lost" value={inrS(k.lostValue)} sub={`${k.lostCount} deal(s)`} color="#8B88A6" />
         <Kpi label="Win rate" value={k.winRate === null ? "–" : `${k.winRate}%`} sub="Won ÷ (won + lost)" color="#3D3BA8" />
       </div>
-      {k.unpriced ? (
+      {k.noValue ? (
         <div className="note warn">
-          {k.unpriced} open opportunit{k.unpriced === 1 ? "y has" : "ies have"} unpriced items, so rupee totals are understated until
-          product prices are entered.
+          {k.noValue} open opportunit{k.noValue === 1 ? "y has" : "ies have"} no expected value yet, so rupee totals are understated.
         </div>
       ) : null}
 

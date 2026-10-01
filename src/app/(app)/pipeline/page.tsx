@@ -23,7 +23,7 @@ export default async function PipelinePage({ searchParams }: { searchParams: Pro
   const open = cards.filter((c) => c.stage !== "WON" && c.stage !== "LOST");
   const openValue = open.reduce((s, c) => s + c.value, 0);
   const weighted = open.reduce((s, c) => s + (c.value * c.probability) / 100, 0);
-  const unpriced = open.filter((c) => c.unpriced).length;
+  const noValue = open.filter((c) => c.noValue).length;
 
   return (
     <>
@@ -43,10 +43,10 @@ export default async function PipelinePage({ searchParams }: { searchParams: Pro
           <span className="small muted">Weighted forecast</span> <b>{inrS(weighted)}</b>
         </div>
       </PageHeader>
-      {unpriced ? (
+      {noValue ? (
         <div className="note warn">
-          {unpriced} open {unpriced === 1 ? "opportunity has" : "opportunities have"} items without a price, so the totals are
-          understated. Prices are set under Settings → Products.
+          {noValue} open {noValue === 1 ? "opportunity has" : "opportunities have"} no expected value yet, so the totals are understated.
+          Open a deal and fill in “Expected deal value”.
         </div>
       ) : null}
       <Board cards={cards} />

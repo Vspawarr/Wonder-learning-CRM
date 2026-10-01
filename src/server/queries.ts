@@ -144,17 +144,9 @@ export type LeadDetail = NonNullable<Awaited<ReturnType<typeof leadDetail>>>;
 
 /* ---------- opportunities ---------- */
 
-type OppWithItems = Prisma.OpportunityGetPayload<{ include: { items: true } }>;
-
-/** Value of priced items; `unpriced` counts items without a price. */
-export function oppValue(o: Pick<OppWithItems, "items">) {
-  let value = 0;
-  let unpriced = 0;
-  for (const i of o.items) {
-    if (i.unitPrice === null) unpriced++;
-    else value += Number(i.unitPrice) * i.qty;
-  }
-  return { value, unpriced };
+/** A deal's value is the expected value its owner typed; `noValue` marks deals without one. */
+export function oppValue(o: { expectedValue: Prisma.Decimal | null }) {
+  return { value: o.expectedValue === null ? 0 : Number(o.expectedValue), noValue: o.expectedValue === null };
 }
 
 export type OppFilters = { owner?: string; q?: string; stage?: string };
@@ -178,7 +170,6 @@ export async function pipelineCards(user: SessionUser, f: OppFilters = {}) {
   const rows = await db.opportunity.findMany({
     where,
     include: {
-      items: true,
       owner: { select: { id: true, name: true } },
       lead: { select: { contactName: true, city: true } },
       client: { select: { id: true } },
@@ -231,6 +222,7 @@ export async function oppDetail(user: SessionUser, id: string) {
     stage: o.stage as Stage,
     probability: o.probability,
     closed: CLOSED_STAGES.includes(o.stage),
+    expectedValue: o.expectedValue === null ? null : Number(o.expectedValue),
     expectedCloseDate: optDate(o.expectedCloseDate),
     competitor: o.competitor,
     decisionMaker: o.decisionMaker,

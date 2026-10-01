@@ -204,6 +204,7 @@ model Opportunity {
   schoolName        String
   stage             OpportunityStage @default(INTERESTED)
   probability       Int // auto-set from STAGE_PROBABILITY on every stage change
+  expectedValue     Decimal?         @db.Decimal(14, 2) // ₹, typed by the salesperson; drives pipeline totals
   expectedCloseDate DateTime?        @db.Date
   competitor        String? // COMPETITORS
   decisionMaker     String?

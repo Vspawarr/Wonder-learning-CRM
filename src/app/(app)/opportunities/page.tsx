@@ -69,8 +69,7 @@ export default async function OpportunitiesPage({ searchParams }: { searchParams
                 <StagePill o={o} />
               </td>
               <td className="num">
-                {inrS(o.value)}
-                {o.unpriced ? <div className="small faint">+{o.unpriced} unpriced</div> : null}
+                {o.noValue ? <span className="faint">No value yet</span> : inrS(o.value)}
               </td>
               <td className="num">{o.probability}%</td>
               <td className="whitespace-nowrap">{fmtDate(o.expectedCloseDate, today)}</td>
@@ -101,8 +100,7 @@ export default async function OpportunitiesPage({ searchParams }: { searchParams
             </div>
             <div className="small muted mt-0.5">{[o.contactName, o.city].filter(Boolean).join(" · ")}</div>
             <div className="small mt-1.5">
-              <b>{inrS(o.value)}</b>
-              {o.unpriced ? <span className="faint"> +{o.unpriced} unpriced</span> : null} · {o.probability}% · {o.owner.name}
+              {o.noValue ? <span className="faint">No value yet</span> : <b>{inrS(o.value)}</b>} · {o.probability}% · {o.owner.name}
             </div>
             <div className="small mt-1">
               <NextAction o={o} today={today} />

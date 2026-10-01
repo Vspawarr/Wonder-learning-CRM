@@ -6,6 +6,7 @@ import { logActivity } from "@/server/activities";
 import { convertLead, createLead, disqualifyLead, updateLead } from "@/server/leads";
 import { moveOpportunity, updateOpportunity } from "@/server/opportunities";
 import { completeTask, createTask } from "@/server/tasks";
+import { pipelineCards } from "@/server/queries";
 import { createUser, saveProduct, updateUser } from "@/server/settings";
 import { completeOnboarding, convertToClient } from "@/server/clients";
 import { leadData, makeProduct, makeUser, resetData } from "./helpers";
@@ -182,6 +183,23 @@ describe("converting and the pipeline", () => {
     expect(Number(byP[a.id].unitPrice)).toBe(1000);
     expect(byP[a.id].qty).toBe(2);
     expect(Number(byP[b.id].unitPrice)).toBe(500);
+  });
+});
+
+describe("expected deal value", () => {
+  it("is typed on the opportunity and drives pipeline values", async () => {
+    const oppId = await convertLead(exA, await createLead(exA, leadData(exA.id)));
+    let card = (await pipelineCards(exA)).find((c) => c.id === oppId)!;
+    expect(card).toMatchObject({ value: 0, noValue: true });
+    await updateOpportunity(exA, oppId, { ownerId: exA.id, expectedValue: "2,50,000" });
+    card = (await pipelineCards(exA)).find((c) => c.id === oppId)!;
+    expect(card).toMatchObject({ value: 250000, noValue: false });
+    await expect(updateOpportunity(exA, oppId, { ownerId: exA.id, expectedValue: "lots" })).rejects.toThrow(/expected value/);
+    // leaving it out keeps it; clearing it removes it
+    await updateOpportunity(exA, oppId, { ownerId: exA.id, nextAction: "Call" });
+    expect(Number((await db.opportunity.findUniqueOrThrow({ where: { id: oppId } })).expectedValue)).toBe(250000);
+    await updateOpportunity(exA, oppId, { ownerId: exA.id, expectedValue: "" });
+    expect((await db.opportunity.findUniqueOrThrow({ where: { id: oppId } })).expectedValue).toBeNull();
   });
 });
 

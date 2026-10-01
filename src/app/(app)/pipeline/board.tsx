@@ -142,8 +142,7 @@ function CardBody({ card: c, today, className }: { card: PipelineCard; today: st
     <div className={`kc ${className ?? ""}`} style={{ "--c": STAGE_COLOR[c.stage] } as React.CSSProperties}>
       <div className="t">{c.schoolName}</div>
       <div className="m">
-        {inrS(c.value)}
-        {c.unpriced ? <span className="faint"> + {c.unpriced} unpriced</span> : null} · {c.probability}%
+        {c.noValue ? <span className="faint">No value yet</span> : inrS(c.value)} · {c.probability}%
       </div>
       {c.competitor ? <div className="m">vs {c.competitor}</div> : null}
       {c.stage === "LOST" ? (

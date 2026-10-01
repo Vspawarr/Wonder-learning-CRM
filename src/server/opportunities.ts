@@ -52,6 +52,7 @@ export async function updateOpportunity(user: SessionUser, id: string, raw: unkn
     await tx.opportunity.update({
       where: { id },
       data: {
+        ...(d.expectedValue !== undefined ? { expectedValue: d.expectedValue } : {}),
         expectedCloseDate: d.expectedCloseDate ? toDbDate(d.expectedCloseDate) : null,
         competitor: d.competitor,
         decisionMaker: d.decisionMaker,

@@ -92,6 +92,12 @@ export const activityInput = z
   .refine((a) => [a.leadId, a.opportunityId, a.clientId].filter(Boolean).length === 1, "Choose a lead, opportunity or client.");
 
 export const oppUpdateInput = z.object({
+  expectedValue: z
+    .union([z.number(), z.string()])
+    .nullish()
+    // Left out = keep the saved value; blank = clear it.
+    .transform((v) => (v === undefined ? undefined : v === "" || v === null ? null : Number(String(v).replace(/,/g, ""))))
+    .refine((n) => n == null || (Number.isFinite(n) && n >= 0 && n < 1e12), "Enter a valid expected value."),
   expectedCloseDate: optDate,
   competitor: optOneOf(COMPETITORS, "competitor"),
   decisionMaker: optText(200),

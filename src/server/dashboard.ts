@@ -44,11 +44,9 @@ export async function salesDashboard(user: SessionUser, f: DashFilters) {
     db.lead.count({ where: { ...leadBase, convertedAt: period } }),
     db.opportunity.findMany({
       where: { ...oppBase, stage: { notIn: ["WON", "LOST"] } },
-      include: { items: true },
     }),
     db.opportunity.findMany({
       where: { ...oppBase, stage: { in: ["WON", "LOST"] }, closedAt: period },
-      include: { items: true },
     }),
     db.lead.findMany({ where: { ...leadBase, createdAt: span(weeksStart, today) }, select: { createdAt: true } }),
     db.user.findMany({
@@ -87,7 +85,7 @@ export async function salesDashboard(user: SessionUser, f: DashFilters) {
     }),
   ]);
 
-  const val = (o: { items: { unitPrice: unknown; qty: number }[] }) => oppValue(o as Parameters<typeof oppValue>[0]).value;
+  const val = (o: Parameters<typeof oppValue>[0]) => oppValue(o).value;
   const won = closed.filter((o) => o.stage === "WON");
   const lost = closed.filter((o) => o.stage === "LOST");
   const sum = <T,>(xs: T[], fn: (x: T) => number) => xs.reduce((n, x) => n + fn(x), 0);
@@ -135,7 +133,7 @@ export async function salesDashboard(user: SessionUser, f: DashFilters) {
       lostValue: sum(lost, val),
       lostCount: lost.length,
       winRate: won.length + lost.length ? Math.round((won.length / (won.length + lost.length)) * 100) : null,
-      unpriced: openOpps.filter((o) => oppValue(o).unpriced > 0).length,
+      noValue: openOpps.filter((o) => oppValue(o).noValue).length,
     },
     weeks,
     byStage: (STAGES.slice(0, 4) as Stage[]).map((s) => ({
