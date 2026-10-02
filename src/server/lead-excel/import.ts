@@ -133,6 +133,8 @@ export async function importLeads(user: SessionUser, file: ArrayBuffer | Buffer)
         problems.push(`"${label(c)}": "${text[c.key]}" must be a whole number of at least ${c.min ?? 0}`);
     const date = text.nextFollowUpDate ? parseDate(values.nextFollowUpDate) : null;
     if (text.nextFollowUpDate && !date) problems.push(`"Next Follow-up Date": "${text.nextFollowUpDate}" is not a valid date (use DD/MM/YYYY)`);
+    const qualified = STATUS_BY_LABEL[text.status] === "QUALIFIED";
+    if (qualified && !text.category) problems.push(`"Opportunity Category": choose Hot, Warm or Cold for a Qualified lead`);
     const matches = people.filter((p) => p.name === text.assignedTo);
     if (text.assignedTo && matches.length > 1) problems.push(`"Assigned To": more than one active user is called "${text.assignedTo}"`);
 
@@ -165,7 +167,8 @@ export async function importLeads(user: SessionUser, file: ArrayBuffer | Buffer)
         referenceName: REF_SOURCES.includes(text.source) ? text.referenceName || null : null,
         interests: [],
         status: text.status ? STATUS_BY_LABEL[text.status] : "NEW",
-        temperature: text.category ? CATEGORY_BY_LABEL[text.category] : "WARM",
+        // The category belongs to the opportunity, so it's only used for Qualified rows.
+        temperature: qualified ? CATEGORY_BY_LABEL[text.category] : null,
         assignedToId: matches[0].id,
         nextFollowUpDate: date!,
         followUpType: text.followUpType || null,

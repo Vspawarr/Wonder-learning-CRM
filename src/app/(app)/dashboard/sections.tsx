@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { DASH_SECTIONS, type DashSection } from "./sections-list";
+import { DASH_SECTIONS, type DashSection } from "@/lib/dashboard-sections";
 
 /** "All" plus one button per area; pick one or several. The choice is remembered on this device. */
 export function SectionPicker({ shown }: { shown: DashSection[] }) {

@@ -175,6 +175,22 @@ describe("upload", () => {
     expect(r.skipped.map((s) => s.row)).toEqual([2, 3, 4, 5, 6, 7, 8, 9, 10]);
   });
 
+  it("a Qualified row needs its opportunity category; other rows ignore it", async () => {
+    const r = await importLeads(
+      head,
+      await filled([
+        good({ schoolName: "Q no cat", status: "Qualified" }),
+        good({ schoolName: "Q hot", mobile: "98765 00002", status: "Qualified", category: "Hot" }),
+        good({ schoolName: "New with cat", mobile: "98765 00003", category: "Cold" }),
+      ]),
+    );
+    expect(r.skipped).toEqual([{ row: 2, school: "Q no cat", reason: expect.stringMatching(/"Opportunity Category": choose Hot, Warm or Cold/) }]);
+    expect(r.created.map((c) => c.school)).toEqual(["Q hot", "New with cat"]);
+    const opp = await db.opportunity.findFirstOrThrow({ where: { schoolName: "Q hot" } });
+    expect(opp.temperature).toBe("HOT");
+    expect(await db.opportunity.count({ where: { schoolName: "New with cat" } })).toBe(0);
+  });
+
   it("skips possible duplicates, in the database and within the file", async () => {
     await createLead(head, leadData(exA.id, { schoolName: "Tiny  TOTS", mobile: "+91 98765-00001" }));
     const r = await importLeads(head, await filled([good(), good({ schoolName: "New One", mobile: "90000 11111" }), good({ schoolName: "new one", mobile: "9000011111" })]));

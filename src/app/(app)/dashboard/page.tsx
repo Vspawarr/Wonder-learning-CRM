@@ -14,7 +14,7 @@ import { targetProgress } from "@/server/targets";
 import { assignees } from "@/server/queries";
 import { DashFilterBar } from "./filters";
 import { SectionPicker } from "./sections";
-import { DASH_SECTIONS, parseSections, type DashSection } from "./sections-list";
+import { DASH_SECTIONS, parseSections, type DashSection } from "@/lib/dashboard-sections";
 import { cookies } from "next/headers";
 import { getLocations } from "@/server/locations";
 

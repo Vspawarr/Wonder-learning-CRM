@@ -120,6 +120,10 @@ export function BulkLeadButtons() {
                 Rows that pass every check are created with their first follow-up task. Rows with a problem, and possible duplicates
                 (same school name and mobile number), are skipped and listed with the reason.
               </p>
+              <p className="small muted">
+                Always fill in a freshly downloaded template: its columns and dropdowns follow the current lead form, people and
+                cities. A template saved from an older version is refused, and the message says which column changed.
+              </p>
             </>
           ) : (
             <UploadSummary result={result} />

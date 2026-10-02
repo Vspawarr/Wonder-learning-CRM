@@ -2,13 +2,17 @@
 import { CLIENT_STATUS_LABEL, LEAD_STATUS_LABEL, STAGE_LABEL, TEMPERATURE_LABEL, clientCode, leadCode, oppCode } from "@/lib/constants";
 import { daysFrom, istDate, todayIST } from "@/lib/dates";
 import { seesAllSales, type SessionUser } from "@/lib/permissions";
-import { salesDashboard } from "../dashboard";
+import { salesDashboard, serviceSummary } from "../dashboard";
 import { NotFoundError } from "../errors";
 import { INVOICE_STATE_LABEL } from "../finance/money";
 import { clientLedger, ledgerSummary, resolvePeriod } from "../finance/ledger";
 import { collectionsSummary, outstandingList } from "../finance/service";
 import { clientsList, leadsList, pipelineCards, taskList, type TaskKind } from "../queries";
-import type { Report } from "./types";
+import type { Cell, Report } from "./types";
+import { getFeatures } from "../features";
+import { renewalCandidates } from "../renewals";
+import { targetProgress } from "../targets";
+import { DASH_SECTIONS, parseSections, type DashSection } from "@/lib/dashboard-sections";
 
 type Params = Record<string, string | undefined>;
 const dmy = (s: string | null | undefined) => (s ? s.split("-").reverse().join("/") : "");
@@ -361,92 +365,192 @@ async function dashboard(user: SessionUser, p: Params): Promise<Report> {
     exec: all ? p.exec : undefined,
     state: p.state,
   } as Parameters<typeof salesDashboard>[1];
+  // Same sections as on screen (?show=…; the export route fills in the remembered choice).
+  const shown = parseSections(p.show);
+  const has = (k: DashSection) => shown.includes(k);
+  const features = await getFeatures();
   const d = await salesDashboard(user, f);
-  const cash = await collectionsSummary(user, { exec: f.exec, state: f.state }, d.range.from, d.range.to);
   const k = d.kpis;
+  const range = `${dmy(d.range.from)} – ${dmy(d.range.to)}`;
+  const sections: Report["sections"] = [];
+  const numbers = (heading: string, rows: { k: string; v?: Cell; m?: Cell }[]) =>
+    sections.push({
+      heading,
+      columns: [
+        { key: "k", header: "Measure", width: 2 },
+        { key: "v", header: "Count", kind: "number" },
+        { key: "m", header: "Amount", kind: "money" },
+      ],
+      rows,
+    });
+
+  if (has("sales")) {
+    numbers(`Sales · ${range}`, [
+      { k: "Leads created", v: k.leads },
+      { k: "Hot opportunities (open)", v: k.hot },
+      { k: "Leads converted", v: k.converted },
+      { k: "Open pipeline", v: k.openCount, m: k.openValue },
+      { k: "Weighted forecast", m: k.weighted },
+      { k: "Won", v: k.wonCount, m: k.wonValue },
+    ]);
+    sections.push({
+      heading: "Pipeline by stage",
+      columns: [
+        { key: "s", header: "Stage", width: 2 },
+        { key: "c", header: "Deals", kind: "number" },
+        { key: "v", header: "Value", kind: "money" },
+      ],
+      rows: d.byStage.map((b) => ({ s: STAGE_LABEL[b.stage], c: b.count, v: b.value })),
+    });
+    sections.push({
+      heading: "Lead sources",
+      columns: [
+        { key: "s", header: "Source", width: 2 },
+        { key: "l", header: "Leads", kind: "number" },
+        { key: "c", header: "Converted", kind: "number" },
+      ],
+      rows: d.sources.map((s) => ({ s: s.source, l: s.leads, c: s.converted })),
+      empty: "No leads in this period.",
+    });
+    sections.push({
+      heading: "Biggest open deals",
+      columns: [
+        { key: "s", header: "School", width: 2 },
+        { key: "st", header: "Stage", width: 1.2 },
+        { key: "p", header: "Chance %", kind: "number" },
+        { key: "v", header: "Value", kind: "money" },
+      ],
+      rows: d.biggest.map((o) => ({ s: o.school, st: STAGE_LABEL[o.stage], p: o.probability, v: o.value })),
+      empty: "No open deals.",
+    });
+  }
+
+  if (has("finance")) {
+    const cash = await collectionsSummary(user, { exec: f.exec, state: f.state }, d.range.from, d.range.to);
+    const owed = await outstandingList(user, { owner: f.exec });
+    numbers(`Finance · collected ${range}, owed as of today`, [
+      { k: "Collected", v: cash.collectedCount, m: cash.collected },
+      { k: "Outstanding", m: cash.outstanding },
+      { k: "Overdue", v: cash.overdueCount, m: cash.overdue },
+      { k: "Cheques not cleared", m: owed.forecast.chequesPending },
+    ]);
+    sections.push({
+      heading: "How late is the money owed",
+      columns: [
+        { key: "k", header: "Age", width: 2 },
+        { key: "n", header: "Invoices", kind: "number" },
+        { key: "v", header: "Amount", kind: "money" },
+      ],
+      rows: owed.ageing.map((a) => ({ k: a.label, n: a.count, v: a.amount })),
+    });
+    sections.push({
+      heading: "Expected collections",
+      columns: [
+        { key: "k", header: "When", width: 2 },
+        { key: "n", header: "Invoices", kind: "number" },
+        { key: "v", header: "Amount", kind: "money" },
+      ],
+      rows: owed.forecast.buckets.map((b) => ({ k: b.label, n: b.count, v: b.amount })),
+    });
+  }
+
+  if (has("team")) {
+    numbers(`Team & management · ${range}`, [
+      { k: "Win rate %", v: k.winRate },
+      { k: "Lost", v: k.lostCount, m: k.lostValue },
+      { k: "Interactions logged", v: d.team.reduce((t, r) => t + r.interactions, 0) },
+    ]);
+    sections.push({
+      heading: all ? "Sales team" : "My numbers",
+      columns: [
+        { key: "n", header: "Name", width: 2 },
+        { key: "l", header: "Leads", kind: "number" },
+        { key: "i", header: "Interactions", kind: "number" },
+        { key: "o", header: "Open pipeline", kind: "money" },
+        { key: "w", header: "Won", kind: "money" },
+      ],
+      rows: d.team.map((t) => ({ n: t.name, l: t.leads, i: t.interactions, o: t.open, w: t.won })),
+    });
+    if (features.targets) {
+      const t = await targetProgress(user);
+      const rows = t.rows.filter((r) => r.salesTarget || r.collectionTarget);
+      if (rows.length)
+        sections.push({
+          heading: `Targets · ${t.month}`,
+          columns: [
+            { key: "n", header: "Name", width: 2 },
+            { key: "st", header: "Sales target", kind: "money" },
+            { key: "s", header: "Sales", kind: "money" },
+            { key: "ct", header: "Collection target", kind: "money" },
+            { key: "c", header: "Collected", kind: "money" },
+          ],
+          rows: rows.map((r) => ({ n: r.name, st: r.salesTarget, s: r.sales, ct: r.collectionTarget, c: r.collection })),
+        });
+    }
+    sections.push({
+      heading: "Why deals were lost",
+      columns: [
+        { key: "r", header: "Reason", width: 2 },
+        { key: "n", header: "Deals", kind: "number" },
+      ],
+      rows: d.lostReasons.map((r) => ({ r: r.label, n: r.value })),
+      empty: "No lost deals in this period.",
+    });
+    sections.push({
+      heading: "Competitors met",
+      columns: [
+        { key: "r", header: "Competitor", width: 2 },
+        { key: "n", header: "Deals", kind: "number" },
+      ],
+      rows: d.competitors.map((r) => ({ r: r.label, n: r.value })),
+      empty: "None recorded.",
+    });
+  }
+
+  if (has("service")) {
+    const svc = await serviceSummary(user, f);
+    const renewals = features.renewals ? await renewalCandidates(user) : null;
+    numbers("Service & delivery · as of today", [
+      { k: "Follow-ups overdue", v: svc.tasks.overdue },
+      { k: "Follow-ups due today", v: svc.tasks.dueToday },
+      { k: "Follow-ups in the next 7 days", v: svc.tasks.nextWeek },
+      { k: "Orders to deliver", v: svc.orders.length },
+      ...(features.dispatch ? [{ k: "Kits in transit", v: svc.inTransit }] : []),
+      { k: "Clients onboarding", v: svc.onboarding },
+      ...(renewals ? [{ k: `Renewals due (${renewals.ay.label})`, v: renewals.clients.length }] : []),
+    ]);
+    sections.push({
+      heading: "Follow-ups due",
+      columns: [
+        { key: "d", header: "Due", width: 0.8 },
+        { key: "t", header: "Follow-up", width: 2.4 },
+        { key: "r", header: "Related to", width: 1.6 },
+        { key: "a", header: "Assigned to", width: 1.1 },
+      ],
+      rows: d.due.map((t) => ({ d: dmy(t.dueDate), t: t.title, r: t.related?.label ?? "", a: t.assignee.name })),
+      empty: "Nothing due.",
+    });
+    sections.push({
+      heading: "Orders waiting for delivery",
+      columns: [
+        { key: "n", header: "Sales order", width: 1.2 },
+        { key: "s", header: "School", width: 2.4 },
+        { key: "d", header: "Order date", width: 0.9 },
+      ],
+      rows: svc.orders.map((o) => ({ n: o.number, s: o.client.schoolName, d: dmy(o.date) })),
+      empty: "Every order has been delivered.",
+    });
+  }
+
   return {
-    title: "Sales dashboard",
+    title: "Dashboard",
     subtitle: filtersLine([
-      `${dmy(d.range.from)} – ${dmy(d.range.to)}`,
+      range,
       all ? (f.exec ? "One salesperson" : "Whole team") : `For ${user.name}`,
       f.state && `State: ${f.state}`,
+      shown.length < DASH_SECTIONS.length && `Sections: ${DASH_SECTIONS.filter(([key]) => has(key)).map(([, l]) => l).join(", ")}`,
     ]),
-    sections: [
-      {
-        heading: "Key numbers",
-        columns: [
-          { key: "k", header: "Measure", width: 2 },
-          { key: "v", header: "Value", kind: "number" },
-          { key: "m", header: "Amount", kind: "money" },
-        ],
-        rows: [
-          { k: "Leads created", v: k.leads },
-          { k: "Hot opportunities (open)", v: k.hot },
-          { k: "Leads converted", v: k.converted },
-          { k: "Open pipeline", v: k.openCount, m: k.openValue },
-          { k: "Weighted forecast", m: k.weighted },
-          { k: "Won", v: k.wonCount, m: k.wonValue },
-          { k: "Lost", v: k.lostCount, m: k.lostValue },
-          { k: "Win rate %", v: k.winRate },
-          { k: "Collected", v: cash.collectedCount, m: cash.collected },
-          { k: "Outstanding", m: cash.outstanding },
-          { k: "Overdue", v: cash.overdueCount, m: cash.overdue },
-        ],
-      },
-      {
-        heading: "Pipeline by stage",
-        columns: [
-          { key: "s", header: "Stage", width: 2 },
-          { key: "c", header: "Deals", kind: "number" },
-          { key: "v", header: "Value", kind: "money" },
-        ],
-        rows: d.byStage.map((b) => ({
-          s: STAGE_LABEL[b.stage],
-          c: b.count,
-          v: b.value,
-        })),
-      },
-      {
-        heading: "Lead sources",
-        columns: [
-          { key: "s", header: "Source", width: 2 },
-          { key: "l", header: "Leads", kind: "number" },
-          { key: "c", header: "Converted", kind: "number" },
-        ],
-        rows: d.sources.map((s) => ({
-          s: s.source,
-          l: s.leads,
-          c: s.converted,
-        })),
-        empty: "No leads in this period.",
-      },
-      {
-        heading: all ? "Team" : "My numbers",
-        columns: [
-          { key: "n", header: "Name", width: 2 },
-          { key: "l", header: "Leads", kind: "number" },
-          { key: "i", header: "Interactions", kind: "number" },
-          { key: "o", header: "Open pipeline", kind: "money" },
-          { key: "w", header: "Won", kind: "money" },
-        ],
-        rows: d.team.map((t) => ({
-          n: t.name,
-          l: t.leads,
-          i: t.interactions,
-          o: t.open,
-          w: t.won,
-        })),
-      },
-      {
-        heading: "Lost reasons",
-        columns: [
-          { key: "r", header: "Reason", width: 2 },
-          { key: "n", header: "Deals", kind: "number" },
-        ],
-        rows: d.lostReasons.map((r) => ({ r: r.label, n: r.value })),
-        empty: "No lost deals in this period.",
-      },
-    ],
+    sections,
   };
 }
 
