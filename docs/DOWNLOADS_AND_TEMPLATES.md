@@ -1,0 +1,116 @@
+# Downloads, uploads and templates
+
+Every file the CRM produces or accepts, where it comes from in the code, and what to re-check when the app
+changes. **Rule: when a field, label, list or rule changes on a screen, update every file below that shows
+it in the same commit, and tick the checklist at the bottom.**
+
+Nothing here is a stored, hand-made file. Every document is generated from the live data and code at the
+moment it's downloaded, so a change in the code shows up in the next download. (The only stored files are
+the Android APK and the logo.)
+
+---
+
+## Lead Excel template
+
+- **Where:** Leads → **Download template** (`/api/leads/template`).
+- **Code:** `src/server/lead-excel/columns.ts` (columns, headers, notes) → `template.ts` (builds the .xlsx) →
+  `import.ts` (reads it back). Tests: `tests/lead-excel.test.ts`.
+- **Tabs:** `Leads` (one row per lead; row 2 is a grey example that the upload skips), `Read me` (plain
+  instructions), `Lists` (hidden; feeds the dropdowns).
+- **Columns** (same order and required fields as the New lead form; * = required):
+  School Name* · Owner/Contact Person Name* · Designation · Mobile Number* · Email ID · State* · City* ·
+  Area/Location · Address · Current Publication/Curriculum · Current Student Strength · Number of Branches ·
+  Lead Source* · Reference Name · Lead Status · **Opportunity Category (if Qualified)** · Assigned To* ·
+  Next Follow-up Date* · Follow-up Type · Follow-up Remark
+- **Dropdowns (hard, "stop" style):** Designation, State, City (follows the row's State), Lead Source, Lead
+  Status (New / Contacted / Qualified), Opportunity Category (Hot / Warm / Cold), Assigned To (active
+  sales people at download time), Follow-up Type. Dates DD/MM/YYYY. Whole numbers for strength and branches.
+- **Where the lists come from:** `src/lib/constants.ts` (designations, sources, statuses, categories,
+  follow-up types) and the database (states and cities from Settings → Locations; people from Settings → Users).
+  The form, the template and the upload all read these same lists; never type a second copy.
+- **Rules the upload enforces** (`import.ts`), the same as the New lead form:
+  - header row must match exactly (an old template is refused, naming the changed column);
+  - required fields; values must be in the lists; City must belong to State; valid mobile; valid date;
+  - **Qualified rows need an Opportunity Category**; the category is ignored on other rows (it belongs to the opportunity);
+  - Reference Name kept only for Reference / Existing School Reference;
+  - Sales Executives / Managers can only assign leads to themselves;
+  - same school name + mobile as an existing lead (or an earlier row) → skipped as a possible duplicate;
+  - up to 1,000 rows; each created lead gets its first follow-up task, like a lead added on screen;
+  - the result lists created rows and every skipped row with its reason.
+- **What's not in the template on purpose:** "Interested in", "Remarks" and "Temperature" (removed from the
+  lead in R8/R16, see REQUIREMENTS.md).
+
+## Report exports (PDF and Excel)
+
+The **PDF / Excel** buttons on each list. Route `/api/export/<report>?format=pdf|xlsx&<the screen's filters>`.
+Code: `src/server/reports/index.ts` (one builder per report, using the screen's own query and access rules),
+`render.ts` (Excel), `pdf.tsx` (PDF). Tests: `tests/ledger-reports.test.ts`.
+
+| Report | Screen | Columns / sections |
+|---|---|---|
+| `leads` | Leads | Lead, Added (date + time), School, Contact, Mobile, City, Source, Status, Assigned to, Next follow-up |
+| `opportunities` | Opportunities | Opp., School, Contact, City, Stage, Category, Value, Chance %, Expected close, Next action, Assigned to |
+| `clients` | Clients | Client, School, Contact, Mobile, City, Status, Since, Assigned to |
+| `outstanding` | Outstanding | Summary, ageing, expected collections, then each invoice: Invoice, Date, School, PO No., Due, Total, Received, Balance, Status, Assigned to |
+| `ledger` | Ledger | One client: Date, Ref. No., Particulars, Debit, Credit, Balance. All clients: Client, School, City, Assigned to, Opening, Invoiced, Received, Closing |
+| `todo` | To-do | When, Date, Time, Type, Task, Related to, Priority, Postponed, Assigned to |
+| `dashboard` | Dashboard | Follows the **Show** buttons: Sales (key numbers, pipeline by stage, lead sources, biggest deals) · Finance (collected/outstanding/overdue/cheques, ageing, expected collections) · Team & management (win rate, lost, interactions, team table, targets, lost reasons, competitors) · Service & delivery (follow-ups, orders to deliver, kits in transit, onboarding, renewals, lists) |
+
+Wording rule: the salesperson is always **"Assigned to"**; "Owner" only means the school's owner.
+
+## Business documents (PDF)
+
+All share the Wonder Learning header/footer from `src/server/quotation/pdf.tsx`. Numbers run per month and
+restart at /001 each month.
+
+| Document | Number | Made from | Download / share | Code |
+|---|---|---|---|---|
+| Quotation (3 pages, client's format) | QUO/YYYY/MM/NNN | Opportunity or client | `/api/quotations/<id>/pdf`; public link `/q/<token>` | `src/server/quotation/pdf.tsx`, text in Settings → Quotation (`content.ts`) |
+| Sample quotation (to check Settings text) | QUO/…/000 | Settings → Quotation | `/api/quotations/sample` (Admin) | same |
+| PO template (school signs and seals) | blank, filled by school | Sent quotation | `/api/quotations/<id>/po-template`; public `/q/<token>/po` | `src/server/finance/po-pdf.tsx` |
+| Signed PO (uploaded file) | school's PO No. | Upload signed PO | `/api/sales-orders/<id>/po` | `src/server/finance/po.ts` (PDF or photo, max 4 MB) |
+| Proforma invoice | PI/YYYY/MM/NNN | Sales order | `/api/sales-orders/<id>/proforma` | `invoice-pdf.tsx` (proforma title) |
+| Invoice 🟡 | INV/YYYY/MM/NNN | Sales order | `/api/invoices/<id>/pdf`; public `/i/<token>` | `src/server/finance/invoice-pdf.tsx`. **Provisional layout until the client's invoice sample arrives** |
+| Payment receipt | RCPT/YYYY/MM/NNN | Payment / advance | `/api/payments/<id>/receipt`; public `/r/<token>` | `receipt-pdf.tsx` |
+| Credit note | CN/YYYY/MM/NNN | Invoice | `/api/credit-notes/<id>/pdf` | `credit-note-pdf.tsx` |
+| Delivery challan | DC/YYYY/MM/NNN | Dispatch | `/api/dispatches/<id>/challan` | `challan-pdf.tsx` |
+
+Sales orders are SO/YYYY/MM/NNN (on screen; the number prints on proforma and invoice together with the PO No.).
+
+## Uploads
+
+| Upload | Where | Accepts | Code |
+|---|---|---|---|
+| Lead Excel | Leads → Upload leads | the downloaded .xlsx template only | `/api/leads/import`, `src/server/lead-excel/import.ts` |
+| Signed PO | Client → Purchase orders → Upload signed PO | PDF or photo, max 4 MB | `src/server/finance/po.ts` |
+| Client documents, proof of delivery | Client → Documents tab; Dispatch → Mark received | PDF or photo, max 4 MB | `/api/clients/<id>/files`, `src/server/files.ts` |
+
+Files are stored inside the database (no separate file storage to set up).
+
+## Other files
+
+- **Android app** `public/downloads/wonder-crm.apk`, served by `/download-app`. Rebuild with
+  `android/build.sh` when the site address changes (see `android/README.md`).
+- **Logo** `public/brand/wonder-logo.png` (from the client's templates).
+
+## Waiting on the client
+
+- Invoice sample (to replace the provisional invoice layout; add GSTIN, HSN/SAC, bank details, place of supply).
+- Preferred number formats for PO / quotation / sales order / invoice ("ranges in sync").
+- Any customised quotation samples.
+- Opening balances for the ledger (format to be agreed; not loaded yet).
+
+---
+
+## Checklist for every change
+
+When a field, label, list or rule changes, check each of these and fix what's affected **in the same commit**:
+
+- [ ] New lead form (`lead-form.tsx`) and lead page
+- [ ] Lead Excel template: columns, notes, example row, Read me text (`src/server/lead-excel/`)
+- [ ] Lead upload rules match the form's rules (`import.ts`) and `tests/lead-excel.test.ts` covers them
+- [ ] Report exports for every screen showing the field (`src/server/reports/index.ts`)
+- [ ] PDFs that print it (quotation, PO template, proforma, invoice, receipt, credit note, challan)
+- [ ] WhatsApp / email message texts that mention it
+- [ ] `docs/REQUIREMENTS.md` (status) and `docs/CHANGELOG.md` (what changed)
+- [ ] Download each changed file once and open it to look (dev: `npm run build && npm start`, log in, download)

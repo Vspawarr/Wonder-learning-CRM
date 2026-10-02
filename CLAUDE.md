@@ -1,6 +1,20 @@
 # Wonder Learning CRM: notes for Claude
 
-See README.md for setup, roles and the code map.
+**Start here, every session:** read `docs/STATUS.md` (where things stand, what we're waiting for) and
+`docs/REQUIREMENTS.md` (every client request R1…, with status). `docs/BUSINESS_RULES.md` explains how the CRM
+behaves; `docs/DOWNLOADS_AND_TEMPLATES.md` lists every download/upload/template. README.md has setup,
+roles and the code map. You should not need old chat history.
+
+## Keeping the documents current (owner's standing request, R25)
+
+- With **every push**, in the same commit: add an entry to `docs/CHANGELOG.md`; update the request's status
+  in `docs/REQUIREMENTS.md` (add new requests at the bottom as R26, R27…, in the owner's words); update
+  `docs/STATUS.md` if anything waited-on or pending changed; update `docs/BUSINESS_RULES.md` if a rule changed.
+- **Downloads, uploads and templates must always match the current app.** When a field, label, list or rule
+  changes, run the checklist at the bottom of `docs/DOWNLOADS_AND_TEMPLATES.md` (lead form, Excel template +
+  upload rules + tests, report exports, PDFs, message texts) and fix them in the same commit.
+- Never put passwords, database URLs or other secrets in code or docs (some were shared in chat; they live
+  only in Vercel's environment variables).
 
 ## Working rules
 
@@ -20,12 +34,8 @@ See README.md for setup, roles and the code map.
 - Money corrections (cancel invoice, delete payment, credit notes, clear/bounce cheques) are for `canManageFinance` roles only.
 - Deploys: pushing to the `claude/kind-pasteur-jpzqm5` branch auto-deploys to Vercel (see DEPLOY.md).
 
-## Mobile backlog for Phase 1
-
-The owner chose to finish the web version first, then do these together:
-
-1. ~~Leads list: switch to a card list on phones (school, contact, status, temperature, next follow-up).~~ Done.
-2. ~~Pipeline: narrower columns on phones, plus a hint to use the Stage dropdown instead of dragging.~~ Done.
-3. ~~Dashboard: show KPI tiles two per row on phones.~~ Done (`.kgrid-2`).
-4. ~~Remove the duplicated page title on phones (top bar and page heading both show it).~~ Done.
-5. ~~Lead page: the "Added … by …" line overflows slightly at 390px; let it wrap.~~ Done.
+- No fictional sample data in seeds. No pull requests unless the owner asks. Only push to `claude/kind-pasteur-jpzqm5`.
+- The look follows the client's prototype (top bar search/Add/bell, coloured strips, cards, tabs); keep new
+  screens consistent with it. On phones, pop-ups are bottom sheets and the page itself scrolls.
+- Dashboard sections (Sales, Finance, Team & management, Service & delivery) are listed in
+  `src/lib/dashboard-sections.ts`; new dashboard content goes in one of them, and in the dashboard export too.

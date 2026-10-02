@@ -67,7 +67,7 @@ The seed creates these accounts, each with the first password you set in step 2:
 
 1. Log in as Gautami (`admin@wonderlearning.in`) with the password you set.
 2. Go to **Settings → Products** and enter prices and GST.
-3. Go to **Settings → Cities** and add the cities you work in.
+3. Go to **Settings → Locations** and add the states and cities you work in.
 4. Go to **Settings → Users** and add the Sales Executives.
 
 Then share the address with your testers.

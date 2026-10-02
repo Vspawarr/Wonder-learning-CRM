@@ -1,11 +1,14 @@
 # Wonder Learning CRM
 
-Phase 1: Sales & Leads — users & roles, leads, opportunities (list + pipeline board),
-follow-up tasks, a sales dashboard, and a first step of Phase 2: converting a won deal
-into a client (status Onboarding → Active).
+Sales CRM for Wonder Learning India: users & roles, leads (with Excel upload), opportunities
+(list + pipeline board), quotations, clients, purchase orders, sales orders, dispatch, invoices,
+payments & receipts, outstanding, ledger, To-do, dashboard with sections, PDF/Excel exports and an
+Android app.
 
-Flow: Lead → (status set to Qualified: converts automatically) → Opportunity → Won →
-Convert to client → onboarding.
+Flow: Lead → Opportunity (Category Hot/Warm/Cold) → Quotation → Won → Client → PO → Sales order →
+Dispatch → Invoice → Payments.
+
+**Project documents (requirements, rules, status, change log, templates): see [`docs/`](docs/README.md).**
 
 Next.js 16 (App Router) · TypeScript · PostgreSQL + Prisma 7 · Auth.js (email/password) · Tailwind 4.
 
@@ -28,9 +31,9 @@ sample leads or opportunities, and re-running it never overwrites existing rows.
 
 | Role | Sees | Also |
 |---|---|---|
-| Director | All sales data | Manages users (incl. Directors), products, cities |
-| Admin | All sales data | Manages users, products, cities |
-| Sales Head | All sales data | Manages products and prices; can assign work to anyone in sales |
+| Director | All sales data | Manages users (incl. Directors), products, states/cities, settings, money corrections |
+| Admin | All sales data | Manages users, products, states/cities, settings, money corrections |
+| Sales Head | All sales data | Manages products and prices, targets, money corrections; can assign work to anyone in sales |
 | Sales Manager | **Only their own** leads, opportunities and tasks | Can only assign work to themselves |
 | Sales Executive | **Only their own** leads, opportunities and tasks | Can only assign work to themselves |
 
@@ -45,7 +48,7 @@ action goes through it.
 - `src/server/` — business rules (`leads.ts`, `opportunities.ts`, `clients.ts`, `tasks.ts`,
   `activities.ts`, `settings.ts`), validation (`validation.ts`), read models (`queries.ts`, `dashboard.ts`).
 - `src/app/actions.ts` — server actions: authenticate, call a service, revalidate.
-- `src/app/(app)/` — screens: dashboard, leads, opportunities, pipeline, follow-ups, clients, settings.
+- `src/app/(app)/` — screens: dashboard (sections in `src/lib/dashboard-sections.ts`), leads, opportunities, pipeline, To-do, clients, outstanding, ledger, settings. `top-bar.tsx` is the search / "+ Add" / alerts bell (`src/server/search.ts`).
 - `src/server/locations.ts` — states and cities (managed in Settings → Locations); the only list behind the form, the Excel template and the upload.
 - `src/server/lead-excel/` — bulk lead upload: `columns.ts` (the template's columns, built from `src/lib/constants.ts`), `template.ts` (generated on each download), `import.ts` (re-checks every row, then uses `createLead`).
 - `src/server/quotation/` — quotations: `service.ts` (drafts, numbering QUO/YYYY/MM/NNN, send/revise, email), `pdf.tsx` (3-page PDF in the Wonder Learning format), `content.ts` (standard text, edited in Settings → Quotation). `src/server/mailer.ts` sends email once SMTP_* is set (see DEPLOY.md).
