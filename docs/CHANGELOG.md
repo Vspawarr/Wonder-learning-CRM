@@ -7,7 +7,7 @@ commit id, what changed in plain words, and the requirement it answers (R… in 
 
 ## 2 Oct 2026
 
-- *(this commit)* **Project documents.** Added `docs/`: requirements log, business rules, downloads &
+- `a323882` **Project documents.** Added `docs/`: requirements log, business rules, downloads &
   templates checklist, status, this change log. `CLAUDE.md` now says to keep them updated. (R25)
 - `59a80eb` **Downloads match the current app.** Lead Excel template: "Opportunity Category (if Qualified)"
   is required only for Qualified rows, and the upload now enforces that like the form; clearer column notes;
