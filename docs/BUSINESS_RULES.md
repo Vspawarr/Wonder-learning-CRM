@@ -124,7 +124,8 @@ client shows a warning (the user may still save). The Excel upload skips same sc
 Everyone has To-do: automatic school follow-ups plus their own items (Internal Meeting, Document
 Preparation, Report / Admin Work, Training, Reminder, Other), with optional time and priority.
 Actions: Done (with outcome, optional next date), Postpone (reason, counted), Cancel. Managers who see
-everyone can switch on "Show whole team". **List** or **Calendar** view: month or week (hours 8 AM–8 PM;
+everyone can switch on "Show whole team". Opens on the **Calendar** (R30); **List** view is the other button.
+Double-click a day (or an hour in the week) to add a to-do there; on phones use the day's + Add. Calendar: month or week (hours 8 AM–8 PM;
 earlier/later times sit in the first/last hour); blue = school follow-up, purple = own to-do, red = overdue,
 grey = done/cancelled (R28).
 

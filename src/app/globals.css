@@ -261,6 +261,7 @@
   .cal-month { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); border-top: 1px solid var(--line); border-left: 1px solid var(--line); }
   .cal-dow { font-size: 12px; font-weight: 650; color: var(--ink3); text-align: center; padding: 6px 0; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); background: var(--surf2); }
   .cal-cell { min-height: 104px; padding: 4px; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); cursor: pointer; min-width: 0; }
+  .cal-cell, .cal-slot, .cal-wday { user-select: none; -webkit-user-select: none; }
   .cal-cell:hover { background: var(--surf2); }
   .cal-cell.out { background: var(--surf2); color: var(--ink3); }
   .cal-cell.sel { box-shadow: inset 0 0 0 2px var(--brand2); }

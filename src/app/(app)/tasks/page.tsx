@@ -22,8 +22,8 @@ export default async function TasksPage({ searchParams }: { searchParams: Promis
   const canTeam = seesAllSales(user.role);
   const team = canTeam && sp.team === "1";
   const kind: TaskKind = sp.kind === "todos" || sp.kind === "followups" ? sp.kind : "all";
-  // List or calendar (month / week); the calendar loads the days it shows.
-  const calendar = sp.view === "calendar";
+  // Calendar (month / week) by default, or the list; the calendar loads the days it shows.
+  const calendar = sp.view !== "list";
   const mode = sp.cal === "week" ? "week" : "month";
   const anchor = sp.d && isDateStr(sp.d) ? sp.d : todayIST();
   const range = calendar ? calendarRange(mode, anchor) : { from: sp.from, to: sp.to };
@@ -34,17 +34,17 @@ export default async function TasksPage({ searchParams }: { searchParams: Promis
 
   return (
     <>
-      <PageHeader title="To-do" sub="School follow-ups and your own work in one list. Items marked Auto were scheduled by the system.">
+      <PageHeader title="To-do" sub="School follow-ups and your own work. Double-click a day in the calendar to add a to-do. Items marked Auto were scheduled by the system.">
         <ExportButtons report="todo" />
         <NewTaskButton key={sp.new} autoOpen={!!sp.new} people={people} targets={targets} me={user.id} />
       </PageHeader>
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2.5">
         <TodoFilters canTeam={canTeam} />
         <div className="chips" role="group" aria-label="View">
-          <Link className={`chip no-underline ${calendar ? "" : "on"}`} href={viewHref(sp, "")}>
+          <Link className={`chip no-underline ${calendar ? "" : "on"}`} href={viewHref(sp, "list")}>
             List
           </Link>
-          <Link className={`chip no-underline ${calendar ? "on" : ""}`} href={viewHref(sp, "calendar")}>
+          <Link className={`chip no-underline ${calendar ? "on" : ""}`} href={viewHref(sp, "")}>
             <span className="inline-flex items-center gap-1">
               <Icon name="calendar" size={14} /> Calendar
             </span>
@@ -52,7 +52,16 @@ export default async function TasksPage({ searchParams }: { searchParams: Promis
         </div>
       </div>
       {calendar ? (
-        <TaskCalendar tasks={[...tasks.open, ...tasks.done]} mode={mode} anchor={anchor} today={todayIST()} showOwner={team} />
+        <TaskCalendar
+          tasks={[...tasks.open, ...tasks.done]}
+          mode={mode}
+          anchor={anchor}
+          today={todayIST()}
+          showOwner={team}
+          people={people}
+          targets={targets}
+          me={user.id}
+        />
       ) : (
         <>
           <div className="mb-3">
@@ -73,7 +82,7 @@ export default async function TasksPage({ searchParams }: { searchParams: Promis
   );
 }
 
-/** Keeps the current filters when switching between list and calendar. */
+/** Keeps the current filters when switching between list and calendar (the calendar is the default, so it has no view=). */
 function viewHref(sp: Record<string, string | undefined>, view: string) {
   const q = new URLSearchParams(Object.entries(sp).filter(([k, v]) => v && !["view", "from", "to", "new"].includes(k)) as [string, string][]);
   if (view) q.set("view", view);

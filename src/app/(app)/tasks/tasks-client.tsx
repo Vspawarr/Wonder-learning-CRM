@@ -409,173 +409,188 @@ export function CancelModal({
   );
 }
 
+type TaskPeople = {
+  people: Option[];
+  targets: { value: string; label: string }[];
+  me: string;
+};
+
 export function NewTaskButton({
   people,
   targets,
   me,
   autoOpen = false,
-}: {
-  people: Option[];
-  targets: { value: string; label: string }[];
-  me: string;
+}: TaskPeople & {
   /** Open straight away (from the top bar's "+ Add → New to-do"). */
   autoOpen?: boolean;
 }) {
-  const blank = () => ({
-    title: "",
-    related: "",
-    type: "Internal Meeting",
-    dueDate: todayIST(),
-    dueTime: "",
-    priority: "MEDIUM",
-    remark: "",
-    assigneeId: people.some((p) => p.id === me) ? me : "",
-  });
   const [open, setOpen] = useState(autoOpen);
-  const [v, setV] = useState(blank);
-  const { pending, run } = useAction();
-  const close = () => setOpen(false);
-  const [kind, id] = v.related.split(":");
   return (
     <>
-      <button
-        className="btn pri"
-        onClick={() => {
-          setV(blank());
-          setOpen(true);
-        }}
-      >
+      <button className="btn pri" onClick={() => setOpen(true)}>
         <Icon name="plus" size={16} /> New to-do
       </button>
       {open ? (
-        <Modal
-          title="New to-do"
-          sub="Your own work (meetings, documents…) or a follow-up with a school."
-          onClose={close}
-          footer={
-            <>
-              <button className="btn" onClick={close}>
-                Cancel
-              </button>
-              <button
-                className="btn pri"
-                disabled={pending}
-                onClick={() =>
-                  run(
-                    () =>
-                      createTask({
-                        title: v.title,
-                        type: v.type,
-                        dueDate: v.dueDate,
-                        dueTime: v.dueTime,
-                        priority: v.priority,
-                        remark: v.remark,
-                        assigneeId: v.assigneeId,
-                        leadId: kind === "lead" ? id : null,
-                        opportunityId: kind === "opp" ? id : null,
-                        clientId: kind === "client" ? id : null,
-                      }),
-                    { success: "Added to To-do.", onDone: close },
-                  )
-                }
-              >
-                Add
-              </button>
-            </>
-          }
-        >
-          <Field label="What needs doing? *" htmlFor="nt-title">
-            <input
-              className="in"
-              id="nt-title"
-              placeholder="e.g. Prepare franchise agreement"
-              value={v.title}
-              onChange={(e) => setV({ ...v, title: e.target.value })}
-            />
-          </Field>
-          <div className="fg2">
-            <Field label="Type" htmlFor="nt-type">
-              <select
-                className="sel"
-                id="nt-type"
-                value={v.type}
-                onChange={(e) => setV({ ...v, type: e.target.value })}
-              >
-                <optgroup label="My own work">
-                  <Options list={TODO_TYPES} />
-                </optgroup>
-                <optgroup label="Follow-up with a school">
-                  <Options list={FOLLOWUP_TYPES} />
-                </optgroup>
-              </select>
-            </Field>
-            <Field label="Related to" htmlFor="nt-rel">
-              <select
-                className="sel"
-                id="nt-rel"
-                value={v.related}
-                onChange={(e) => setV({ ...v, related: e.target.value })}
-              >
-                <Options
-                  list={targets.map((t) => [t.value, t.label] as const)}
-                  blank="Nothing specific"
-                />
-              </select>
-            </Field>
-            <Field label="Date *" htmlFor="nt-due">
-              <DateInput
-                id="nt-due"
-                value={v.dueDate}
-                onChange={(dueDate) => setV({ ...v, dueDate })}
-              />
-            </Field>
-            <Field label="Time (optional)" htmlFor="nt-time">
-              <input
-                className="in"
-                id="nt-time"
-                type="time"
-                value={v.dueTime}
-                onChange={(e) => setV({ ...v, dueTime: e.target.value })}
-              />
-            </Field>
-            <Field label="Priority" htmlFor="nt-prio">
-              <select
-                className="sel"
-                id="nt-prio"
-                value={v.priority}
-                onChange={(e) => setV({ ...v, priority: e.target.value })}
-              >
-                <Options
-                  list={Object.entries(PRIORITY_LABEL) as [string, string][]}
-                />
-              </select>
-            </Field>
-            <Field label="For" htmlFor="nt-by">
-              <select
-                className="sel"
-                id="nt-by"
-                value={v.assigneeId}
-                disabled={people.length === 1}
-                onChange={(e) => setV({ ...v, assigneeId: e.target.value })}
-              >
-                {people.length > 1 ? (
-                  <option value="">Choose a person</option>
-                ) : null}
-                <Options list={people.map((p) => [p.id, p.name] as const)} />
-              </select>
-            </Field>
-          </div>
-          <Field label="Notes" htmlFor="nt-notes">
-            <input
-              className="in"
-              id="nt-notes"
-              placeholder="Optional"
-              value={v.remark}
-              onChange={(e) => setV({ ...v, remark: e.target.value })}
-            />
-          </Field>
-        </Modal>
+        <NewTaskModal
+          people={people}
+          targets={targets}
+          me={me}
+          onClose={() => setOpen(false)}
+        />
       ) : null}
     </>
+  );
+}
+
+/** The "New to-do" window; the calendar opens it with the day (and hour) that was double-clicked. */
+export function NewTaskModal({
+  people,
+  targets,
+  me,
+  date,
+  time,
+  onClose,
+}: TaskPeople & { date?: string; time?: string; onClose: () => void }) {
+  const [v, setV] = useState(() => ({
+    title: "",
+    related: "",
+    type: "Internal Meeting",
+    dueDate: date ?? todayIST(),
+    dueTime: time ?? "",
+    priority: "MEDIUM",
+    remark: "",
+    assigneeId: people.some((p) => p.id === me) ? me : "",
+  }));
+  const { pending, run } = useAction();
+  const close = onClose;
+  const [kind, id] = v.related.split(":");
+  return (
+    <Modal
+      title="New to-do"
+      sub="Your own work (meetings, documents…) or a follow-up with a school."
+      onClose={close}
+      footer={
+        <>
+          <button className="btn" onClick={close}>
+            Cancel
+          </button>
+          <button
+            className="btn pri"
+            disabled={pending}
+            onClick={() =>
+              run(
+                () =>
+                  createTask({
+                    title: v.title,
+                    type: v.type,
+                    dueDate: v.dueDate,
+                    dueTime: v.dueTime,
+                    priority: v.priority,
+                    remark: v.remark,
+                    assigneeId: v.assigneeId,
+                    leadId: kind === "lead" ? id : null,
+                    opportunityId: kind === "opp" ? id : null,
+                    clientId: kind === "client" ? id : null,
+                  }),
+                { success: "Added to To-do.", onDone: close },
+              )
+            }
+          >
+            Add
+          </button>
+        </>
+      }
+    >
+      <Field label="What needs doing? *" htmlFor="nt-title">
+        <input
+          className="in"
+          id="nt-title"
+          placeholder="e.g. Prepare franchise agreement"
+          value={v.title}
+          onChange={(e) => setV({ ...v, title: e.target.value })}
+        />
+      </Field>
+      <div className="fg2">
+        <Field label="Type" htmlFor="nt-type">
+          <select
+            className="sel"
+            id="nt-type"
+            value={v.type}
+            onChange={(e) => setV({ ...v, type: e.target.value })}
+          >
+            <optgroup label="My own work">
+              <Options list={TODO_TYPES} />
+            </optgroup>
+            <optgroup label="Follow-up with a school">
+              <Options list={FOLLOWUP_TYPES} />
+            </optgroup>
+          </select>
+        </Field>
+        <Field label="Related to" htmlFor="nt-rel">
+          <select
+            className="sel"
+            id="nt-rel"
+            value={v.related}
+            onChange={(e) => setV({ ...v, related: e.target.value })}
+          >
+            <Options
+              list={targets.map((t) => [t.value, t.label] as const)}
+              blank="Nothing specific"
+            />
+          </select>
+        </Field>
+        <Field label="Date *" htmlFor="nt-due">
+          <DateInput
+            id="nt-due"
+            value={v.dueDate}
+            onChange={(dueDate) => setV({ ...v, dueDate })}
+          />
+        </Field>
+        <Field label="Time (optional)" htmlFor="nt-time">
+          <input
+            className="in"
+            id="nt-time"
+            type="time"
+            value={v.dueTime}
+            onChange={(e) => setV({ ...v, dueTime: e.target.value })}
+          />
+        </Field>
+        <Field label="Priority" htmlFor="nt-prio">
+          <select
+            className="sel"
+            id="nt-prio"
+            value={v.priority}
+            onChange={(e) => setV({ ...v, priority: e.target.value })}
+          >
+            <Options
+              list={Object.entries(PRIORITY_LABEL) as [string, string][]}
+            />
+          </select>
+        </Field>
+        <Field label="For" htmlFor="nt-by">
+          <select
+            className="sel"
+            id="nt-by"
+            value={v.assigneeId}
+            disabled={people.length === 1}
+            onChange={(e) => setV({ ...v, assigneeId: e.target.value })}
+          >
+            {people.length > 1 ? (
+              <option value="">Choose a person</option>
+            ) : null}
+            <Options list={people.map((p) => [p.id, p.name] as const)} />
+          </select>
+        </Field>
+      </div>
+      <Field label="Notes" htmlFor="nt-notes">
+        <input
+          className="in"
+          id="nt-notes"
+          placeholder="Optional"
+          value={v.remark}
+          onChange={(e) => setV({ ...v, remark: e.target.value })}
+        />
+      </Field>
+    </Modal>
   );
 }

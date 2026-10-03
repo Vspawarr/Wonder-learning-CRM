@@ -9,7 +9,8 @@ import { AvatarName, Pill } from "@/components/ui";
 import { addDays } from "@/lib/dates";
 import { addMonths, calendarRange, weekday } from "@/lib/calendar";
 import type { TaskRow } from "@/server/queries";
-import { CancelModal, CompleteModal, PostponeModal, PRIORITY_LABEL, fmtTime } from "./tasks-client";
+import { CancelModal, CompleteModal, NewTaskModal, PostponeModal, PRIORITY_LABEL, fmtTime } from "./tasks-client";
+import type { Option } from "@/server/queries";
 
 // To-do as a calendar, like Google / Teams: a month grid or a week with hours.
 // On phones the month shows dots and the chosen day's agenda underneath; the week is a list of days.
@@ -33,7 +34,18 @@ function tone(t: TaskRow, today: string) {
   return t.related ? "ev-school" : "ev-own";
 }
 
-export function TaskCalendar({ tasks, mode, anchor, today, showOwner }: { tasks: TaskRow[]; mode: "month" | "week"; anchor: string; today: string; showOwner: boolean }) {
+type People = { people: Option[]; targets: { value: string; label: string }[]; me: string };
+
+export function TaskCalendar({
+  tasks,
+  mode,
+  anchor,
+  today,
+  showOwner,
+  people,
+  targets,
+  me,
+}: { tasks: TaskRow[]; mode: "month" | "week"; anchor: string; today: string; showOwner: boolean } & People) {
   const router = useRouter();
   const path = usePathname();
   const sp = useSearchParams();
@@ -42,6 +54,8 @@ export function TaskCalendar({ tasks, mode, anchor, today, showOwner }: { tasks:
   const [completing, setCompleting] = useState<TaskRow | null>(null);
   const [postponing, setPostponing] = useState<TaskRow | null>(null);
   const [cancelling, setCancelling] = useState<TaskRow | null>(null);
+  // Double-click a day (or an hour in the week) to add an own to-do there.
+  const [adding, setAdding] = useState<{ date: string; time?: string } | null>(null);
 
   const go = (patch: Record<string, string>) => {
     const next = new URLSearchParams(sp);
@@ -64,7 +78,14 @@ export function TaskCalendar({ tasks, mode, anchor, today, showOwner }: { tasks:
       : label(anchor, { month: "long", year: "numeric" });
 
   const chip = (t: TaskRow) => (
-    <button key={t.id} className={`cev ${tone(t, today)}`} onClick={() => setPicked(t)} title={t.title}>
+    <button
+      key={t.id}
+      className={`cev ${tone(t, today)}`}
+      onClick={() => setPicked(t)}
+      // Double-clicking an item opens it; it doesn't also start a new to-do on that day.
+      onDoubleClick={(e) => e.stopPropagation()}
+      title={t.title}
+    >
       {t.dueTime ? <b>{fmtTime(t.dueTime).replace(":00", "")} </b> : null}
       {t.title}
     </button>
@@ -116,6 +137,8 @@ export function TaskCalendar({ tasks, mode, anchor, today, showOwner }: { tasks:
                   key={d}
                   className={`cal-cell ${monthOf(d) !== monthOf(anchor) ? "out" : ""} ${d === today ? "today" : ""} ${d === day ? "sel" : ""}`}
                   onClick={() => setDay(d)}
+                  onDoubleClick={() => setAdding({ date: d })}
+                  title="Double-click to add a to-do"
                 >
                   <span className="cal-num">{Number(d.slice(8))}</span>
                   <div className="cal-evs">
@@ -131,31 +154,31 @@ export function TaskCalendar({ tasks, mode, anchor, today, showOwner }: { tasks:
               );
             })}
           </div>
-          <Agenda day={day} tasks={byDay.get(day) ?? []} today={today} onPick={setPicked} className="cal-agenda" />
+          <Agenda day={day} tasks={byDay.get(day) ?? []} today={today} onPick={setPicked} onAdd={() => setAdding({ date: day })} className="cal-agenda" />
         </>
       ) : (
         <>
           <div className="cal-week">
             <div />
             {days.map((d) => (
-              <button key={d} className={`cal-wday ${d === today ? "today" : ""}`} onClick={() => setDay(d)}>
+              <button key={d} className={`cal-wday ${d === today ? "today" : ""}`} onClick={() => setDay(d)} onDoubleClick={() => setAdding({ date: d })}>
                 <span>{DAYS[weekday(d)]}</span>
                 <b>{Number(d.slice(8))}</b>
               </button>
             ))}
             <div className="cal-hour">All day</div>
             {days.map((d) => (
-              <div key={d} className="cal-slot allday">
+              <div key={d} className="cal-slot allday" onDoubleClick={() => setAdding({ date: d })} title="Double-click to add a to-do">
                 {(byDay.get(d) ?? []).filter((t) => !t.dueTime).map(chip)}
               </div>
             ))}
             {HOURS.map((h) => (
-              <Hour key={h} h={h} days={days} byDay={byDay} chip={chip} />
+              <Hour key={h} h={h} days={days} byDay={byDay} chip={chip} onAdd={(date, time) => setAdding({ date, time })} />
             ))}
           </div>
           <div className="cal-weeklist">
             {days.map((d) => (
-              <Agenda key={d} day={d} tasks={byDay.get(d) ?? []} today={today} onPick={setPicked} />
+              <Agenda key={d} day={d} tasks={byDay.get(d) ?? []} today={today} onPick={setPicked} onAdd={() => setAdding({ date: d })} />
             ))}
           </div>
         </>
@@ -209,11 +232,24 @@ export function TaskCalendar({ tasks, mode, anchor, today, showOwner }: { tasks:
       {completing ? <CompleteModal task={completing} onClose={() => setCompleting(null)} /> : null}
       {postponing ? <PostponeModal task={postponing} onClose={() => setPostponing(null)} /> : null}
       {cancelling ? <CancelModal task={cancelling} onClose={() => setCancelling(null)} /> : null}
+      {adding ? <NewTaskModal people={people} targets={targets} me={me} date={adding.date} time={adding.time} onClose={() => setAdding(null)} /> : null}
     </div>
   );
 }
 
-function Hour({ h, days, byDay, chip }: { h: number; days: string[]; byDay: Map<string, TaskRow[]>; chip: (t: TaskRow) => React.ReactNode }) {
+function Hour({
+  h,
+  days,
+  byDay,
+  chip,
+  onAdd,
+}: {
+  h: number;
+  days: string[];
+  byDay: Map<string, TaskRow[]>;
+  chip: (t: TaskRow) => React.ReactNode;
+  onAdd: (date: string, time: string) => void;
+}) {
   const inHour = (t: TaskRow) => {
     if (!t.dueTime) return false;
     const hh = Number(t.dueTime.slice(0, 2));
@@ -223,7 +259,7 @@ function Hour({ h, days, byDay, chip }: { h: number; days: string[]; byDay: Map<
     <>
       <div className="cal-hour">{h === 12 ? "12 PM" : h > 12 ? `${h - 12} PM` : `${h} AM`}</div>
       {days.map((d) => (
-        <div key={d} className="cal-slot">
+        <div key={d} className="cal-slot" onDoubleClick={() => onAdd(d, `${String(h).padStart(2, "0")}:00`)} title="Double-click to add a to-do">
           {(byDay.get(d) ?? []).filter(inHour).map(chip)}
         </div>
       ))}
@@ -231,10 +267,30 @@ function Hour({ h, days, byDay, chip }: { h: number; days: string[]; byDay: Map<
   );
 }
 
-function Agenda({ day, tasks, today, onPick, className }: { day: string; tasks: TaskRow[]; today: string; onPick: (t: TaskRow) => void; className?: string }) {
+function Agenda({
+  day,
+  tasks,
+  today,
+  onPick,
+  onAdd,
+  className,
+}: {
+  day: string;
+  tasks: TaskRow[];
+  today: string;
+  onPick: (t: TaskRow) => void;
+  onAdd: () => void;
+  className?: string;
+}) {
   return (
     <div className={`cal-day ${className ?? ""}`}>
-      <h3 className={day === today ? "text-brand" : ""}>{label(day, { weekday: "long", day: "numeric", month: "short" })}</h3>
+      <div className="flex items-center justify-between gap-2">
+        <h3 className={day === today ? "text-brand" : ""}>{label(day, { weekday: "long", day: "numeric", month: "short" })}</h3>
+        {/* Phones have no double-click, so each day gets an add button. */}
+        <button className="btn sm ghost" onClick={onAdd} aria-label={`Add a to-do on ${label(day, { day: "numeric", month: "long" })}`}>
+          <Icon name="plus" size={14} /> Add
+        </button>
+      </div>
       {tasks.length ? (
         tasks.map((t) => (
           <button key={t.id} className={`cal-row ${tone(t, today)}`} onClick={() => onPick(t)}>

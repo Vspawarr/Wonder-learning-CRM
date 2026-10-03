@@ -298,3 +298,14 @@ from kit to reduce price, that option should be feasible."
 | The Excel's fixed **"Freight Transport" ₹100** taken out of the Focus and Plus kits: **Focus ₹2,854**, **Plus ₹3,144** (MRP unchanged) | ✅ | Migration `20261011090000_kit_options` |
 | **Prices only from the Excel:** the class kits' prices that came from the sample PO (Play Group ₹2,360, Nursery ₹2,760, LKG ₹2,975, UKG ₹3,175) cleared | ✅ | They show "Not set" until the client gives prices ⏳ |
 | **Change kit items** on a quotation: untick items to take them out, add optional items; MRP and price move by those items' prices; the line text says what changed (e.g. "Nursery Focus Kit (without Shape Kit; with Bag)") and the kit checklist sent with the PO follows it | ✅ | Needs item prices in the kit (Nursery kits have them; Settings → Products: "Item | school price | MRP") |
+
+## R30. To-do opens on the calendar; double-click a date to add (3 Oct)
+
+"In To-Do default view should be Calendar not list. Also if we double click date we should able to add own
+to-do in calendar."
+
+| Change | Status | Notes |
+|---|---|---|
+| To-do opens on the **Calendar** (month); **List** is one tap away (`/tasks?view=list`) | ✅ | |
+| **Double-click a day** (month) or a day header / hour (week) to open "New to-do" with that date (and hour) filled in | ✅ | Double-clicking an existing item opens that item instead |
+| Phones (no double-click): each day's list under the calendar has a **+ Add** button | ✅ | |
