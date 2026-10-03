@@ -7,7 +7,7 @@ commit id, what changed in plain words, and the requirement it answers (R… in 
 
 ## 3 Oct 2026
 
-- `PENDING` **Financial year.** After login, choose the year (2026-27 …) or All years; it shows in the top bar and
+- `e4ae6e7` **Financial year.** After login, choose the year (2026-27 …) or All years; it shows in the top bar and
   can be changed any time. Lists, dashboard, ledger and exports follow it; open items carry over. Clients stay
   listed every year with their standing (Renewed / New / Not renewed …) and filter chips. Phone top bar fix. (R31)
 - `878a273` **To-do opens on the calendar.** Double-click a day (or an hour in the week) to add a to-do on it;
