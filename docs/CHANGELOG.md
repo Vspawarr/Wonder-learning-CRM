@@ -7,7 +7,7 @@ commit id, what changed in plain words, and the requirement it answers (R… in 
 
 ## 3 Oct 2026
 
-- *(this commit)* **Client's own templates and kit-wise products.** Products are now the four class kits
+- `d1d1d3b` **Client's own templates and kit-wise products.** Products are now the four class kits
   (with contents from the client's checklist) plus seven optional add-ons; the seven sample services are
   removed (one-time migration). New kit checklist PDF. Receipt and PO template rebuilt in the client's
   formats; receipt numbers 1/26-27 and PO numbers PO/2627/1 with starting-number settings; Upload signed PO
