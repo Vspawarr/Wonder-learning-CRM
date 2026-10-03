@@ -72,16 +72,26 @@ export async function changeOwnPassword(actor: SessionUser, current: string, nex
 export async function saveProduct(actor: SessionUser, id: string | null, raw: unknown) {
   if (!canManageProducts(actor.role)) throw new DomainError("Only a Director, Admin or the Sales Head can change products.");
   const d = parse(productInput, raw);
-  const data = { name: d.name, category: d.category, price: d.price, gstRate: d.gstRate, active: d.active };
+  const data = {
+    name: d.name,
+    category: d.category,
+    price: d.price,
+    gstRate: d.gstRate,
+    active: d.active,
+    contents: d.contents ?? Prisma.DbNull,
+    color: d.color,
+  };
   if (id) {
     await db.product.update({ where: { id }, data });
     return id;
   }
-  const count = await db.product.count({ where: { type: "SERVICE" } });
-  let n = count + 1;
-  while (await db.product.findUnique({ where: { code: `P${String(n).padStart(2, "0")}` } })) n++;
+  // Kits (with contents) get K-codes like the class kits; anything else a P-code. Never reuse a code.
+  const prefix = d.contents ? "K" : "P";
+  const codes = await db.product.findMany({ where: { code: { startsWith: prefix } }, select: { code: true } });
+  const n = Math.max(0, ...codes.map((c) => Number(c.code.slice(1)) || 0)) + 1;
+  const last = await db.product.aggregate({ _max: { sortOrder: true } });
   const p = await db.product.create({
-    data: { ...data, code: `P${String(n).padStart(2, "0")}`, type: "SERVICE", sortOrder: n },
+    data: { ...data, code: `${prefix}${String(n).padStart(2, "0")}`, type: d.contents ? "MATERIAL" : "SERVICE", sortOrder: (last._max.sortOrder ?? 0) + 1 },
   });
   return p.id;
 }

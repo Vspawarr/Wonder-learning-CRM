@@ -301,16 +301,22 @@ describe("collection follow-ups", () => {
 });
 
 describe("payment receipts", () => {
-  it("numbers each payment RCPT/YYYY/MM/NNN and renders a shareable receipt", async () => {
+  it("numbers receipts like the client's book (1/26-27), from a starting number, and renders a shareable receipt", async () => {
     const { receiptPdf, receiptPdfByToken, emailReceipt } = await import("@/server/finance/service");
     const so = await createSalesOrder(exA, clientId, order());
     const id = await createInvoice(exA, so, {
       date: today,
       dueDate: addDays(today, 45),
     });
+    const { financialYear } = await import("@/lib/fy");
+    const { saveDocumentSettings, DEFAULT_DOCUMENTS } = await import("@/server/documents");
+    const fy = financialYear(today).short;
     const a = await recordPayment(exA, id, pay(50000));
+    expect(a.receiptNumber).toBe(`1/${fy}`);
+    // Continue from the client's own receipt book (they were at 117).
+    await saveDocumentSettings(exA.id, { ...DEFAULT_DOCUMENTS, numbering: { fy: "", nextReceipt: 118, nextPo: null } });
     const b = await recordPayment(exA, id, pay(47000));
-    expect([a.receiptNumber, b.receiptNumber]).toEqual([`RCPT/${Y}/${M}/001`, `RCPT/${Y}/${M}/002`]);
+    expect(b.receiptNumber).toBe(`118/${fy}`);
     const { pdf, number } = await receiptPdf(exA, b.paymentId);
     expect(number).toBe(b.receiptNumber);
     expect(pdf.subarray(0, 4).toString()).toBe("%PDF");
@@ -381,8 +387,10 @@ describe("purchase orders", () => {
     await expect(poFile(exB, so)).rejects.toThrow(/not found/);
   });
 
-  it("makes a PO template from a sent quotation, kits optional", async () => {
-    const { parseKits, poTemplatePdf, poTemplatePdfByToken } = await import("@/server/finance/po");
+  it("makes a PO template in the client's format from a sent quotation, numbered once", async () => {
+    const { poTemplatePdf, poTemplatePdfByToken, savePoTemplate } = await import("@/server/finance/po");
+    const { saveDocumentSettings, DEFAULT_DOCUMENTS } = await import("@/server/documents");
+    const { financialYear } = await import("@/lib/fy");
     const q = await createQuotation(
       exA,
       { clientId },
@@ -392,20 +400,35 @@ describe("purchase orders", () => {
         toLine: "The Director",
         schoolName: "Little Stars",
         items: [
-          { description: "PG Academic Kit", mrp: 3700, price: 2800 },
-          { description: "NUR Academic Kit", mrp: 4800, price: 3400 },
+          { description: "Play Group Kit", mrp: 3700, price: 2360 },
+          { description: "Nursery Kit", mrp: 4800, price: 2760 },
         ],
       },
     );
-    await expect(poTemplatePdf(exA, q, [])).rejects.toThrow(/Send the quotation first/);
+    await expect(poTemplatePdf(exA, q)).rejects.toThrow(/Send the quotation first/);
+    await expect(savePoTemplate(exA, q, {})).rejects.toThrow(/Send the quotation first/);
     await markQuotationSent(exA, q, "download");
-    expect(parseKits("40, ,x,25")).toEqual([40, null, null, 25]);
-    const { pdf } = await poTemplatePdf(exA, q, parseKits("40,25"));
+    // Continue from the client's own PO book: next number 93 this financial year.
+    await saveDocumentSettings(exA.id, { ...DEFAULT_DOCUMENTS, numbering: { fy: "", nextReceipt: null, nextPo: 93 } });
+    const fy = financialYear(today);
+    const details = {
+      kits: [10, null],
+      requisitioner: "Mrs. Manali Jagdale",
+      deliveryDate: addDays(today, 30),
+      remarks: ["Add Hindi Swar TB, NB in LKG", ""],
+      customise: [true, false, true, true],
+      cheques: [{ mode: "CDC", date: today, amount: 98580 }],
+    };
+    const poNumber = await savePoTemplate(exA, q, details);
+    expect(poNumber).toBe(`PO/${fy.compact}/93`);
+    // Saving again keeps the same number.
+    expect(await savePoTemplate(exA, q, { ...details, kits: [10, 30] })).toBe(poNumber);
+    const saved = await db.quotation.findUniqueOrThrow({ where: { id: q } });
+    expect(saved.poDetails).toMatchObject({ kits: [10, 30], requisitioner: "Mrs. Manali Jagdale" });
+    await expect(savePoTemplate(exB, q, details)).rejects.toThrow(/not found/);
+    const { pdf } = await poTemplatePdf(exA, q);
     expect(pdf.subarray(0, 4).toString()).toBe("%PDF");
-    const { shareToken } = await db.quotation.findUniqueOrThrow({
-      where: { id: q },
-    });
-    expect((await poTemplatePdfByToken(shareToken, []))?.schoolName).toBe("Little Stars");
+    expect((await poTemplatePdfByToken(saved.shareToken))?.schoolName).toBe("Little Stars");
   });
 });
 

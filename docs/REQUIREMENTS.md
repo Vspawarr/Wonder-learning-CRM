@@ -233,3 +233,29 @@ every time … always maintain every download, upload and template as per update
   Qualified rows (the upload enforces it, like the form); clearer notes; corrected example row.
 - Dashboard export follows the chosen sections.
 - Checklist for every download/upload: [DOWNLOADS_AND_TEMPLATES.md](DOWNLOADS_AND_TEMPLATES.md).
+
+## R26. Project documents in the deployment too (3 Oct)
+
+"Push requirement file and all md files in git or in our deployment." ✅ They are in GitHub (`docs/`), and now
+also readable inside the live CRM: **Settings → Project documents** (Director / Admin), with tabs for Status,
+Requirements, Business rules, Downloads & templates, Change log and Going online. `src/app/(app)/admin/docs/`.
+
+## R27. The client's own templates and kit-wise products (3 Oct)
+
+Owner shared three files: `WLI_Checklist_2025-26.pdf` (kit contents per class), `Payment_Receipt_MSMPS…pdf`
+(their receipt 117/26-27) and `PO-_Caring_Hood_Preschool.pdf` (their PO/2526/92). "New templates update this if
+exists replace with this new one … products kit wise analyse this and check where to fix this remove our sample
+products if needed."
+
+| Change | Status | Notes |
+|---|---|---|
+| Products are now one **student kit per class**: Play Group (₹2,360), Nursery (₹2,760), LKG / Jr. KG (₹2,975), UKG / Sr. KG (₹3,175), GST 0% | ✅ | Prices taken from the Caring Hood PO as starting values; change in Settings → Products. `src/lib/kits.ts` |
+| Each kit stores its **contents** from the checklist (Common Kit 19 objects, Academic Kit, optional subjects, Resource Kits) and its colour | ✅ | Editable in Settings → Products ("## Group \| subtitle", one item per line) |
+| 7 **optional add-ons** from the quotation's Optional list (Hindi Swar / Vyanjan / Shabad Gyan / Matra Gyan TB & NB, Cursive Text Book, Phonics Reader, Nursery Practice Notebooks) | ✅ | No price yet ⏳ |
+| The 7 sample services (Curriculum License … Branding Support) **removed** | ✅ | One-time migration `20261009090000_class_kits`; only removed where the name was still the sample's, so products the team added are kept |
+| **Kit checklist PDF** in the client's layout (one coloured A4 page per class) | ✅ | Settings → Products / Documents; sent with the PO template on WhatsApp (`/q/<token>/checklist`) |
+| **Receipt** replaced with the client's format: logo + office address (Chh. Sambhajinagar), Received From, amount in words, on account of, paid by (cheque no., bank, date), Total PO Value / Payment Received / Balance Due, signatory Mr. Viren Dogra | ✅ | Signature is printed as the name only, not a signature image (see STATUS) |
+| Receipt numbers like their book: **117/26-27** (running through the financial year), with a "next receipt number" setting to continue from their book | ✅ | Settings → Documents → PO template, receipt & numbering |
+| **PO template** replaced with the client's PO format: academic year, PO No., seller (Pune office) and buyer blocks, requisitioner, expected delivery, ship via, shipping terms, kits demanded / supplied, rate, amount, remarks, Material Exclude → Refer Checklist, terms, advance cheque/DD table, customisation YES/NO, bank account details, signature boxes, executive contact line | ✅ | The details are filled in the "Send PO template" window and saved with the quotation |
+| PO numbers **PO/2627/93** style, given by the CRM when the PO template is first saved, with a "next PO number" setting; **Upload signed PO** then fills in the PO number, kits and delivery date | ✅ | |
+| All these texts (addresses, bank, terms, customisation list, signatory) editable in **Settings → Documents** | ✅ | |

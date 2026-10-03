@@ -38,14 +38,25 @@ change it here in the same commit as the code. Requirement numbers (R…) point 
 Duplicates: a new lead with the same mobile, or the same school name in the same city, as an existing lead or
 client shows a warning (the user may still save). The Excel upload skips same school name + mobile.
 
+## Products
+
+- The catalogue is **one student kit per class** (Play Group, Nursery, LKG / Jr. KG, UKG / Sr. KG) plus
+  **optional add-ons** (Hindi Swar / Vyanjan / Shabad Gyan / Matra Gyan, Cursive, Phonics Reader, Nursery
+  Practice Notebooks). A kit's **contents** (groups and items, as on the client's checklist) print on the
+  **kit checklist PDF**; the PO says "Material Exclude: Refer Checklist" and the checklist goes with it.
+- Kit qty on quotations, POs and orders = number of students (kits). Prices on products are starting values;
+  quotations still have MRP and price typed by hand. GST 0% (educational material).
+- Products added in Settings → Products with contents get a K-code (kits), others a P-code.
+
 ## Quotations, PO and orders
 
 - Quotation from an opportunity or a client; products from the list; **MRP and Price typed by hand**,
   no discount column, GST % per line; validity days (default from Settings → Quotation). After the
   validity date it shows **Expired**, and a follow-up is booked the day before.
 - Drafts can be edited; **sent quotations are locked**: use **Revise** to make a new version.
-- **PO flow:** send the school a **PO template** made from the sent quotation → the school signs, seals and
-  sends it back → **Upload signed PO** with its PO number → this creates the **sales order**. The PO number
+- **PO flow:** send the school a **PO template** in the client's PO format, made from the sent quotation and
+  the details typed in "Send PO template" (kits, requisitioner, expected delivery, ship via, shipping terms,
+  remarks, customisation YES/NO, advance cheque/DD plan) → the school signs, stamps and sends it back → **Upload signed PO** with its PO number → this creates the **sales order**. The PO number
   shows on the sales order, proforma and invoice. The sales order shows the quotation's creation time
   (date + H:M:S AM/PM) (R16.10, R17).
 - **Dispatch** in one or more lots with transporter/docket, a challan PDF, and **Mark received** with proof.
@@ -60,6 +71,9 @@ client shows a warning (the user may still save). The Excel upload skips same sc
   **In hand** → **Deposited** → **Cleared** or **Bounced**; in hand/deposited cheques show as "pending";
   a bounced cheque makes the amount due again (urgent follow-up). A "Deposit cheque" reminder appears on
   the cheque date. If cheque tracking is switched off, cheques count immediately.
+- **Receipts** (client's format) show the whole order: Total PO Value, everything received on it so far
+  (including this payment, even while its cheque clears) and the balance due (after credit notes).
+  "On account of" says "Student Book Set" for kit orders ("Advance – …" for advances).
 - **Advance** on a sales order (before invoicing) gets a receipt and comes off the invoice automatically
   when the order is invoiced. **Proforma invoice** can be printed from the sales order.
 - **Credit note** reduces an invoice's balance (returns, discount, write-off).
@@ -73,10 +87,16 @@ client shows a warning (the user may still save). The Excel upload skips same sc
 
 ## Numbering
 
-Running numbers per calendar month, restarting at 001 each month:
-QUO (quotation), SO (sales order), PI (proforma), INV (invoice), RCPT (receipt), CN (credit note),
-DC (delivery challan), e.g. `INV/2026/10/001`. Leads L-1001…, opportunities O-2001…, clients C-101….
-⏳ The client may give preferred formats ("ranges in sync", R16.8).
+- **Receipts:** like the client's receipt book, `117/26-27`: a running number through the financial year
+  (April–March), restarting at 1 each April. **Settings → Documents → Numbering** sets the next number to
+  continue from their book; the CRM never goes below a number already used (R27).
+- **PO numbers:** `PO/2627/93`: given by the CRM the first time a PO template is saved for a quotation (one
+  number per quotation, kept if saved again), running through the financial year, with a "next PO number"
+  setting. The signed PO uploaded later uses the same number.
+- Running numbers per calendar month, restarting at 001 each month: QUO (quotation), SO (sales order),
+  PI (proforma), INV (invoice), CN (credit note), DC (delivery challan), e.g. `INV/2026/10/001`.
+- Leads L-1001…, opportunities O-2001…, clients C-101….
+- ⏳ The client may still give preferred formats for quotation / sales order / invoice ("ranges in sync", R16.8).
 
 ## Reminders and messages
 

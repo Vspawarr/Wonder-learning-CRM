@@ -428,6 +428,32 @@
   .tabs button.on { color: var(--brand); border-bottom-color: var(--brand); }
   .tabs .tc { font-size: 11.5px; background: var(--brandsoft); color: var(--brand); border-radius: 99px; padding: 0 7px; line-height: 18px; }
 
+  .tabs a.tablink {
+    padding: 10px 14px; font-weight: 600; color: var(--ink2); border-bottom: 2px solid transparent; white-space: nowrap;
+    text-decoration: none; margin-bottom: -1px;
+  }
+  .tabs a.tablink:hover { color: var(--brand); }
+  .tabs a.tablink.on { color: var(--brand); border-bottom-color: var(--brand); }
+
+  /* rendered markdown (Settings → Project documents) */
+  .md { line-height: 1.6; overflow-wrap: anywhere; }
+  .md h1 { font-size: 24px; margin: 4px 0 12px; }
+  .md h2 { font-size: 18px; margin: 26px 0 8px; padding-top: 10px; border-top: 1px solid var(--line); }
+  .md h3 { font-size: 15px; margin: 18px 0 6px; }
+  .md p, .md ul, .md ol, .md blockquote { margin: 8px 0; }
+  .md ul { list-style: disc; padding-left: 22px; }
+  .md ol { list-style: decimal; padding-left: 22px; }
+  .md li { margin: 3px 0; }
+  .md code { font-size: 12.5px; background: var(--surf2); border: 1px solid var(--line); border-radius: 5px; padding: 0 4px; }
+  .md blockquote { border-left: 4px solid var(--sun); background: var(--sunsoft); padding: 8px 12px; border-radius: 6px; }
+  .md hr { border: 0; border-top: 1px solid var(--line); margin: 18px 0; }
+  .md-table { overflow-x: auto; margin: 10px 0; border: 1px solid var(--line); border-radius: 10px; }
+  .md-table table { min-width: 560px; font-size: 13px; }
+  .md-table th, .md-table td { padding: 7px 10px; border-bottom: 1px solid var(--line); }
+  .md-table th { text-align: left; background: var(--surf2); font-size: 12.5px; color: var(--ink2); }
+  .md-table tr:last-child td { border-bottom: 0; }
+  .md-table td { vertical-align: top; }
+
   /* profile hero: score ring + name + actions */
   .hero { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 18px; align-items: center; }
   .sring { position: relative; width: 92px; height: 92px; flex: none; }

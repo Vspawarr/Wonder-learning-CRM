@@ -335,6 +335,41 @@ describe("products", () => {
   });
 });
 
+describe("class kits and the kit checklist", () => {
+  it("a kit keeps its contents as groups, gets a K code, and prints on the checklist", async () => {
+    const { checklistPdf, checklistKits, checklistForQuotation } = await import("@/server/products/checklist");
+    const { KIT_PRODUCTS } = await import("@/lib/kits");
+    const id = await saveProduct(admin, null, {
+      name: "Play Group Kit",
+      price: 2360,
+      gstRate: 0,
+      active: true,
+      color: "#F08A1C",
+      contents: "## Common Kit | 19 objects\nSchool Bag\nStudent's Diary\n\n## Academic Kit | 6 Text Books\n- TB - My Scribbling book",
+    });
+    const p = await db.product.findUniqueOrThrow({ where: { id } });
+    expect(p.code).toMatch(/^K\d+$/);
+    expect(p.contents).toEqual([
+      { title: "Common Kit | 19 objects", items: ["School Bag", "Student's Diary"] },
+      { title: "Academic Kit | 6 Text Books", items: ["TB - My Scribbling book"] },
+    ]);
+    const service = await saveProduct(admin, null, { name: "Teacher Training", active: true, contents: "" });
+    expect((await db.product.findUniqueOrThrow({ where: { id: service } })).contents).toBeNull();
+    await expect(saveProduct(admin, id, { name: "Play Group Kit", active: true, color: "orange" })).rejects.toThrow(/colour/);
+
+    expect((await checklistKits()).map((k) => k.name)).toEqual(["Play Group Kit"]);
+    expect((await checklistPdf())!.subarray(0, 4).toString()).toBe("%PDF");
+    // Every kit in the catalogue matches the client's checklist: Common Kit has 19 objects, item counts add up.
+    for (const k of KIT_PRODUCTS) expect(k.contents![0].items).toHaveLength(19);
+    expect(KIT_PRODUCTS.map((k) => k.contents!.reduce((t, g) => t + g.items.length, 0))).toEqual([34, 39, 45, 48]);
+    // A quotation without kits falls back to every active kit.
+    const q = await db.quotation.create({
+      data: { number: "QUO/T/1", year: 2026, month: 1, seq: 999, date: new Date(), validityDays: 3, toLine: "x", schoolName: "x", shareToken: "t".repeat(24), preparedById: admin.id },
+    });
+    expect((await checklistForQuotation(q.id))!.subarray(0, 4).toString()).toBe("%PDF");
+  });
+});
+
 describe("user management", () => {
   it("admins add users; others cannot", async () => {
     const data = { name: "New Exec", email: "NEW@x.in", role: "SALES_EXECUTIVE", password: "abcd1234" };

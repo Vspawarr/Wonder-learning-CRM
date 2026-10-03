@@ -1,6 +1,6 @@
 # Current status
 
-_Last updated: 2 Oct 2026. Update this page whenever the situation changes._
+_Last updated: 3 Oct 2026. Update this page whenever the situation changes._
 
 ## Where things stand
 
@@ -19,8 +19,11 @@ _Last updated: 2 Oct 2026. Update this page whenever the situation changes._
 | Item | Why it matters | Ref |
 |---|---|---|
 | Feedback from the client's testing | Final changes before go-live | — |
+| Prices for the 7 optional add-ons; confirm kit prices (taken from the Caring Hood PO) | Settings → Products | R27 |
+| Current receipt-book and PO numbers to continue from | Settings → Documents → Numbering | R27 |
+| Whether receipts should carry a scanned signature image (now: name only) | Printing someone's signature automatically needs their OK | R27 |
 | Invoice sample | Invoice PDF layout is provisional; add GSTIN, HSN/SAC, place of supply, bank details | R12, R19 C |
-| Preferred number formats (PO, quotation, sales order, invoice…) | "Ranges in sync" | R16.8 |
+| Preferred number formats for quotation, sales order, invoice (receipt and PO now follow the client's books) | "Ranges in sync" | R16.8 |
 | Custom quotation samples / other templates | Match their exact formats | R16.7 |
 | Email account details (SMTP) | Turns on email for quotations, invoices, receipts, reminders and "Forgot password" | R19 A6, `DEPLOY.md` |
 | Hosting plan decision (Vercel Pro, Neon with longer backups) | Free plans aren't meant for business use or real money data | R19 A8 |
@@ -40,7 +43,7 @@ _Last updated: 2 Oct 2026. Update this page whenever the situation changes._
 
 - Start with `CLAUDE.md`, then this folder. You should not need old chat history.
 - Local: see `README.md` (Postgres via docker compose, `npm run dev`). Tests: `npm test` (integration tests
-  against `TEST_DATABASE_URL`, 119 passing on 2 Oct), `npm run lint`, `npm run typecheck`.
+  against `TEST_DATABASE_URL`, 120 passing on 3 Oct), `npm run lint`, `npm run typecheck`.
 - Database changes: add a migration in `prisma/migrations/` (Vercel runs `prisma migrate deploy` on each deploy).
 - Before every push: tests, lint, typecheck, a build, a look at desktop and phone width, the downloads
   checklist in `DOWNLOADS_AND_TEMPLATES.md`, then update `CHANGELOG.md`, `REQUIREMENTS.md` and this page.

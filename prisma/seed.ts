@@ -1,11 +1,11 @@
-// Seeds only real data: the Phase 1 product catalogue (no prices yet) and the
+// Seeds only real data: Wonder Learning's class kits and add-ons (src/lib/kits.ts) and the
 // initial team from seed-users.ts (passwords from env vars). No sample leads,
 // opportunities or tasks. Safe to re-run: existing rows are left unchanged.
 import "dotenv/config";
 import bcrypt from "bcryptjs";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "../src/generated/prisma/client";
-import { INITIAL_PRODUCTS } from "../src/lib/constants";
+import { CATALOGUE } from "../src/lib/kits";
 import { INITIAL_USERS } from "./seed-users";
 
 const prisma = new PrismaClient({
@@ -18,14 +18,14 @@ async function seedProducts() {
     console.log("Products: already set up, left unchanged");
     return;
   }
-  for (const [i, p] of INITIAL_PRODUCTS.entries()) {
+  for (const [i, p] of CATALOGUE.entries()) {
     await prisma.product.upsert({
       where: { code: p.code },
       update: {}, // never overwrite prices or edits made in the app
-      create: { ...p, type: "SERVICE", sortOrder: i + 1 },
+      create: { ...p, contents: p.contents ?? undefined, type: "MATERIAL", sortOrder: i + 1 },
     });
   }
-  console.log(`Products: ${INITIAL_PRODUCTS.length} ensured`);
+  console.log(`Products: ${CATALOGUE.length} ensured`);
 }
 
 async function seedUsers() {

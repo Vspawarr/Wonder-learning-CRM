@@ -83,6 +83,10 @@ model Product {
   gstRate   Decimal?    @db.Decimal(5, 2) // percent, e.g. 18.00
   active    Boolean     @default(true)
   sortOrder Int         @default(0)
+  /// What's inside a kit: [{ title, items }] as on the client's checklist ("Common Kit | 19 objects" …).
+  contents  Json?
+  /// Heading colour on the kit checklist PDF, e.g. "#F08A1C".
+  color     String?
   createdAt DateTime    @default(now())
   updatedAt DateTime    @updatedAt
 
@@ -462,6 +466,12 @@ model Quotation {
   emailedTo  String?
   shareToken String          @unique // secret for the WhatsApp link to the PDF
 
+  /// Our PO number for the school's PO template, e.g. PO/2627/93 (given the first time the template is saved).
+  poNumber  String? @unique
+  /// What the PO template prints besides the quotation: kits, requisitioner, delivery date, remarks,
+  /// customisation and the cheque plan (see src/server/finance/po.ts → PoDetails).
+  poDetails Json?
+
   preparedById String
   preparedBy   User   @relation(fields: [preparedById], references: [id])
 
@@ -718,7 +728,7 @@ model InvoiceItem {
 
 model Payment {
   id           String        @id @default(cuid())
-  /// Receipt number RCPT/YYYY/MM/NNN, running per month.
+  /// Receipt number like 117/26-27: running per financial year (April–March), as on the client's receipt book.
   number       String        @unique
   year         Int
   month        Int

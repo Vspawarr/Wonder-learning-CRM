@@ -12,6 +12,8 @@ import { clientScope } from "../access";
 import { DomainError, NotFoundError } from "../errors";
 import { isEmailConfigured, sendMail } from "../mailer";
 import { getQuotationContent } from "../quotation/content";
+import { financialYear } from "@/lib/fy";
+import { getDocumentSettings, startingNumber } from "../documents";
 import { emailInput } from "../quotation/service";
 import { parse } from "../validation";
 import { renderInvoicePdf, type InvoicePdfData } from "./invoice-pdf";
@@ -110,11 +112,16 @@ export async function withNextNumber<T>(
   prefix: string,
   create: (tx: Tx, n: { number: string; year: number; month: number; seq: number }) => Promise<T>,
 ) {
-  const [y, m] = todayIST().split("-").map(Number);
+  const today = todayIST();
+  const [y, m] = today.split("-").map(Number);
+  // Receipts follow the client's receipt book: 117/26-27, running through the financial year
+  // and never below the starting number set in Settings → Documents.
+  const fy = model === "payment" ? financialYear(today) : null;
+  const floor = fy ? await startingNumber("receipt", fy.label) : 1;
   for (let attempt = 0; attempt < 5; attempt++) {
     try {
       return await db.$transaction(async (tx) => {
-        const where = { year: y, month: m };
+        const where = fy ? fy.months : { year: y, month: m };
         const agg =
           model === "salesOrder"
             ? await tx.salesOrder.aggregate({ where, _max: { seq: true } })
@@ -128,9 +135,9 @@ export async function withNextNumber<T>(
                       _max: { seq: true },
                     })
                   : await tx.dispatch.aggregate({ where, _max: { seq: true } });
-        const seq = (agg._max.seq ?? 0) + 1;
+        const seq = Math.max((agg._max.seq ?? 0) + 1, floor);
         return create(tx, {
-          number: code(prefix, y, m, seq),
+          number: fy ? `${seq}/${fy.short}` : code(prefix, y, m, seq),
           year: y,
           month: m,
           seq,
@@ -237,11 +244,13 @@ export async function orderableQuotations(user: SessionUser, clientId: string) {
 export async function salesOrderDefaults(user: SessionUser, clientId: string, quotationId?: string | null) {
   await loadClient(user, clientId);
   const q = quotationId
-    ? await db.quotation.findUnique({
-        where: { id: quotationId },
-        select: { number: true, createdAt: true },
+    ? await db.quotation.findFirst({
+        where: { id: quotationId, OR: [{ clientId }, { opportunity: { client: { id: clientId } } }, { opportunity: { renewalOfId: clientId } }] },
+        select: { number: true, createdAt: true, poNumber: true, poDetails: true },
       })
     : null;
+  // What the PO template already said: our PO number, kits per line and delivery date.
+  const po = (q?.poDetails ?? {}) as { kits?: (number | null)[]; deliveryDate?: string | null };
   const items = quotationId
     ? (
         await db.quotationItem.findMany({
@@ -253,19 +262,19 @@ export async function salesOrderDefaults(user: SessionUser, clientId: string, qu
           },
           orderBy: { sortOrder: "asc" },
         })
-      ).map((i) => ({
+      ).map((i, idx) => ({
         productId: i.productId,
         description: i.description,
-        qty: "",
+        qty: po.kits?.[idx] ? String(po.kits[idx]) : "",
         price: String(Number(i.price)),
         gstRate: "0",
       }))
     : [];
   return {
     date: todayIST(),
-    expectedDelivery: "",
+    expectedDelivery: po.deliveryDate ?? "",
     notes: "",
-    poNumber: "",
+    poNumber: q?.poNumber ?? "",
     poDate: "",
     quotationId: quotationId ?? "",
     quotationLabel: q ? `${q.number} · created ${fmtDateTimeIST(q.createdAt)}` : "",
@@ -996,52 +1005,47 @@ async function loadPayment(user: SessionUser, id: string) {
 }
 
 async function receiptFor(p: Awaited<ReturnType<typeof loadPayment>>) {
-  const content = await getQuotationContent();
-  // Received so far: cleared money up to this payment, plus this one (shown even while its cheque clears).
-  const siblings = p.invoice ? p.invoice.payments : (p.salesOrder?.advances ?? []);
+  const docs = await getDocumentSettings();
+  const so = p.salesOrder;
+  // Like the client's receipt book: the whole PO's value, everything received on it so far
+  // (counted payments up to this one, plus this one even while its cheque clears), and the balance.
+  const siblings = so ? so.advances : (p.invoice?.payments ?? []);
   const before = siblings.filter((x) => x.id !== p.id && x.createdAt.getTime() <= p.createdAt.getTime());
   const amount = Number(p.amount);
   const receivedToDate = r2(receivedOf(before) + (p.status === "BOUNCED" ? 0 : amount));
-  const total = p.invoice
-    ? Number(p.invoice.total) - creditedOf(p.invoice.creditNotes)
-    : totals(
-        (p.salesOrder?.items ?? []).map((i) => ({
-          qty: i.qty,
-          price: Number(i.price),
-          gstRate: Number(i.gstRate),
-        })),
-      ).total;
-  const c = p.client;
-  const so = p.salesOrder;
+  const poValue = so
+    ? totals(so.items.map((i) => ({ qty: i.qty, price: Number(i.price), gstRate: Number(i.gstRate) }))).total
+    : Number(p.invoice?.total ?? 0);
+  const credited = so
+    ? Number((await db.creditNote.aggregate({ where: { invoice: { salesOrderId: so.id } }, _sum: { amount: true } }))._sum.amount ?? 0)
+    : creditedOf(p.invoice?.creditNotes ?? []);
+  const kitsOnly = !!so?.items.length && so.items.every((i) => /kit|TB|NB|book/i.test(i.description));
+  const onAccountOf =
+    `${p.invoice ? "" : "Advance – "}` +
+    (kitsOnly || !so ? "Student Book Set" : so.items.map((i) => i.description).join(", ").slice(0, 60));
+  const cheque = CHEQUE_MODES.includes(p.mode);
+  const paidBy = cheque
+    ? [`Cheque # ${p.reference ?? "—"}`, ...(p.bank ? [`${p.bank},`] : []), ...(p.chequeDate ? [`dtd. ${dmy(p.chequeDate).replace(/-/g, "/")}`] : [])]
+    : [p.mode, ...(p.reference ? [`Ref. ${p.reference}`] : []), ...(p.bank ? [p.bank] : [])];
   const pdf = await renderReceiptPdf({
     number: p.number,
-    date: dmy(p.date),
-    schoolName: c.schoolName,
-    contactName: c.contactName,
-    address: [c.address, c.area, c.city].filter(Boolean).join(", ") || null,
+    date: dmy(p.date).replace(/-/g, "/"),
+    schoolName: p.client.schoolName,
     amount,
-    amountWords: rupeesInWords(amount),
-    mode: p.mode,
-    reference: p.reference,
-    bank: p.bank,
-    chequeDate: p.chequeDate ? dmy(p.chequeDate) : null,
-    note: p.note,
-    against: p.invoice
-      ? `Invoice ${p.invoice.number} dated ${dmy(p.invoice.date)}`
-      : `Advance on order ${so?.number ?? ""}${so?.proformaNumber ? ` (proforma ${so.proformaNumber})` : ""}`,
-    totalLabel: p.invoice ? "Invoice total" : "Order total",
-    total: r2(total),
-    receivedToDate,
-    balance: r2(Math.max(0, total - receivedToDate)),
+    amountWords: rupeesInWords(amount).replace(/^Rupees\s+/, ""),
+    onAccountOf,
+    paidBy,
     statusNote:
       p.status === "BOUNCED"
         ? "This cheque was returned unpaid (bounced)."
         : p.status === "IN_HAND" || p.status === "DEPOSITED"
           ? "Subject to realisation of the cheque."
           : null,
-    receivedBy: p.recordedBy.name,
-    footerLines: content.footerLines,
-    company: content.company,
+    poValue: r2(poValue),
+    receivedToDate,
+    balance: r2(Math.max(0, poValue - credited - receivedToDate)),
+    signatory: docs.signatory,
+    addressLines: docs.receiptLines,
   });
   return { number: p.number, pdf };
 }

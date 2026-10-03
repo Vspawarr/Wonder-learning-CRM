@@ -2,6 +2,7 @@
 // returns plain serialisable objects (dates as YYYY-MM-DD, money as numbers).
 import type { Prisma } from "@/generated/prisma/client";
 import { db } from "@/lib/db";
+import type { PoDetails } from "./finance/po";
 import { CLOSED_STAGES, STAGES, type Stage } from "@/lib/constants";
 import { addDays, fmtDateTimeIST, fromDbDate, optDate, todayIST } from "@/lib/dates";
 import { SALES_ROLES, canAssignOthers, seesAllSales, type SessionUser } from "@/lib/permissions";
@@ -488,6 +489,8 @@ function quoteSummary(q: Prisma.QuotationGetPayload<{ include: typeof quoteInclu
     itemNames: q.items.map((i) => i.description),
     preparedBy: q.preparedBy.name,
     shareToken: q.shareToken,
+    poNumber: q.poNumber,
+    poDetails: (q.poDetails ?? null) as PoDetails | null,
   };
 }
 export type QuoteSummary = ReturnType<typeof quoteSummary>;

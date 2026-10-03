@@ -2,6 +2,8 @@ import { db } from "@/lib/db";
 import { inr } from "@/lib/format";
 import { Empty, PageHeader, Pill, Table } from "@/components/ui";
 import { requireProductManager } from "@/server/session";
+import type { KitSection } from "@/lib/quotation-text";
+import { Icon } from "@/components/icons";
 import { DeleteProductButton, ProductButton } from "./product-form";
 
 export const metadata = { title: "Products" };
@@ -17,11 +19,23 @@ export default async function ProductsPage() {
     price: p.price === null ? null : Number(p.price),
     gstRate: p.gstRate === null ? null : Number(p.gstRate),
     active: p.active,
+    contents: Array.isArray(p.contents) ? (p.contents as KitSection[]) : null,
+    color: p.color,
   }));
+  const kits = rows.filter((p) => p.contents?.length && p.active);
+  const count = (p: (typeof rows)[number]) => p.contents?.reduce((t, g) => t + g.items.length, 0) ?? 0;
 
   return (
     <>
-      <PageHeader title="Products" sub="The products offered on quotations. Price and GST here are optional reference values; quotations have MRP and price typed on each one.">
+      <PageHeader
+        title="Products"
+        sub="Student kits (one per class) and optional add-ons offered on quotations. Price and GST are reference values; quotations have MRP and price typed on each one. A kit's contents print on the kit checklist."
+      >
+        {kits.length ? (
+          <a className="btn" href="/api/products/checklist" target="_blank" rel="noreferrer">
+            <Icon name="doc" size={16} /> Kit checklist (PDF)
+          </a>
+        ) : null}
         <ProductButton />
       </PageHeader>
       <div className="hidden min-[901px]:block">
@@ -30,7 +44,18 @@ export default async function ProductsPage() {
             <tr key={p.id}>
               <td className="faint">{p.code}</td>
               <td>
-                <b>{p.name}</b>
+                <span className="inline-flex items-center gap-2">
+                  {p.color ? <span className="inline-block h-3 w-3 rounded-full" style={{ background: p.color }} aria-hidden="true" /> : null}
+                  <b>{p.name}</b>
+                </span>
+                {p.contents?.length ? (
+                  <div className="small muted">
+                    Kit · {count(p)} items in {p.contents.length} groups ·{" "}
+                    <a href={`/api/products/checklist?ids=${p.id}`} target="_blank" rel="noreferrer">
+                      checklist
+                    </a>
+                  </div>
+                ) : null}
               </td>
               <td>{p.category ?? <span className="faint">—</span>}</td>
               <td className="num">{p.price === null ? <span className="faint">Not set</span> : inr(p.price)}</td>
@@ -59,9 +84,15 @@ export default async function ProductsPage() {
               {p.code}
               {p.category ? ` · ${p.category}` : ""} · {p.price === null ? "price not set" : inr(p.price)}
               {p.gstRate === null ? "" : ` · GST ${p.gstRate}%`}
+              {p.contents?.length ? ` · kit of ${count(p)} items` : ""}
             </div>
             <div className="mt-2 flex gap-1.5">
               <ProductButton product={p} />
+              {p.contents?.length ? (
+                <a className="btn sm" href={`/api/products/checklist?ids=${p.id}`} target="_blank" rel="noreferrer">
+                  Checklist
+                </a>
+              ) : null}
               <DeleteProductButton product={p} />
             </div>
           </div>

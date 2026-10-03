@@ -60,18 +60,21 @@ Wording rule: the salesperson is always **"Assigned to"**; "Owner" only means th
 
 ## Business documents (PDF)
 
-All share the Wonder Learning header/footer from `src/server/quotation/pdf.tsx`. Numbers run per month and
-restart at /001 each month.
+Quotation, proforma, invoice, credit note and challan share the Wonder Learning header/footer from
+`src/server/quotation/pdf.tsx` and number per month (/001 each month). The **PO template, receipt and kit
+checklist follow the client's own sample files** (R27): their texts are in Settings → Documents, and receipt
+and PO numbers run per financial year with starting-number settings.
 
 | Document | Number | Made from | Download / share | Code |
 |---|---|---|---|---|
 | Quotation (3 pages, client's format) | QUO/YYYY/MM/NNN | Opportunity or client | `/api/quotations/<id>/pdf`; public link `/q/<token>` | `src/server/quotation/pdf.tsx`, text in Settings → Quotation (`content.ts`) |
 | Sample quotation (to check Settings text) | QUO/…/000 | Settings → Quotation | `/api/quotations/sample` (Admin) | same |
-| PO template (school signs and seals) | blank, filled by school | Sent quotation | `/api/quotations/<id>/po-template`; public `/q/<token>/po` | `src/server/finance/po-pdf.tsx` |
+| PO template (client's PO format; school signs and stamps) | PO/2627/N, given on first save | Sent quotation + details saved in "Send PO template" (`Quotation.poDetails`) | `/api/quotations/<id>/po-template`; public `/q/<token>/po` | `src/server/finance/po-pdf.tsx`, `po.ts`; texts in Settings → Documents |
+| Kit checklist (client's checklist layout, one coloured page per class) | — | Products with contents | `/api/products/checklist[?ids=]`; public `/q/<token>/checklist` (the quotation's kits) | `src/server/products/checklist-pdf.tsx`, `checklist.ts` |
 | Signed PO (uploaded file) | school's PO No. | Upload signed PO | `/api/sales-orders/<id>/po` | `src/server/finance/po.ts` (PDF or photo, max 4 MB) |
 | Proforma invoice | PI/YYYY/MM/NNN | Sales order | `/api/sales-orders/<id>/proforma` | `invoice-pdf.tsx` (proforma title) |
 | Invoice 🟡 | INV/YYYY/MM/NNN | Sales order | `/api/invoices/<id>/pdf`; public `/i/<token>` | `src/server/finance/invoice-pdf.tsx`. **Provisional layout until the client's invoice sample arrives** |
-| Payment receipt | RCPT/YYYY/MM/NNN | Payment / advance | `/api/payments/<id>/receipt`; public `/r/<token>` | `receipt-pdf.tsx` |
+| Payment receipt (client's receipt format) | N/26-27 (financial year) | Payment / advance | `/api/payments/<id>/receipt`; public `/r/<token>` | `receipt-pdf.tsx`; address and signatory in Settings → Documents |
 | Credit note | CN/YYYY/MM/NNN | Invoice | `/api/credit-notes/<id>/pdf` | `credit-note-pdf.tsx` |
 | Delivery challan | DC/YYYY/MM/NNN | Dispatch | `/api/dispatches/<id>/challan` | `challan-pdf.tsx` |
 
@@ -91,12 +94,13 @@ Files are stored inside the database (no separate file storage to set up).
 
 - **Android app** `public/downloads/wonder-crm.apk`, served by `/download-app`. Rebuild with
   `android/build.sh` when the site address changes (see `android/README.md`).
-- **Logo** `public/brand/wonder-logo.png` (from the client's templates).
+- **Logo** `public/brand/wonder-logo.png` (from the client's templates); embedded copy for PDFs in `src/server/finance/logo-image.ts`.
+- **Project documents** (`docs/*.md`, `DEPLOY.md`) are also shown in the CRM at Settings → Project documents.
 
 ## Waiting on the client
 
 - Invoice sample (to replace the provisional invoice layout; add GSTIN, HSN/SAC, bank details, place of supply).
-- Preferred number formats for PO / quotation / sales order / invoice ("ranges in sync").
+- Preferred number formats for quotation / sales order / invoice ("ranges in sync"); receipt and PO already follow the client's books.
 - Any customised quotation samples.
 - Opening balances for the ledger (format to be agreed; not loaded yet).
 
@@ -110,7 +114,7 @@ When a field, label, list or rule changes, check each of these and fix what's af
 - [ ] Lead Excel template: columns, notes, example row, Read me text (`src/server/lead-excel/`)
 - [ ] Lead upload rules match the form's rules (`import.ts`) and `tests/lead-excel.test.ts` covers them
 - [ ] Report exports for every screen showing the field (`src/server/reports/index.ts`)
-- [ ] PDFs that print it (quotation, PO template, proforma, invoice, receipt, credit note, challan)
+- [ ] PDFs that print it (quotation, PO template, kit checklist, proforma, invoice, receipt, credit note, challan)
 - [ ] WhatsApp / email message texts that mention it
 - [ ] `docs/REQUIREMENTS.md` (status) and `docs/CHANGELOG.md` (what changed)
 - [ ] Download each changed file once and open it to look (dev: `npm run build && npm start`, log in, download)

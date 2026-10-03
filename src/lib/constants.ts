@@ -144,16 +144,6 @@ export const STAGE_COLOR: Record<Stage, string> = {
 export const CLOSED_STAGES: readonly Stage[] = ["WON", "LOST"];
 
 /** Phase 1 product catalogue — names only; prices/GST are entered in-app. */
-export const INITIAL_PRODUCTS = [
-  { code: "P01", name: "Curriculum License", category: "Curriculum" },
-  { code: "P02", name: "Preschool Setup Package", category: "School Setup" },
-  { code: "P03", name: "Teacher Training", category: "Teacher Training" },
-  { code: "P04", name: "Parent Workshop", category: "Parent Engagement" },
-  { code: "P05", name: "School Audit", category: "Assessment" },
-  { code: "P06", name: "Marketing Campaign", category: "Marketing" },
-  { code: "P07", name: "Branding Support", category: "Branding" },
-] as const;
-
 export const CLIENT_STATUS_LABEL = { ONBOARDING: "Onboarding", ACTIVE: "Active" } as const;
 
 /** How a payment was received. */

@@ -2,6 +2,8 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   serverExternalPackages: ["@prisma/client", "pg", "@react-pdf/renderer", "nodemailer", "exceljs"],
+  // Settings → Project documents reads these files at run time, so ship them with the server.
+  outputFileTracingIncludes: { "/admin/docs": ["./docs/**/*.md", "./DEPLOY.md"] },
   async headers() {
     return [
       {

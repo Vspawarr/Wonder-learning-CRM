@@ -5,6 +5,15 @@ wonder-learning-crm.vercel.app automatically). Newest first. **Add an entry with
 commit id, what changed in plain words, and the requirement it answers (R… in `REQUIREMENTS.md`).
 `git log --oneline` shows the full list.
 
+## 3 Oct 2026
+
+- *(this commit)* **Client's own templates and kit-wise products.** Products are now the four class kits
+  (with contents from the client's checklist) plus seven optional add-ons; the seven sample services are
+  removed (one-time migration). New kit checklist PDF. Receipt and PO template rebuilt in the client's
+  formats; receipt numbers 1/26-27 and PO numbers PO/2627/1 with starting-number settings; Upload signed PO
+  pre-fills PO number, kits and delivery date. Settings → Quotation renamed **Documents** (quotation text +
+  PO/receipt settings). **Settings → Project documents** shows the docs inside the CRM. (R26, R27)
+
 ## 2 Oct 2026
 
 - `a323882` **Project documents.** Added `docs/`: requirements log, business rules, downloads &

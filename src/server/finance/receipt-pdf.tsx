@@ -1,122 +1,142 @@
-// The payment receipt PDF, in the same branded style as quotations and invoices.
-import { Document, Page, StyleSheet, Text, View, renderToBuffer } from "@react-pdf/renderer";
-import { FooterBand, Header, Money } from "../quotation/pdf";
+// The payment receipt in the client's own format (their receipt 117/26-27): a small
+// landscape slip with the logo and office address, Received From, the amount in words,
+// "on account of", how it was paid, and a Total PO Value / Received / Balance box.
+import { Document, Image, Page, StyleSheet, Text, View, renderToBuffer } from "@react-pdf/renderer";
+import { LOGO_JPG, LOGO_RATIO } from "./logo-image";
+import "../quotation/pdf"; // registers the Rupee font
 
 export type ReceiptPdfData = {
   number: string;
-  date: string; // DD-MM-YYYY
+  date: string; // DD/MM/YYYY
   schoolName: string;
-  contactName: string;
-  address: string | null;
   amount: number;
+  /** "Two Lakh Fifty Six Thousand One Hundred Only" (without "Rupees"). */
   amountWords: string;
-  mode: string;
-  reference: string | null;
-  bank: string | null;
-  chequeDate: string | null;
-  note: string | null;
-  /** e.g. "Invoice INV/… dated …" or "Advance on order SO/…". */
-  against: string;
-  totalLabel: string;
-  total: number;
+  onAccountOf: string;
+  /** "Cheque # 636670", "Vidarbha Konkan Gramin Bank,", "dtd. 29/05/2026". */
+  paidBy: string[];
   /** e.g. "Subject to realisation of the cheque." */
   statusNote: string | null;
+  poValue: number;
   receivedToDate: number;
   balance: number;
-  receivedBy: string;
-  footerLines: string[];
-  company: string;
+  signatory: string;
+  /** Office address under the company name. */
+  addressLines: string[];
 };
 
-const FOOTER_H = (284 * 621) / 2471;
+const BLUE = "#1F4FA0";
+const W = 468;
+const H = 309.6;
 
 const s = StyleSheet.create({
-  page: { fontFamily: "Helvetica", fontSize: 10.5, color: "#222222", paddingBottom: FOOTER_H + 16 },
-  bold: { fontFamily: "Helvetica-Bold" },
-  line: { marginBottom: 4 },
-  row: { flexDirection: "row", marginTop: 30, marginHorizontal: 54 },
-  toCol: { width: 290, paddingRight: 12 },
-  metaCol: { flexGrow: 1 },
-  amountBox: { marginHorizontal: 54, marginTop: 24, borderWidth: 0.8, borderColor: "#6C2D91", borderRadius: 6, padding: 14 },
-  amountLabel: { fontSize: 9.5, color: "#6C2D91", fontFamily: "Helvetica-Bold", marginBottom: 4 },
-  amount: { fontSize: 22, fontFamily: "Helvetica-Bold" },
-  words: { marginTop: 6, fontSize: 10 },
-  table: { marginHorizontal: 54, marginTop: 20 },
-  tr: { flexDirection: "row", paddingVertical: 6, borderBottomWidth: 0.6, borderBottomColor: "#DDDDDD" },
-  k: { width: 190, color: "#555555" },
-  v: { flex: 1 },
-  sign: { marginHorizontal: 54, marginTop: 36, flexDirection: "row", justifyContent: "space-between" },
+  page: { fontFamily: "Helvetica", fontSize: 9, color: "#111111", width: W, height: H },
+  frame: { position: "absolute", top: 6, left: 6, right: 6, bottom: 6, borderWidth: 0.8, borderColor: "#333333" },
+  head: { flexDirection: "row", alignItems: "center", paddingHorizontal: 10, paddingTop: 8, height: 62 },
+  company: { flexGrow: 1, alignItems: "center", paddingLeft: 8 },
+  companyName: { fontFamily: "Helvetica-Bold", fontSize: 14.5, color: BLUE, marginBottom: 3 },
+  address: { fontSize: 8.6, textAlign: "center", lineHeight: 1.35 },
+  bar: { flexDirection: "row", alignItems: "center", borderTopWidth: 0.8, borderBottomWidth: 0.8, borderColor: "#333333", paddingHorizontal: 10, paddingVertical: 4 },
+  title: { flexGrow: 1, textAlign: "center", fontFamily: "Helvetica-Bold", fontSize: 13, color: BLUE, textDecoration: "underline" },
+  body: { paddingHorizontal: 10, paddingTop: 8 },
+  line: { flexDirection: "row", alignItems: "flex-end", marginBottom: 9 },
+  label: { fontFamily: "Helvetica-Bold", marginRight: 6 },
+  fill: { borderBottomWidth: 0.6, borderColor: "#333333", paddingHorizontal: 4, paddingBottom: 1 },
+  amountBox: { borderWidth: 0.8, borderColor: "#333333", paddingVertical: 3, paddingHorizontal: 8, width: 118, textAlign: "right" },
+  lower: { flexDirection: "row", paddingHorizontal: 10, marginTop: 2 },
+  table: { borderWidth: 0.8, borderColor: "#333333", width: 168 },
+  tr: { flexDirection: "row", borderBottomWidth: 0.6, borderColor: "#333333" },
+  tk: { width: 88, paddingHorizontal: 4, paddingVertical: 2.5, borderRightWidth: 0.6, borderColor: "#333333" },
+  tv: { flexGrow: 1, paddingHorizontal: 4, paddingVertical: 2.5, textAlign: "right" },
 });
 
-function Row({ k, children }: { k: string; children: React.ReactNode }) {
-  return (
-    <View style={s.tr} wrap={false}>
-      <Text style={s.k}>{k}</Text>
-      <Text style={s.v}>{children}</Text>
-    </View>
-  );
-}
+const fmt = (n: number) => n.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+/** ₹ in the Rupee font (registered by the quotation PDF module), digits in Helvetica. */
+const R = ({ n }: { n: number }) => (
+  <>
+    <Text style={{ fontFamily: "Rupee" }}>₹</Text> {fmt(n)}
+  </>
+);
 
 export function ReceiptDocument({ d }: { d: ReceiptPdfData }) {
+  const logoW = 116;
   return (
     <Document title={`Receipt ${d.number}`} author="Wonder Learning India Pvt. Ltd." creator="Wonder Learning CRM">
-      <Page size="LETTER" style={s.page}>
-        <Header title="PAYMENT RECEIPT" align="right" />
-        <View style={s.row}>
-          <View style={s.toCol}>
-            <Text style={[s.bold, s.line]}>Received from,</Text>
-            <Text style={[s.bold, s.line]}>{d.schoolName}</Text>
-            <Text style={s.line}>{d.contactName}</Text>
-            {d.address ? <Text>{d.address}</Text> : null}
+      <Page size={[W, H]} style={s.page}>
+        <View style={s.frame}>
+          <View style={s.head}>
+            {/* eslint-disable-next-line jsx-a11y/alt-text -- react-pdf Image has no alt */}
+            <Image src={LOGO_JPG} style={{ width: logoW, height: logoW * LOGO_RATIO }} />
+            <View style={s.company}>
+              <Text style={s.companyName}>Wonder Learning India Pvt Ltd</Text>
+              <Text style={s.address}>{d.addressLines.join("\n")}</Text>
+            </View>
           </View>
-          <View style={s.metaCol}>
-            <Text style={s.line}>
-              <Text style={s.bold}>Receipt No.: </Text>
-              {d.number}
-            </Text>
-            <Text style={s.line}>
-              <Text style={s.bold}>Date: </Text>
-              {d.date}
-            </Text>
+          <View style={s.bar}>
+            <Text style={{ width: 130 }}>Date:  {d.date}</Text>
+            <Text style={s.title}>Receipt</Text>
+            <Text style={{ width: 130, textAlign: "right" }}>Receipt No. {d.number}</Text>
+          </View>
+          <View style={s.body}>
+            <View style={s.line}>
+              <Text style={s.label}>Received From</Text>
+              <Text style={[s.fill, { flexGrow: 1, fontFamily: "Helvetica-Bold", fontSize: 10.5 }]}>{d.schoolName}</Text>
+            </View>
+            <View style={[s.line, { paddingLeft: 30 }]}>
+              <Text style={s.label}>Amount :</Text>
+              <Text style={{ marginRight: 6 }}>Rupees</Text>
+              <Text style={[s.fill, { flexGrow: 1 }]}>{d.amountWords}</Text>
+            </View>
+            <View style={[s.line, { alignItems: "center" }]}>
+              <Text style={s.label}>on account of</Text>
+              <Text style={[s.fill, { width: 170 }]}>{d.onAccountOf}</Text>
+              <View style={{ flexGrow: 1 }} />
+              <Text style={[s.label, { fontSize: 10 }]}>Amount</Text>
+              <Text style={s.amountBox}>
+                <R n={d.amount} />
+              </Text>
+            </View>
+          </View>
+          <View style={s.lower}>
+            <View style={{ flexGrow: 1, paddingTop: 2 }}>
+              <Text style={[s.label, { marginBottom: 4 }]}>Payment Paid by</Text>
+              {d.paidBy.map((l, i) => (
+                <Text key={i} style={{ marginBottom: 2 }}>
+                  {l}
+                </Text>
+              ))}
+              {d.statusNote ? <Text style={{ marginTop: 3, color: "#B42318", fontFamily: "Helvetica-Bold", fontSize: 8 }}>{d.statusNote}</Text> : null}
+            </View>
+            <View>
+              <View style={s.table}>
+                <View style={s.tr}>
+                  <Text style={s.tk}>Total PO Value</Text>
+                  <Text style={s.tv}>
+                    <R n={d.poValue} />
+                  </Text>
+                </View>
+                <View style={s.tr}>
+                  <Text style={s.tk}>Payment Received</Text>
+                  <Text style={s.tv}>
+                    <R n={d.receivedToDate} />
+                  </Text>
+                </View>
+                <View style={[s.tr, { borderBottomWidth: 0 }]}>
+                  <Text style={s.tk}>Balance Due</Text>
+                  <Text style={s.tv}>
+                    <R n={d.balance} />
+                  </Text>
+                </View>
+              </View>
+              <View style={{ alignItems: "center", marginTop: 26 }}>
+                <Text style={{ fontFamily: "Helvetica-Oblique", fontSize: 9.5, marginBottom: 2 }}>{d.signatory}</Text>
+                <View style={{ borderTopWidth: 0.6, borderColor: "#333333", width: 120, paddingTop: 2, alignItems: "center" }}>
+                  <Text>Authorized By</Text>
+                </View>
+              </View>
+            </View>
           </View>
         </View>
-
-        <View style={s.amountBox} wrap={false}>
-          <Text style={s.amountLabel}>AMOUNT RECEIVED</Text>
-          <Text style={s.amount}>
-            <Money n={d.amount} />
-          </Text>
-          <Text style={s.words}>{d.amountWords}</Text>
-          {d.statusNote ? <Text style={[s.words, { color: "#B42318", fontFamily: "Helvetica-Bold" }]}>{d.statusNote}</Text> : null}
-        </View>
-
-        <View style={s.table}>
-          <Row k="Payment mode">{d.mode}</Row>
-          {d.reference ? <Row k="Reference (UTR / cheque no.)">{d.reference}</Row> : null}
-          {d.bank ? <Row k="Bank">{d.bank}</Row> : null}
-          {d.chequeDate ? <Row k="Cheque date">{d.chequeDate}</Row> : null}
-          <Row k="Against">{d.against}</Row>
-          <Row k={d.totalLabel}>
-            <Money n={d.total} />
-          </Row>
-          <Row k="Total received so far">
-            <Money n={d.receivedToDate} />
-          </Row>
-          <Row k="Balance due">{d.balance > 0 ? <Money n={d.balance} /> : "Nil · paid in full"}</Row>
-          {d.note ? <Row k="Note">{d.note}</Row> : null}
-        </View>
-
-        <View style={s.sign} wrap={false}>
-          <View>
-            <Text style={s.line}>Thank you for your payment.</Text>
-            <Text style={{ marginTop: 6, fontSize: 9, color: "#666666" }}>Received by {d.receivedBy}</Text>
-          </View>
-          <View style={{ alignItems: "flex-end" }}>
-            <Text style={s.line}>{d.company}</Text>
-            <Text style={{ marginTop: 26 }}>Authorised Signatory</Text>
-          </View>
-        </View>
-        <FooterBand lines={d.footerLines} />
       </Page>
     </Document>
   );

@@ -1,17 +1,17 @@
 import { currentUser } from "@/server/session";
 import { DomainError } from "@/server/errors";
-import { parseKits, poTemplateFileName, poTemplatePdf } from "@/server/finance/po";
+import { poTemplateFileName, poTemplatePdf } from "@/server/finance/po";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-/** PO template made from a sent quotation (?kits=40,25 pre-fills kits; ?download=1 to save). */
+/** PO template made from a sent quotation with its saved PO details (?download=1 to save). */
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const user = await currentUser();
   if (!user) return new Response("Please sign in.", { status: 401 });
   const url = new URL(req.url);
   try {
-    const { schoolName, pdf } = await poTemplatePdf(user, (await params).id, parseKits(url.searchParams.get("kits")));
+    const { schoolName, pdf } = await poTemplatePdf(user, (await params).id);
     return new Response(new Uint8Array(pdf), {
       headers: {
         "Content-Type": "application/pdf",

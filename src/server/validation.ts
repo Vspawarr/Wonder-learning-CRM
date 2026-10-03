@@ -1,3 +1,4 @@
+import { textToSections } from "@/lib/quotation-text";
 import { z } from "zod";
 import {
   COMPETITORS,
@@ -217,6 +218,21 @@ export const productInput = z.object({
   price: optMoney,
   gstRate: optMoney.refine((n) => n === null || n <= 100, "GST must be a percentage."),
   active: z.boolean().default(true),
+  /** Kit contents as typed: "## Common Kit | 19 objects" headings, one item per line. Blank = not a kit. */
+  contents: z
+    .string()
+    .max(20000)
+    .nullish()
+    .transform((t) => {
+      const sections = textToSections(t ?? "");
+      return sections.length ? sections : null;
+    }),
+  color: z
+    .string()
+    .trim()
+    .nullish()
+    .transform((c) => c || null)
+    .refine((c) => c === null || /^#[0-9a-fA-F]{6}$/.test(c), "Choose a colour like #F08A1C."),
 });
 
 export const cityInput = z.object({ stateName: reqText("State", 100), name: reqText("City", 100) });

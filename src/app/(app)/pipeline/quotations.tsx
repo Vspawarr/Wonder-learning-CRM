@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Field, Modal, Options, useAction, useToast } from "@/components/client";
 import { DateInput } from "@/components/date-input";
 import { Icon } from "@/components/icons";
@@ -15,6 +16,8 @@ import {
   quotationForEdit,
   reviseQuotation,
   updateQuotation,
+  poTemplateSetup,
+  savePoTemplate,
 } from "@/app/actions";
 import { fmtDate, istDate, todayIST } from "@/lib/dates";
 import type { ProductOption, QuoteSummary } from "@/server/queries";
@@ -451,31 +454,96 @@ function SendQuotation({
   );
 }
 
-/** A purchase order form pre-filled from the quotation, for schools without their own PO format. */
+/** The PO template in Wonder Learning's PO format, pre-filled from the quotation for the school to sign and stamp. */
 export function PoTemplateModal({ q, target, me, onClose }: { q: Q; target: QuoteTarget; me: { name: string }; onClose: () => void }) {
-  const [kits, setKits] = useState<string[]>(q.itemNames.map(() => ""));
-  const qs = kits.some((k) => k.trim()) ? `?kits=${encodeURIComponent(kits.map((k) => k.trim()).join(","))}` : "";
-  const pdf = `/api/quotations/${q.id}/po-template${qs}`;
+  const router = useRouter();
+  const d0 = q.poDetails;
+  const [setup, setSetup] = useState<{ customise: string[]; shippingTerms: string } | null>(null);
+  const [v, setV] = useState(() => ({
+    kits: q.itemNames.map((_, i) => (d0?.kits?.[i] ? String(d0.kits[i]) : "")),
+    requisitioner: d0?.requisitioner ?? "",
+    deliveryDate: d0?.deliveryDate ?? "",
+    shipVia: d0?.shipVia ?? "",
+    shippingTerms: d0?.shippingTerms ?? "",
+    remarks: (d0?.remarks ?? []).join("\n"),
+    customise: d0?.customise ?? [],
+    cheques: (d0?.cheques?.length ? d0.cheques : [{ mode: "CDC", date: null, amount: null }]).map((c) => ({
+      mode: c.mode,
+      date: c.date ?? "",
+      amount: c.amount == null ? "" : String(c.amount),
+    })),
+  }));
+  const [poNumber, setPoNumber] = useState(q.poNumber);
+  const [saved, setSaved] = useState(!!q.poNumber);
+  const { pending, run } = useAction();
+  useEffect(() => {
+    let live = true;
+    poTemplateSetup().then((x) => {
+      if (!live) return;
+      setSetup(x);
+      setV((cur) => ({
+        ...cur,
+        shippingTerms: cur.shippingTerms || x.shippingTerms,
+        customise: x.customise.map((_, i) => cur.customise[i] ?? true),
+      }));
+    });
+    return () => {
+      live = false;
+    };
+  }, []);
+  const edit = (patch: Partial<typeof v>) => {
+    setV({ ...v, ...patch });
+    setSaved(false);
+  };
+  const save = () =>
+    run(
+      () =>
+        savePoTemplate(q.id, {
+          kits: v.kits.map((k) => (k.trim() ? k.trim() : null)),
+          requisitioner: v.requisitioner,
+          deliveryDate: v.deliveryDate || null,
+          shipVia: v.shipVia,
+          shippingTerms: v.shippingTerms,
+          remarks: v.remarks.split("\n").map((r) => r.trim()).filter(Boolean),
+          customise: v.customise,
+          cheques: v.cheques.filter((c) => c.mode || c.date || c.amount).map((c) => ({ mode: c.mode, date: c.date || null, amount: c.amount ? c.amount : null })),
+        }),
+      {
+        success: "PO template saved.",
+        onDone: (n) => {
+          setPoNumber(n ?? poNumber);
+          setSaved(true);
+          router.refresh();
+        },
+      },
+    );
+  const pdf = `/api/quotations/${q.id}/po-template`;
   const mobile = (target.mobile ?? "").replace(/\D/g, "").replace(/^(\d{10})$/, "91$1");
-
   const whatsapp = () => {
-    const link = `${window.location.origin}/q/${q.shareToken}/po${qs}`;
-    const text = `Dear Sir/Madam,\nAs discussed, here is the purchase order format for ${target.schoolName} against our quotation ${q.number}. Please fill in the PO number and date, sign, put the school seal and send it back to us:\n${link}\n\nRegards,\n${me.name}\nWonder Learning`;
+    const base = `${window.location.origin}/q/${q.shareToken}`;
+    const text = `Dear Sir/Madam,\nAs discussed, here is purchase order ${poNumber ?? ""} for ${target.schoolName} against our quotation ${q.number}. Please check the quantities, sign, put the school stamp and send it back to us:\n${base}/po\n\nKit checklist (what each kit contains):\n${base}/checklist\n\nRegards,\n${me.name}\nWonder Learning`;
     window.open(`https://wa.me/${mobile}?text=${encodeURIComponent(text)}`, "_blank", "noopener");
   };
+  const setCheque = (i: number, patch: Partial<(typeof v.cheques)[number]>) => edit({ cheques: v.cheques.map((c, j) => (j === i ? { ...c, ...patch } : c)) });
 
   return (
     <Modal
       title={`Send PO template · ${q.number}`}
-      sub={`A purchase order in ${target.schoolName}'s name for them to sign, seal and send back.`}
+      sub={`Our purchase order format in ${target.schoolName}'s name, for them to sign, stamp and send back. ${poNumber ? `PO No. ${poNumber}` : "The PO number is given when you save."}`}
       onClose={onClose}
       footer={
-        <button className="btn" onClick={onClose}>
-          Close
-        </button>
+        <>
+          <button className="btn" onClick={onClose}>
+            Close
+          </button>
+          <button className="btn pri" disabled={pending} onClick={save}>
+            {pending ? "Saving…" : saved ? "Saved" : "Save"}
+          </button>
+        </>
       }
     >
-      <p className="small muted">Number of kits (optional): leave blank for the school to fill in by hand.</p>
+      <h3>Quantities (kits demanded)</h3>
+      <p className="small muted">Leave blank for the school to fill in by hand.</p>
       <div className="mt-2 flex flex-col gap-2">
         {q.itemNames.map((name, i) => (
           <div key={i} className="grid grid-cols-[minmax(0,1fr)_96px] items-center gap-2">
@@ -487,24 +555,91 @@ export function PoTemplateModal({ q, target, me, onClose }: { q: Q; target: Quot
               id={`pot-${i}`}
               inputMode="numeric"
               placeholder="Kits"
-              value={kits[i]}
-              onChange={(e) => setKits(kits.map((k, j) => (j === i ? e.target.value : k)))}
+              value={v.kits[i]}
+              onChange={(e) => edit({ kits: v.kits.map((k, j) => (j === i ? e.target.value : k)) })}
             />
           </div>
         ))}
       </div>
+      <h3 className="mt-4">Order details</h3>
+      <div className="fg2 mt-2">
+        <Field label="Requisitioner" htmlFor="pot-req">
+          <input className="in" id="pot-req" placeholder="School contact person" value={v.requisitioner} onChange={(e) => edit({ requisitioner: e.target.value })} />
+        </Field>
+        <Field label="Expected delivery date" htmlFor="pot-del">
+          <DateInput id="pot-del" value={v.deliveryDate} onChange={(deliveryDate) => edit({ deliveryDate })} />
+        </Field>
+        <Field label="Ship via" htmlFor="pot-via">
+          <input className="in" id="pot-via" placeholder="Transporter (optional)" value={v.shipVia} onChange={(e) => edit({ shipVia: e.target.value })} />
+        </Field>
+        <Field label="Shipping terms" htmlFor="pot-terms">
+          <input className="in" id="pot-terms" value={v.shippingTerms} onChange={(e) => edit({ shippingTerms: e.target.value })} />
+        </Field>
+      </div>
+      <Field label="Additional remarks (one per line)" htmlFor="pot-rem">
+        <textarea
+          className="ta"
+          id="pot-rem"
+          rows={3}
+          placeholder={"School will be served with customised stuff\nAdd Hindi Swar TB, NB in LKG"}
+          value={v.remarks}
+          onChange={(e) => edit({ remarks: e.target.value })}
+        />
+      </Field>
+      <h3 className="mt-2">Customised with school name &amp; logo</h3>
+      <div className="mt-2 flex flex-col gap-1.5">
+        {(setup?.customise ?? []).map((label, i) => (
+          <label key={i} className="flex items-center justify-between gap-3 border-b border-line py-1.5 last:border-0">
+            <span className="min-w-0">{label}</span>
+            <span className="flex items-center gap-2 whitespace-nowrap">
+              <span className={`small ${v.customise[i] ? "text-mint" : "faint"}`}>{v.customise[i] ? "YES" : "NO"}</span>
+              <input
+                type="checkbox"
+                className="h-5 w-5"
+                checked={!!v.customise[i]}
+                onChange={(e) => edit({ customise: v.customise.map((c, j) => (j === i ? e.target.checked : c)) })}
+              />
+            </span>
+          </label>
+        ))}
+      </div>
+      <h3 className="mt-4">Advance cheque / DD details</h3>
+      <div className="mt-2 flex flex-col gap-2">
+        {v.cheques.map((c, i) => (
+          <div key={i} className="grid grid-cols-[96px_minmax(0,1fr)_110px_32px] items-center gap-2 max-[480px]:grid-cols-[84px_minmax(0,1fr)_92px_28px]">
+            <select className="sel" aria-label="Payment type" value={c.mode} onChange={(e) => setCheque(i, { mode: e.target.value })}>
+              {["CDC", "PDC", "DD", "NEFT"].map((m) => (
+                <option key={m}>{m}</option>
+              ))}
+            </select>
+            <DateInput ariaLabel="Dated" value={c.date} onChange={(date) => setCheque(i, { date })} />
+            <input className="in text-right" aria-label="Amount" inputMode="decimal" placeholder="₹" value={c.amount} onChange={(e) => setCheque(i, { amount: e.target.value })} />
+            <button className="btn ghost sm px-1" aria-label="Remove row" onClick={() => edit({ cheques: v.cheques.filter((_, j) => j !== i) })}>
+              <Icon name="x" size={14} />
+            </button>
+          </div>
+        ))}
+        {v.cheques.length < 4 ? (
+          <button className="btn sm self-start" onClick={() => edit({ cheques: [...v.cheques, { mode: "PDC", date: "", amount: "" }] })}>
+            <Icon name="plus" size={14} /> Add cheque
+          </button>
+        ) : null}
+      </div>
       <div className="mt-4 grid grid-cols-1 gap-2 min-[501px]:grid-cols-3">
-        <a className="btn justify-center" href={pdf} target="_blank" rel="noreferrer">
+        <a className={`btn justify-center ${saved ? "" : "pointer-events-none opacity-45"}`} aria-disabled={!saved} href={pdf} target="_blank" rel="noreferrer">
           Preview
         </a>
-        <a className="btn justify-center" href={`${pdf}${qs ? "&" : "?"}download=1`}>
+        <a className={`btn justify-center ${saved ? "" : "pointer-events-none opacity-45"}`} aria-disabled={!saved} href={`${pdf}?download=1`}>
           <Icon name="download" size={16} /> Download
         </a>
-        <button className="btn pri justify-center" disabled={!mobile} onClick={whatsapp}>
+        <button className="btn pri justify-center" disabled={!saved || !mobile} onClick={whatsapp}>
           <Icon name="chat" size={16} /> WhatsApp
         </button>
       </div>
-      <p className="small muted mt-3">When the signed PO comes back, add it on the sales order with its PO number.</p>
+      <p className="small muted mt-3">
+        {saved ? "Saved. " : "Save first, then preview or send. "}
+        The kit checklist goes with the WhatsApp message. When the signed PO comes back, use Upload signed PO: the PO number is filled in for you.
+      </p>
     </Modal>
   );
 }

@@ -24,6 +24,7 @@ import * as contacts from "@/server/contacts";
 import * as renewals from "@/server/renewals";
 import * as targets from "@/server/targets";
 import * as search from "@/server/search";
+import * as documents from "@/server/documents";
 import { contentSchema, resetQuotationContent, saveQuotationContent } from "@/server/quotation/content";
 import { canManageSettings } from "@/lib/permissions";
 import { parse } from "@/server/validation";
@@ -134,6 +135,11 @@ export const saveQuotationSettings = async (data: unknown) =>
     if (!canManageSettings(u.role)) throw new DomainError("Only a Director or Admin can change the quotation text.");
     await saveQuotationContent(u.id, parse(contentSchema, data));
   });
+export const saveDocumentSettings = async (data: unknown) =>
+  run(async (u) => {
+    if (!canManageSettings(u.role)) throw new DomainError("Only a Director or Admin can change document settings.");
+    await documents.saveDocumentSettings(u.id, data);
+  });
 export const resetQuotationSettings = async () =>
   run(async (u) => {
     if (!canManageSettings(u.role)) throw new DomainError("Only a Director or Admin can change the quotation text.");
@@ -148,6 +154,13 @@ export const salesOrderForEdit = async (id: string) => run((u) => fin.salesOrder
 export const createSalesOrder = async (clientId: string, data: unknown) => run((u) => fin.createSalesOrder(u, clientId, data));
 export const updateSalesOrder = async (id: string, data: unknown) => run((u) => fin.updateSalesOrder(u, id, data));
 export const setPurchaseOrder = async (salesOrderId: string, data: unknown) => run((u) => po.setPurchaseOrder(u, salesOrderId, data));
+/** Labels the PO template form needs (Settings → Documents). */
+export const poTemplateSetup = async () => {
+  await requireUser();
+  const d = await documents.getDocumentSettings();
+  return { customise: d.poCustomise, shippingTerms: d.poShippingTerms };
+};
+export const savePoTemplate = async (quotationId: string, data: unknown) => run((u) => po.savePoTemplate(u, quotationId, data));
 export const createDispatch = async (salesOrderId: string, data: unknown) => run((u) => dispatch.createDispatch(u, salesOrderId, data));
 export const markDispatchReceived = async (id: string, date: string) => run((u) => dispatch.markDispatchReceived(u, id, date));
 export const deleteDispatch = async (id: string) => run((u) => dispatch.deleteDispatch(u, id));

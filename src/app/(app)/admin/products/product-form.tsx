@@ -4,8 +4,18 @@ import { useState } from "react";
 import { Field, Modal, useAction } from "@/components/client";
 import { Icon } from "@/components/icons";
 import { deleteProduct, saveProduct } from "@/app/actions";
+import { sectionsToText, type KitSection } from "@/lib/quotation-text";
 
-type P = { id: string; name: string; category: string | null; price: number | null; gstRate: number | null; active: boolean };
+type P = {
+  id: string;
+  name: string;
+  category: string | null;
+  price: number | null;
+  gstRate: number | null;
+  active: boolean;
+  contents: KitSection[] | null;
+  color: string | null;
+};
 
 export function ProductButton({ product }: { product?: P }) {
   const init = () => ({
@@ -14,6 +24,8 @@ export function ProductButton({ product }: { product?: P }) {
     price: product?.price == null ? "" : String(product.price),
     gstRate: product?.gstRate == null ? "" : String(product.gstRate),
     active: product?.active ?? true,
+    contents: product?.contents ? sectionsToText(product.contents) : "",
+    color: product?.color ?? "",
   });
   const [open, setOpen] = useState(false);
   const [v, setV] = useState(init);
@@ -60,7 +72,7 @@ export function ProductButton({ product }: { product?: P }) {
             <Field label="Status" htmlFor="p-active">
               <select className="sel" id="p-active" value={v.active ? "1" : "0"} onChange={(e) => setV({ ...v, active: e.target.value === "1" })}>
                 <option value="1">Active</option>
-                <option value="0">Inactive (hidden from new leads)</option>
+                <option value="0">Inactive (hidden from new quotations)</option>
               </select>
             </Field>
             <Field label="Price (₹, before GST)" htmlFor="p-price">
@@ -70,6 +82,32 @@ export function ProductButton({ product }: { product?: P }) {
               <input className="in" id="p-gst" type="number" min={0} max={100} step="0.01" placeholder="Not set" value={v.gstRate} onChange={(e) => setV({ ...v, gstRate: e.target.value })} />
             </Field>
           </div>
+          <Field label="Kit contents (for kits only)" htmlFor="p-contents">
+            <textarea
+              className="ta font-mono text-[13px]"
+              id="p-contents"
+              rows={10}
+              placeholder={"## Common Kit | 19 objects\nSchool Bag\nStudent's Diary\n\n## Academic Kit | 10 Text Books\nText Book- 1"}
+              value={v.contents}
+              onChange={(e) => setV({ ...v, contents: e.target.value })}
+            />
+            <span className="small muted">
+              Start each group with ## and its name; anything after &quot; | &quot; prints under the name (e.g. 19 objects). Then one item per
+              line. This prints on the kit checklist. Leave empty for add-ons and services.
+            </span>
+          </Field>
+          <Field label="Checklist colour" htmlFor="p-color">
+            <span className="flex items-center gap-2">
+              <input
+                type="color"
+                id="p-color"
+                className="h-10 w-14 cursor-pointer rounded-lg border border-line bg-surf"
+                value={v.color || "#3d3ba8"}
+                onChange={(e) => setV({ ...v, color: e.target.value })}
+              />
+              <span className="small muted">{v.color ? v.color : "Default (purple)"}</span>
+            </span>
+          </Field>
         </Modal>
       ) : null}
     </>
