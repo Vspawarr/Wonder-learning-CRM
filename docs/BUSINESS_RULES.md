@@ -42,7 +42,11 @@ client shows a warning (the user may still save). The Excel upload skips same sc
 
 - The catalogue is **one student kit per class** (Play Group, Nursery, LKG / Jr. KG, UKG / Sr. KG), the
   **Nursery Core / Focus / Plus kits** from the price list, and **33 optional items** (books, notebooks,
-  others). Each product has a school price and an **MRP** (R28; open questions in `PRICING.md`). A kit's **contents** (groups and items, as on the client's checklist) print on the
+  others). Each product has a school price and an **MRP** (R28; open questions in `PRICING.md`).
+- **Prices come only from the client's Excel price list** (R29). The sample PDFs (PO, checklist, receipt) are
+  formats only, so the four class kits have no price until the client gives one.
+- A kit's items can carry their own price (`Item | school price | MRP` in Settings → Products); the Nursery kits do.
+  These let a quotation take items out of a kit. A kit's **contents** (groups and items, as on the client's checklist) print on the
   **kit checklist PDF**; the PO says "Material Exclude: Refer Checklist" and the checklist goes with it.
 - Kit qty on quotations, POs and orders = number of students (kits). Adding a product to a quotation fills in
   its MRP and price; both can still be changed by hand. GST 0% (educational material).
@@ -52,6 +56,14 @@ client shows a warning (the user may still save). The Excel upload skips same sc
 
 - Quotation from a **lead** (not yet converted or disqualified), an opportunity or a client. A lead's
   quotations move to its opportunity when it is converted; sending one moves a New lead to Contacted (R28).
+- **Transport** depends on the school's location and is not part of any kit. On a quotation, type the
+  transport per kit on the line(s) you choose: it is added into that line's price and is **never shown** to the
+  school (quotation, PO template, sales order, proforma, invoice, receipt all show only the total price). It is
+  stored separately for our reference (R29).
+- **Changing a kit for a school** (R29): on a kit line, "Change kit items" lets you untick items (taken out) and
+  add optional items. MRP and price go down/up by those items' prices (a hand-typed price keeps its difference);
+  the line text says "without …; with …"; the kit checklist sent with the PO leaves the removed items out and
+  lists the added ones under "Added for this school".
 - Quotation lines: products from the list; **MRP and Price typed by hand**,
   no discount column, GST % per line; validity days (default from Settings → Quotation). After the
   validity date it shows **Expired**, and a follow-up is booked the day before.

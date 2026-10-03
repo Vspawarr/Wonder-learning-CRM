@@ -1,5 +1,6 @@
 // Kit checklists: which kits to print and the PDF itself.
 import { db } from "@/lib/db";
+import { customSections, isCustomised, type KitCustom } from "@/lib/kit-custom";
 import type { KitSection } from "@/lib/quotation-text";
 import { renderChecklistPdf, type ChecklistKit } from "./checklist-pdf";
 
@@ -21,11 +22,21 @@ export async function checklistPdf(ids?: string[]) {
   return kits.length ? renderChecklistPdf(kits) : null;
 }
 
-/** For a quotation: the kits it quotes, or every active kit when it quotes none. */
+/** For a quotation: the kits it quotes (as changed for this school), or every active kit when it quotes none. */
 export async function checklistForQuotation(quotationId: string) {
-  const items = await db.quotationItem.findMany({ where: { quotationId, productId: { not: null } }, select: { productId: true } });
-  const ids = items.map((i) => i.productId!);
-  const quoted = ids.length ? await checklistKits(ids) : [];
+  const items = await db.quotationItem.findMany({
+    where: { quotationId, productId: { not: null } },
+    orderBy: { sortOrder: "asc" },
+    select: { kit: true, product: { select: { name: true, color: true, contents: true } } },
+  });
+  const quoted: ChecklistKit[] = items
+    .map((i) => {
+      const custom = i.kit as KitCustom | null;
+      const contents = asSections(i.product!.contents);
+      // Items taken out are left off; items added get their own group. The page title stays the kit's name.
+      return { name: i.product!.name, color: i.product!.color, contents: isCustomised(custom) ? customSections(contents, custom) : contents };
+    })
+    .filter((k) => k.contents.length);
   return quoted.length ? renderChecklistPdf(quoted) : checklistPdf();
 }
 

@@ -1,7 +1,8 @@
 // Wonder Learning's product catalogue for a new database: one student kit per class,
 // with its contents exactly as in the client's "WLI Checklist 2025-26", plus the
-// optional add-ons from the quotation's "Optional" list. Kit prices are the rates on
-// the client's sample PO (Caring Hood Preschool, AY 2026-27); add-ons have no price yet.
+// optional add-ons from the quotation's "Optional" list. Prices come only from the client's
+// Excel price list (R29): the sample PDFs (PO, checklist, receipt) are formats, not prices, so the
+// class kits K01–K04 have no price until the client gives one.
 // After setup everything is edited in Settings → Products. The one-time migration
 // 20261009090000_class_kits loaded the same data into the live database.
 import type { KitSection } from "./quotation-text";
@@ -60,7 +61,7 @@ export const KIT_PRODUCTS: CatalogueProduct[] = [
     code: "K01",
     name: "Play Group Kit",
     category: "Student kit",
-    price: 2360,
+    price: null,
     gstRate: 0,
     color: "#F08A1C",
     contents: [
@@ -87,7 +88,7 @@ export const KIT_PRODUCTS: CatalogueProduct[] = [
     code: "K02",
     name: "Nursery Kit",
     category: "Student kit",
-    price: 2760,
+    price: null,
     gstRate: 0,
     color: "#EE2A50",
     contents: [
@@ -102,7 +103,7 @@ export const KIT_PRODUCTS: CatalogueProduct[] = [
     code: "K03",
     name: "LKG / Jr. KG Kit",
     category: "Student kit",
-    price: 2975,
+    price: null,
     gstRate: 0,
     color: "#3CAE1A",
     contents: [
@@ -129,7 +130,7 @@ export const KIT_PRODUCTS: CatalogueProduct[] = [
     code: "K04",
     name: "UKG / Sr. KG Kit",
     category: "Student kit",
-    price: 3175,
+    price: null,
     gstRate: 0,
     color: "#1C75BC",
     contents: [
@@ -206,9 +207,13 @@ const ESSENTIAL_BASE = [
   P("Graduation Certificate", 15, 25),
   P("Report Card", 65, 90),
 ];
-const PACKING = [P("Kit Box & Packaging", 120, 145), P("Assessments", 100, 125), P("Kit Box", 70, 110), P("Freight Transport", 100, 0)];
+// The sheet also has "Freight Transport" 100 / 0 in Focus and Plus. Transport depends on the school's
+// location, so it is not part of the kit: it is added per quotation, hidden inside the price (R29).
+const PACKING = [P("Kit Box & Packaging", 120, 145), P("Assessments", 100, 125), P("Kit Box", 70, 110)];
+/** The freight line taken out of the Focus and Plus kits (R29). */
+export const SHEET_FREIGHT = P("Freight Transport", 100, 0);
 
-/** Nursery kit types from the "kit type" sheet. Totals are the client's (they add up). */
+/** Nursery kit types from the "kit type" sheet. Totals are the client's (they add up), less freight for Focus and Plus. */
 export const NURSERY_KIT_TYPES: PricedKit[] = [
   {
     code: "K05",
@@ -220,7 +225,7 @@ export const NURSERY_KIT_TYPES: PricedKit[] = [
   {
     code: "K06",
     name: "Nursery Focus Kit",
-    sp: 2954,
+    sp: 2854, // sheet: 2,954 incl. freight 100
     mrp: 4430,
     groups: [
       { title: "Class Connect", items: [BOOKS_1_9] },
@@ -232,7 +237,7 @@ export const NURSERY_KIT_TYPES: PricedKit[] = [
   {
     code: "K07",
     name: "Nursery Plus Kit",
-    sp: 3244,
+    sp: 3144, // sheet: 3,244 incl. freight 100
     mrp: 4970,
     groups: [
       { title: "Class Connect", items: [BOOKS_1_9, P("Practice Notebook - Letters Nursery", 55, 90), P("Practice Notebook - Numbers Nursery", 55, 90)] },
@@ -298,6 +303,10 @@ export const OPTIONAL_ITEMS: { category: string; items: PricedItem[] }[] = [
   },
 ];
 
+/** A priced kit's groups with each item's price, as stored in Product.contents. */
+export const kitSections = (k: PricedKit): KitSection[] =>
+  k.groups.map((g) => ({ title: g.title, items: g.items.map((i) => i.name), prices: g.items.map((i) => ({ sp: i.sp, mrp: i.mrp })) }));
+
 /** Codes of the placeholder add-ons (A01–A07) replaced by the price list's optional items. */
 export const OLD_ADDON_CODES = ADDON_PRODUCTS.map((a) => [a.code, a.name] as [string, string]);
 
@@ -312,7 +321,7 @@ export const CATALOGUE: CatalogueProduct[] = [
     mrp: k.mrp,
     gstRate: 0,
     color: "#EE2A50",
-    contents: k.groups.map((g) => ({ title: g.title, items: g.items.map((i) => i.name) })),
+    contents: kitSections(k),
   })),
   ...OPTIONAL_ITEMS.flatMap((g) => g.items.map((it) => ({ name: it.name, category: g.category, price: it.sp, mrp: it.mrp }))).map((it, i) => ({
     ...it,

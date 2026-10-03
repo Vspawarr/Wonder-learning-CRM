@@ -282,3 +282,19 @@ this date to xx date (custom)."
 | Default filter **All** on leads, opportunities and reports | ✅ | "Active" is still one tap away |
 | **To-do calendar**: Month and Week views (week with hours 8 AM–8 PM), Today / ‹ / ›, colours for school follow-up, own to-do, overdue, done; click an item to Done / Postpone / Cancel. Phones: dots + day agenda | ✅ | To-do → Calendar |
 | **From – to date filter** on leads (Added), opportunities (Added), clients (Client since), outstanding (Invoice date) and To-do list (Due); PDF/Excel follow it | ✅ | |
+
+## R29. Transport by location, prices only from the Excel, kits changed per school (3 Oct)
+
+"Transportation cost is different for different location so we will add that but without knowing customer and
+it will not display anywhere in SO, Quotation but we will include it in price; user should have that option
+where to add that. PDF are given to you only for format not the pricing. Pricing will be as per given excel and
+this rule for transportation, so take all pricing from excel only, not from PDF. Also some client ask for
+optional items so there should be option for optional items to add in kit. Also some client remove some items
+from kit to reduce price, that option should be feasible."
+
+| Change | Status | Notes |
+|---|---|---|
+| **Transport (hidden)** box on every quotation line, per kit: added into the price the school sees; never printed on the quotation, PO template, sales order, proforma, invoice or receipt | ✅ | The salesperson chooses the line(s); the editor shows "School sees ₹…"; stored separately for our reference |
+| The Excel's fixed **"Freight Transport" ₹100** taken out of the Focus and Plus kits: **Focus ₹2,854**, **Plus ₹3,144** (MRP unchanged) | ✅ | Migration `20261011090000_kit_options` |
+| **Prices only from the Excel:** the class kits' prices that came from the sample PO (Play Group ₹2,360, Nursery ₹2,760, LKG ₹2,975, UKG ₹3,175) cleared | ✅ | They show "Not set" until the client gives prices ⏳ |
+| **Change kit items** on a quotation: untick items to take them out, add optional items; MRP and price move by those items' prices; the line text says what changed (e.g. "Nursery Focus Kit (without Shape Kit; with Bag)") and the kit checklist sent with the PO follows it | ✅ | Needs item prices in the kit (Nursery kits have them; Settings → Products: "Item | school price | MRP") |

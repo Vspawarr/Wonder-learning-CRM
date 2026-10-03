@@ -11,6 +11,7 @@ import { DomainError, NotFoundError } from "../errors";
 import { isEmailConfigured, sendMail } from "../mailer";
 import { moveOpportunity } from "../opportunities";
 import { parse } from "../validation";
+import type { KitCustom } from "@/lib/kit-custom";
 import { getQuotationContent } from "./content";
 import { renderQuotationPdf, type QuotationPdfData } from "./pdf";
 
@@ -19,6 +20,45 @@ const money = z
   // A blank box is "missing", not zero.
   .transform((v) => (typeof v === "string" ? (v.trim() === "" ? NaN : Number(v.replace(/,/g, "").trim())) : v))
   .refine((n) => Number.isFinite(n) && n >= 0 && n < 1e9, "Enter a valid amount.");
+
+const kitCustomInput = z
+  .object({
+    removed: z.array(z.string().trim().min(1).max(200)).max(100),
+    added: z
+      .array(
+        z.object({
+          productId: z.string().nullish().transform((x) => x || null),
+          name: z.string().trim().min(1).max(200),
+          sp: z.coerce.number().min(0).max(1e6),
+          mrp: z.coerce.number().min(0).max(1e6),
+        }),
+      )
+      .max(50),
+  })
+  .nullish()
+  .transform((c) => (c && (c.removed.length || c.added.length) ? c : null));
+
+const r2 = (n: number) => Math.round(n * 100) / 100;
+/** Rows to store: the price the school sees includes the hidden transport. */
+const itemRows = (items: z.infer<typeof quotationInput>["items"]) =>
+  items.map((it, i) => ({
+    productId: it.productId,
+    description: it.description,
+    mrp: it.mrp,
+    price: r2(it.price + it.transport),
+    transport: it.transport,
+    kit: it.kit ?? Prisma.DbNull,
+    sortOrder: i,
+  }));
+/** A stored row back in the editor's terms (price before transport). */
+const editRow = (i: { productId: string | null; description: string; mrp: Prisma.Decimal; price: Prisma.Decimal; transport: Prisma.Decimal; kit: Prisma.JsonValue }) => ({
+  productId: i.productId,
+  description: i.description,
+  mrp: Number(i.mrp),
+  price: r2(Number(i.price) - Number(i.transport)),
+  transport: Number(i.transport),
+  kit: (i.kit as KitCustom | null) ?? null,
+});
 
 export const quotationInput = z.object({
   date: z.string().refine(isDateStr, "Enter the quotation date."),
@@ -40,7 +80,14 @@ export const quotationInput = z.object({
           .transform((s) => s || null),
         description: z.string().trim().min(1, "Each line needs a description.").max(200),
         mrp: money,
+        /** Per kit before transport; the transport is added on save. */
         price: money,
+        transport: z
+          .union([z.number(), z.string()])
+          .nullish()
+          .transform((v) => (v == null || (typeof v === "string" && v.trim() === "") ? 0 : Number(String(v).replace(/,/g, "").trim())))
+          .refine((n) => Number.isFinite(n) && n >= 0 && n < 1e6, "Enter a valid transport amount."),
+        kit: kitCustomInput,
       }),
     )
     .min(1, "Add at least one product.")
@@ -163,8 +210,10 @@ export async function quotationDefaults(user: SessionUser, parentRef: string | Q
     items: items.map((i) => ({
       productId: i.productId,
       description: i.product.name,
-      mrp: "",
-      price: "",
+      mrp: i.product.mrp == null ? "" : String(Number(i.product.mrp)),
+      price: i.product.price == null ? "" : String(Number(i.product.price)),
+      transport: "",
+      kit: null as KitCustom | null,
     })),
   };
 }
@@ -178,12 +227,10 @@ export async function quotationForEdit(user: SessionUser, id: string) {
     toLine: q.toLine,
     schoolName: q.schoolName,
     address: q.address ?? "",
-    items: q.items.map((i) => ({
-      productId: i.productId,
-      description: i.description,
-      mrp: String(Number(i.mrp)),
-      price: String(Number(i.price)),
-    })),
+    items: q.items.map((i) => {
+      const r = editRow(i);
+      return { ...r, mrp: String(r.mrp), price: String(r.price), transport: r.transport ? String(r.transport) : "" };
+    }),
   };
 }
 
@@ -218,9 +265,7 @@ export async function createQuotation(user: SessionUser, parentRef: string | Quo
             address: d.address,
             shareToken: randomBytes(24).toString("base64url"),
             preparedById: user.id,
-            items: {
-              create: d.items.map((it, i) => ({ ...it, sortOrder: i })),
-            },
+            items: { create: itemRows(d.items) },
           },
         });
         await tx.activity.create({
@@ -257,7 +302,7 @@ export async function updateQuotation(user: SessionUser, id: string, raw: unknow
         toLine: d.toLine,
         schoolName: d.schoolName,
         address: d.address,
-        items: { create: d.items.map((it, i) => ({ ...it, sortOrder: i })) },
+        items: { create: itemRows(d.items) },
       },
     }),
   ]);
@@ -293,12 +338,7 @@ export async function reviseQuotation(user: SessionUser, id: string) {
     toLine: q.toLine,
     schoolName: q.schoolName,
     address: q.address,
-    items: q.items.map((i) => ({
-      productId: i.productId,
-      description: i.description,
-      mrp: Number(i.mrp),
-      price: Number(i.price),
-    })),
+    items: q.items.map(editRow),
   });
 }
 

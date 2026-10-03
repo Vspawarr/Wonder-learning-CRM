@@ -1,6 +1,7 @@
 // Read models for the pages. Every query here applies the caller's scope, and
 // returns plain serialisable objects (dates as YYYY-MM-DD, money as numbers).
 import type { Prisma } from "@/generated/prisma/client";
+import type { KitSection } from "@/lib/quotation-text";
 import { db } from "@/lib/db";
 import type { PoDetails } from "./finance/po";
 import { CLOSED_STAGES, STAGES, type Stage } from "@/lib/constants";
@@ -54,6 +55,9 @@ export type ProductOption = {
   name: string;
   price: number | null;
   active: boolean;
+  category: string | null;
+  /** Kit groups (with item prices where known); null for optional items and services. */
+  contents: KitSection[] | null;
 };
 export async function productOptions(): Promise<ProductOption[]> {
   const ps = await db.product.findMany({
@@ -65,6 +69,8 @@ export async function productOptions(): Promise<ProductOption[]> {
     price: p.price === null ? null : Number(p.price),
     mrp: p.mrp === null ? null : Number(p.mrp),
     active: p.active,
+    category: p.category,
+    contents: Array.isArray(p.contents) && p.contents.length ? (p.contents as KitSection[]) : null,
   }));
 }
 

@@ -68,10 +68,10 @@ and PO numbers run per financial year with starting-number settings.
 
 | Document | Number | Made from | Download / share | Code |
 |---|---|---|---|---|
-| Quotation (3 pages, client's format) | QUO/YYYY/MM/NNN | Lead, opportunity or client | `/api/quotations/<id>/pdf`; public link `/q/<token>` | `src/server/quotation/pdf.tsx`, text in Settings → Quotation (`content.ts`) |
+| Quotation (3 pages, client's format) | QUO/YYYY/MM/NNN | Lead, opportunity or client (price per kit includes the hidden transport; transport is never printed) | `/api/quotations/<id>/pdf`; public link `/q/<token>` | `src/server/quotation/pdf.tsx`, text in Settings → Quotation (`content.ts`) |
 | Sample quotation (to check Settings text) | QUO/…/000 | Settings → Quotation | `/api/quotations/sample` (Admin) | same |
 | PO template (client's PO format; school signs and stamps) | PO/2627/N, given on first save | Sent quotation + details saved in "Send PO template" (`Quotation.poDetails`) | `/api/quotations/<id>/po-template`; public `/q/<token>/po` | `src/server/finance/po-pdf.tsx`, `po.ts`; texts in Settings → Documents |
-| Kit checklist (client's checklist layout, one coloured page per class) | — | Products with contents | `/api/products/checklist[?ids=]`; public `/q/<token>/checklist` (the quotation's kits) | `src/server/products/checklist-pdf.tsx`, `checklist.ts` |
+| Kit checklist (client's checklist layout, one coloured page per class) | — | Products with contents (no prices printed); for a quotation, the kits as changed for that school | `/api/products/checklist[?ids=]`; public `/q/<token>/checklist` (the quotation's kits) | `src/server/products/checklist-pdf.tsx`, `checklist.ts` |
 | Signed PO (uploaded file) | school's PO No. | Upload signed PO | `/api/sales-orders/<id>/po` | `src/server/finance/po.ts` (PDF or photo, max 4 MB) |
 | Proforma invoice | PI/YYYY/MM/NNN | Sales order | `/api/sales-orders/<id>/proforma` | `invoice-pdf.tsx` (proforma title) |
 | Invoice 🟡 | INV/YYYY/MM/NNN | Sales order | `/api/invoices/<id>/pdf`; public `/i/<token>` | `src/server/finance/invoice-pdf.tsx`. **Provisional layout until the client's invoice sample arrives** |

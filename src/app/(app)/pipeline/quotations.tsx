@@ -20,6 +20,7 @@ import {
   savePoTemplate,
 } from "@/app/actions";
 import { fmtDate, istDate, todayIST } from "@/lib/dates";
+import { customDelta, customLabel, isCustomised, type KitCustom } from "@/lib/kit-custom";
 import type { ProductOption, QuoteSummary } from "@/server/queries";
 import type { QuoteParent } from "@/server/quotation/service";
 
@@ -39,7 +40,11 @@ type Line = {
   productId: string | null;
   description: string;
   mrp: string;
+  /** Per kit before transport. */
   price: string;
+  /** Hidden transport per kit for the school's location; added into the price, never printed. */
+  transport: string;
+  kit: KitCustom | null;
 };
 type Draft = {
   date: string;
@@ -91,12 +96,7 @@ export function QuotationsPanel({
             toLine: d.toLine,
             schoolName: d.schoolName,
             address: d.address,
-            items: d.items.map((i) => ({
-              productId: i.productId,
-              description: i.description,
-              mrp: "",
-              price: "",
-            })),
+            items: d.items,
           },
         }),
     });
@@ -221,6 +221,29 @@ function QuotationEditor({
       items: d.items.map((x, j) => (j === i ? { ...x, ...patch } : x)),
     });
   const addable = products.filter((p) => p.active);
+  const byId = new Map(products.map((p) => [p.id, p]));
+  // Optional items that can go into a kit: priced products that aren't kits themselves.
+  const extras = addable.filter((p) => !p.contents && p.price != null);
+  const [openKit, setOpenKit] = useState<number | null>(null);
+
+  /** Changing a kit's items moves its MRP and price by those items' prices (a hand-typed price keeps its difference). */
+  const changeKit = (i: number, next: KitCustom) => {
+    const it = d.items[i];
+    const p = it.productId ? byId.get(it.productId) : undefined;
+    if (!p) return;
+    const sections = p.contents ?? [];
+    const before = customDelta(sections, it.kit);
+    const after = customDelta(sections, next);
+    const adj = (v: string, k: "sp" | "mrp") =>
+      v.trim() === "" || !Number.isFinite(Number(v)) ? v : String(Math.round((Number(v) - before[k] + after[k]) * 100) / 100);
+    setItem(i, {
+      kit: isCustomised(next) ? next : null,
+      price: adj(it.price, "sp"),
+      mrp: adj(it.mrp, "mrp"),
+      // Keep the line text in step unless someone has rewritten it.
+      description: it.description === customLabel(p.name, it.kit) ? customLabel(p.name, next) : it.description,
+    });
+  };
 
   const save = () =>
     run(() => (id ? updateQuotation(id, d) : createQuotation(parent, d)) as Promise<{ ok: true } | { ok: false; error: string }>, {
@@ -231,7 +254,7 @@ function QuotationEditor({
   return (
     <Modal
       title={id ? "Edit quotation" : "Create quotation"}
-      sub={`Prepared by ${me.name}. Type the MRP and price for each product.`}
+      sub={`Prepared by ${me.name}. MRP and price fill in from Settings → Products and can be changed. Transport is added into the price and never printed.`}
       wide
       onClose={onClose}
       footer={
@@ -316,6 +339,16 @@ function QuotationEditor({
             >
               Remove
             </button>
+            <LineExtras
+              n={i + 1}
+              line={it}
+              product={it.productId ? byId.get(it.productId) : undefined}
+              extras={extras}
+              open={openKit === i}
+              onToggle={() => setOpenKit(openKit === i ? null : i)}
+              onTransport={(transport) => setItem(i, { transport })}
+              onKit={(next) => changeKit(i, next)}
+            />
           </div>
         ))}
         {!d.items.length ? <div className="small muted">No products yet. Add one below.</div> : null}
@@ -332,7 +365,10 @@ function QuotationEditor({
             setD({
               ...d,
               // Prefill from the price list (Settings → Products); both stay editable.
-              items: [...d.items, { productId: p.id, description: p.name, mrp: p.mrp == null ? "" : String(p.mrp), price: p.price == null ? "" : String(p.price) }],
+              items: [
+                ...d.items,
+                { productId: p.id, description: p.name, mrp: p.mrp == null ? "" : String(p.mrp), price: p.price == null ? "" : String(p.price), transport: "", kit: null },
+              ],
             });
             setAdd("");
           }}
@@ -340,8 +376,133 @@ function QuotationEditor({
           Add
         </button>
       </div>
-      <p className="small muted mt-2">Products come from Settings → Products. The description can be edited for this quotation.</p>
+      <p className="small muted mt-2">
+        Products come from Settings → Products. The description can be edited for this quotation. Add transport on the line(s) you choose: the
+        school only sees the total price.
+      </p>
     </Modal>
+  );
+}
+
+const rs = (n: number) => `₹${(Math.round(n * 100) / 100).toLocaleString("en-IN")}`;
+
+/** Under each quotation line: the hidden transport, and for kits, taking items out / adding optional items. */
+function LineExtras({
+  n,
+  line,
+  product,
+  extras,
+  open,
+  onToggle,
+  onTransport,
+  onKit,
+}: {
+  n: number;
+  line: Line;
+  product: ProductOption | undefined;
+  extras: ProductOption[];
+  open: boolean;
+  onToggle: () => void;
+  onTransport: (v: string) => void;
+  onKit: (next: KitCustom) => void;
+}) {
+  const [pick, setPick] = useState("");
+  const kit = line.kit ?? { removed: [], added: [] };
+  const sections = product?.contents ?? null;
+  const price = Number(line.price);
+  const transport = Number(line.transport || 0);
+  const shown = line.price.trim() !== "" && Number.isFinite(price) && Number.isFinite(transport) ? price + transport : null;
+  const changes = [kit.removed.length ? `${kit.removed.length} taken out` : "", kit.added.length ? `${kit.added.length} added` : ""].filter(Boolean).join(", ");
+  const groups = [...new Set(extras.map((p) => p.category ?? "Other"))];
+  const toggleItem = (name: string, keep: boolean) =>
+    onKit({ ...kit, removed: keep ? kit.removed.filter((x) => x !== name) : [...kit.removed, name] });
+
+  return (
+    <div className="col-span-2 flex flex-col gap-2 min-[701px]:col-span-5 min-[701px]:mb-1 min-[701px]:pl-[36px]">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+        <label className="small flex items-center gap-2 text-ink3" htmlFor={`q-tr-${n}`}>
+          Transport / kit (hidden)
+          <input
+            className="in w-24 text-right"
+            id={`q-tr-${n}`}
+            inputMode="decimal"
+            placeholder="₹0"
+            value={line.transport}
+            onChange={(e) => onTransport(e.target.value)}
+          />
+        </label>
+        {shown != null && transport > 0 ? <span className="small muted">School sees {rs(shown)} per kit</span> : null}
+        {sections ? (
+          <button className="btn sm" aria-expanded={open} onClick={onToggle}>
+            <Icon name="box" size={14} /> Change kit items{changes ? ` · ${changes}` : ""}
+          </button>
+        ) : null}
+      </div>
+      {sections && open ? (
+        <div className="rounded-lg border border-line bg-surf2 p-3">
+          <p className="small muted">Untick an item to take it out of this school&apos;s kit; add optional items below. MRP and price change by the item&apos;s price.</p>
+          <div className="mt-2 grid grid-cols-1 gap-x-6 min-[701px]:grid-cols-2">
+            {sections.map((g, gi) => (
+              <div key={gi} className="mt-1">
+                <div className="small font-semibold">{g.title.split(" | ")[0]}</div>
+                {g.items.map((item, ii) => {
+                  const p = g.prices?.[ii];
+                  const keep = !kit.removed.includes(item);
+                  return (
+                    <label key={ii} className="flex min-h-[34px] items-center gap-2 border-b border-line py-1 last:border-0">
+                      <input type="checkbox" className="h-[18px] w-[18px] shrink-0" checked={keep} onChange={(e) => toggleItem(item, e.target.checked)} />
+                      <span className={`min-w-0 flex-1 ${keep ? "" : "faint line-through"}`}>{item}</span>
+                      <span className="small muted whitespace-nowrap">{p ? rs(p.sp) : "no price"}</span>
+                    </label>
+                  );
+                })}
+              </div>
+            ))}
+          </div>
+          <div className="mt-3 small font-semibold">Optional items added</div>
+          {kit.added.length ? (
+            kit.added.map((a, ai) => (
+              <div key={ai} className="flex min-h-[34px] items-center gap-2 border-b border-line py-1 last:border-0">
+                <span className="min-w-0 flex-1">{a.name}</span>
+                <span className="small muted whitespace-nowrap">{rs(a.sp)}</span>
+                <button className="btn ghost sm px-1" aria-label={`Take ${a.name} out`} onClick={() => onKit({ ...kit, added: kit.added.filter((_, j) => j !== ai) })}>
+                  <Icon name="x" size={14} />
+                </button>
+              </div>
+            ))
+          ) : (
+            <div className="small faint">None.</div>
+          )}
+          <div className="mt-2 flex gap-2">
+            <select className="sel" aria-label={`Optional item for line ${n}`} value={pick} onChange={(e) => setPick(e.target.value)}>
+              <option value="">Choose an optional item…</option>
+              {groups.map((g) => (
+                <optgroup key={g} label={g}>
+                  {extras
+                    .filter((p) => (p.category ?? "Other") === g)
+                    .map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.name} · {rs(p.price!)}
+                      </option>
+                    ))}
+                </optgroup>
+              ))}
+            </select>
+            <button
+              className="btn"
+              disabled={!pick}
+              onClick={() => {
+                const p = extras.find((x) => x.id === pick)!;
+                onKit({ ...kit, added: [...kit.added, { productId: p.id, name: p.name, sp: p.price!, mrp: p.mrp ?? 0 }] });
+                setPick("");
+              }}
+            >
+              Add
+            </button>
+          </div>
+        </div>
+      ) : null}
+    </div>
   );
 }
 

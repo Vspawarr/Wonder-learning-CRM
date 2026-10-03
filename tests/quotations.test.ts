@@ -278,3 +278,78 @@ describe("quotation on a lead (before it becomes an opportunity)", () => {
     await expect(createQuotation(exA, { leadId }, quote())).rejects.toThrow(/disqualified/);
   });
 });
+
+describe("kits changed per school and hidden transport (R29)", () => {
+  it("item prices round-trip through the kit text format and add up", async () => {
+    const { itemsTotal } = await import("@/lib/quotation-text");
+    const s = textToSections("## Class Connect\nBook 1 to 9 | 1792 | 2688\n## Essential Kit | 2 objects\nI-card - Student | 60 | 70\nEscort Card 2");
+    expect(s[0]).toEqual({ title: "Class Connect", items: ["Book 1 to 9"], prices: [{ sp: 1792, mrp: 2688 }] });
+    expect(s[1].prices).toEqual([{ sp: 60, mrp: 70 }, null]);
+    expect(textToSections(sectionsToText(s))).toEqual(s);
+    expect(itemsTotal(s)).toEqual({ sp: 1852, mrp: 2758 });
+    // Unpriced lists (the quotation's standard text) stay as before.
+    expect(textToSections("## A\nx | y")).toEqual([{ title: "A", items: ["x | y"] }]);
+  });
+
+  it("taking items out and adding optional items moves the price, label and checklist", async () => {
+    const { customDelta, customLabel, customSections } = await import("@/lib/kit-custom");
+    const sections = textToSections("## Skill Booster | 2 objects\nShape Kit | 20 | 35\nArt & Craft | 220 | 430");
+    const c = { removed: ["Shape Kit"], added: [{ productId: null, name: "Bag", sp: 225, mrp: 300 }] };
+    expect(customDelta(sections, c)).toEqual({ sp: 205, mrp: 265 });
+    expect(customLabel("Nursery Focus Kit", c)).toBe("Nursery Focus Kit (without Shape Kit; with Bag)");
+    expect(customSections(sections, c)).toEqual([
+      { title: "Skill Booster", items: ["Art & Craft"], prices: [{ sp: 220, mrp: 430 }] },
+      { title: "Added for this school", items: ["Bag"] },
+    ]);
+  });
+
+  it("transport is stored apart, included in the price the school sees, and kept on edit and revise", async () => {
+    const kit = await db.product.create({
+      data: {
+        code: "KT1",
+        name: "Test Kit",
+        type: "MATERIAL",
+        price: 300,
+        mrp: 500,
+        contents: [{ title: "G", items: ["A", "B"], prices: [{ sp: 100, mrp: 200 }, { sp: 200, mrp: 300 }] }],
+      },
+    });
+    const custom = { removed: ["A"], added: [{ productId: null, name: "Bag", sp: 225, mrp: 300 }] };
+    const id = await createQuotation(
+      exA,
+      oppId,
+      quote({ items: [{ productId: kit.id, description: "Test Kit (without A; with Bag)", mrp: 600, price: 425, transport: "75", kit: custom }] }),
+    );
+    const row = await db.quotationItem.findFirstOrThrow({ where: { quotationId: id } });
+    expect([Number(row.price), Number(row.transport)]).toEqual([500, 75]);
+    expect(row.kit).toEqual(custom);
+
+    const { quotationForEdit } = await import("@/server/quotation/service");
+    const edit = await quotationForEdit(exA, id);
+    expect(edit.items[0]).toMatchObject({ price: "425", transport: "75", kit: custom });
+
+    await markQuotationSent(exA, id, "download");
+    const copy = await reviseQuotation(exA, id);
+    const copied = await db.quotationItem.findFirstOrThrow({ where: { quotationId: copy } });
+    expect([Number(copied.price), Number(copied.transport)]).toEqual([500, 75]);
+
+    // The checklist sent with the PO leaves out A and lists the added Bag.
+    const { checklistForQuotation } = await import("@/server/products/checklist");
+    const pdf = await checklistForQuotation(id);
+    expect(pdf?.subarray(0, 4).toString()).toBe("%PDF");
+    await db.quotation.deleteMany();
+    await db.product.delete({ where: { id: kit.id } });
+  });
+
+  it("prices come only from the Excel price list: class kits are unpriced, freight is out of the kits", async () => {
+    const { KIT_PRODUCTS, NURSERY_KIT_TYPES } = await import("@/lib/kits");
+    expect(KIT_PRODUCTS.every((k) => k.price === null)).toBe(true);
+    for (const k of NURSERY_KIT_TYPES) {
+      const items = k.groups.flatMap((g) => g.items);
+      expect(items.some((i) => /freight/i.test(i.name))).toBe(false);
+      expect(items.reduce((t, i) => t + i.sp, 0)).toBe(k.sp);
+      expect(items.reduce((t, i) => t + i.mrp, 0)).toBe(k.mrp);
+    }
+    expect(NURSERY_KIT_TYPES.map((k) => k.sp)).toEqual([2112, 2854, 3144]);
+  });
+});

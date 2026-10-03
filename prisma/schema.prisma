@@ -501,7 +501,11 @@ model QuotationItem {
   product     Product?  @relation(fields: [productId], references: [id])
   description String
   mrp         Decimal   @db.Decimal(12, 2) // typed on each quotation
-  price       Decimal   @db.Decimal(12, 2) // typed on each quotation
+  price       Decimal   @db.Decimal(12, 2) // per kit as the school sees it, transport included
+  /// Transport per kit for the school's location, already inside price. Internal only: never printed (R29).
+  transport   Decimal   @default(0) @db.Decimal(12, 2)
+  /// A kit changed for this school: { removed: [item names], added: [{ productId, name, sp, mrp }] } (R29).
+  kit         Json?
   sortOrder   Int
 }
 

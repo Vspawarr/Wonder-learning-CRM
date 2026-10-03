@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Field, Modal, useAction } from "@/components/client";
 import { Icon } from "@/components/icons";
 import { deleteProduct, saveProduct } from "@/app/actions";
-import { sectionsToText, type KitSection } from "@/lib/quotation-text";
+import { itemsTotal, sectionsToText, textToSections, type KitSection } from "@/lib/quotation-text";
 
 type P = {
   id: string;
@@ -32,6 +32,7 @@ export function ProductButton({ product }: { product?: P }) {
   const [open, setOpen] = useState(false);
   const [v, setV] = useState(init);
   const { pending, run } = useAction();
+  const sum = open ? itemsTotal(textToSections(v.contents)) : null;
   const close = () => setOpen(false);
   const show = () => {
     setV(init());
@@ -98,8 +99,15 @@ export function ProductButton({ product }: { product?: P }) {
             />
             <span className="small muted">
               Start each group with ## and its name; anything after &quot; | &quot; prints under the name (e.g. 19 objects). Then one item per
-              line. This prints on the kit checklist. Leave empty for add-ons and services.
+              line, optionally with its school price and MRP: <code>Book 1 to 9 | 1792 | 2688</code>. Item prices let a quotation take items out
+              of the kit. This prints on the kit checklist (without prices). Leave empty for optional items and services.
             </span>
+            {sum ? (
+              <span className={`small block ${v.price && Number(v.price) !== sum.sp ? "text-coral" : "muted"}`}>
+                Items add up to ₹{sum.sp.toLocaleString("en-IN")} (MRP ₹{sum.mrp.toLocaleString("en-IN")})
+                {v.price && Number(v.price) !== sum.sp ? ", which is not the school price above" : ""}.
+              </span>
+            ) : null}
           </Field>
           <Field label="Checklist colour" htmlFor="p-color">
             <span className="flex items-center gap-2">

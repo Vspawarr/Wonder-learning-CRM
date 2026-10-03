@@ -14,6 +14,11 @@ When a point is settled, change it in Settings → Products and mark it here. (R
 | `cost_for_nursery.xlsx` | **Nursery** | One Nursery kit, 18 items, no total written: adds up to **₹2,884 / MRP ₹4,320** (= Focus kit without the separate "Kit Box"). |
 | `cost_for_nursery.xlsx` | **Sheet2** | Identical to "add itms" above. |
 
+**Owner's rules (R29):** prices come **only from these Excel files**, not from the sample PDFs (those are formats).
+**Transport** depends on the school's location: it is typed per quotation, hidden inside the price, so the fixed
+"Freight Transport" ₹100 was taken out of the Focus and Plus kits (now **₹2,854** and **₹3,144**; MRP unchanged).
+The class kits K01–K04 lost the prices that came from the sample PO and show "Not set".
+
 **Loaded in the CRM:** products K05 Nursery Core Kit, K06 Nursery Focus Kit, K07 Nursery Plus Kit (with
 their items as kit contents) and O01–O33 for the optional items, each with school price and MRP. Adding a
 product to a quotation now fills in its MRP and price. The class kits from the PO (K01–K04) are unchanged.
@@ -21,10 +26,9 @@ My 7 unpriced placeholder add-ons (A01–A07) were replaced by the price list's 
 
 ## A. Which kit and which price
 
-1. **Nursery price doesn't match anywhere.** Price list: Core ₹2,112, Focus ₹2,954, Plus ₹3,244. Nursery cost
-   sheet: ₹2,884. Caring Hood PO: **₹2,760**. Which kit type did the PO use, and is ₹2,760 a discounted rate?
-2. **Only Nursery is priced.** Are there Core / Focus / Plus kits (and prices) for **Play Group, LKG/Jr. KG and
-   UKG/Sr. KG**? Today the only figures are the PO rates ₹2,360 / ₹2,975 / ₹3,175.
+1. ~~Nursery price doesn't match the PO (₹2,760).~~ Settled (R29): the PO is a format only; prices are the Excel's.
+2. **Only Nursery is priced.** Are there Core / Focus / Plus kits (and prices, with item prices) for **Play Group,
+   LKG/Jr. KG and UKG/Sr. KG**? Until then those kits have **no price** (the PO rates were removed).
 3. **Two versions of the Nursery kit.** The Nursery cost sheet equals the Focus kit minus "Kit Box" (₹70 / ₹110),
    and groups items differently (Shape Kit under Home Connect, Portfolio under School Connect). Which is current?
 4. **Class kit MRPs are unknown** for Play Group, Nursery, LKG and UKG kits (quotations show an MRP column).
@@ -53,7 +57,7 @@ My 7 unpriced placeholder add-ons (A01–A07) were replaced by the price list's 
 ## C. Questions inside the price list
 
 14. Focus and Plus kits charge **both "Kit Box & Packaging" ₹120 and "Kit Box" ₹70**. Two boxes, or a duplicate?
-15. **Freight Transport ₹100** is in the school price but its **MRP is ₹0** (MRP lower than the price).
+15. ~~Freight Transport ₹100 with MRP ₹0.~~ Settled (R29): taken out of the kits; transport is added per quotation.
 16. **Odd notebook prices:** ₹39.60, ₹37.40, ₹35.20 (look like 10–20% off ₹44). Book 1 and Book 2 of the same
     notebook differ: English Writing LKG ₹48 / ₹44; My Number LKG ₹48 / ₹47; My Phonics UKG ₹39.60 / ₹40;
     My Number UKG ₹39.60 / ₹37.40. Intended?
@@ -76,14 +80,14 @@ My 7 unpriced placeholder add-ons (A01–A07) were replaced by the price list's 
 **Nursery Core Kit** ₹2,112 / ₹3,248: Book 1 to 9 (1,792 / 2,688), Portfolio Book (130 / 300), Portfolio File
 (25 / 45), Report Card (65 / 90), Assessments (100 / 125).
 
-**Nursery Focus Kit** ₹2,954 / ₹4,430: Class Connect: Book 1 to 9 (1,792 / 2,688) · Home Connect: Flash Cards
+**Nursery Focus Kit** ₹2,854 / ₹4,430 (sheet ₹2,954 less freight): Class Connect: Book 1 to 9 (1,792 / 2,688) · Home Connect: Flash Cards
 (40 / 75), 10 Academic Posters (50 / 100), 3 Tracing Sheets (70 / 80), Marker (7 / 12), Portfolio Book (130 / 300),
 Portfolio File (25 / 45) · Skill Booster: Shape Kit (20 / 35), 20 Art & Craft activities (220 / 430) · Essential:
 I-card (60 / 70), Escort Card 2 (10 / 15), 3 Greetings with Envelopes (45 / 60), Sports Certificate (15 / 25),
 Graduation Certificate (15 / 25), Report Card (65 / 90), Kit Box & Packaging (120 / 145), Assessments (100 / 125),
-Kit Box (70 / 110), Freight Transport (100 / 0).
+Kit Box (70 / 110). (Freight Transport 100 / 0 removed: transport is per quotation.)
 
-**Nursery Plus Kit** ₹3,244 / ₹4,970: Focus kit + Practice Notebooks Letters & Numbers (55 / 90 each), Diary
+**Nursery Plus Kit** ₹3,144 / ₹4,970 (sheet ₹3,244 less freight): Focus kit + Practice Notebooks Letters & Numbers (55 / 90 each), Diary
 (60 / 120), Memory album (90 / 200), Sports Medal (30 / 40).
 
 **Optional books:** Swar Hindi 140 / 180 · Vyanjan Hindi 160 / 195 · Matra Hindi 135 / 190 · Shabda Hindi 140 / 195 ·
