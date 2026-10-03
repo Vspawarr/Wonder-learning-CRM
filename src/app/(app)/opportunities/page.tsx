@@ -7,6 +7,7 @@ import { inrS } from "@/lib/format";
 import { seesAllSales } from "@/lib/permissions";
 import { AvatarName, DueTag, Empty, PageHeader, Pill, Table } from "@/components/ui";
 import { requireUser } from "@/server/session";
+import { selectedRange } from "@/server/year";
 import { isEmailConfigured } from "@/server/mailer";
 import { assignees, oppDetail, pipelineCards, productOptions, type PipelineCard } from "@/server/queries";
 import { OppDrawer } from "../pipeline/opp-drawer";
@@ -37,6 +38,7 @@ export default async function OpportunitiesPage({ searchParams }: { searchParams
       cat: sp.cat,
       from: sp.from,
       to: sp.to,
+      year: await selectedRange(),
     }),
     assignees(user),
     sp.opp ? oppDetail(user, sp.opp) : null,

@@ -49,7 +49,7 @@ export function TopBarTools() {
 
   const n = alerts?.length ?? 0;
   return (
-    <div ref={box} className="flex min-w-0 flex-1 items-center gap-2.5">
+    <div ref={box} className="flex min-w-0 flex-1 items-center gap-2.5 max-[900px]:min-w-fit">
       <Search open={menu === "search"} onOpen={() => setMenu("search")} onClose={() => setMenu(null)} />
       <div className="grow" />
       <button

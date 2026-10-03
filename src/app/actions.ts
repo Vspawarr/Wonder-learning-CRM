@@ -29,7 +29,9 @@ import { contentSchema, resetQuotationContent, saveQuotationContent } from "@/se
 import { canManageSettings } from "@/lib/permissions";
 import { parse } from "@/server/validation";
 import { lockMessage, requestPasswordReset as requestReset, resetPassword as doReset } from "@/server/password";
-import { headers } from "next/headers";
+import { cookies, headers } from "next/headers";
+import { redirect } from "next/navigation";
+import { YEAR_COOKIE } from "@/lib/fy";
 
 export type ActionResult<T = undefined> = { ok: true; data?: T } | { ok: false; error: string };
 
@@ -56,7 +58,8 @@ export async function login(_: string | null, form: FormData): Promise<string | 
     await signIn("credentials", {
       email: form.get("email"),
       password: form.get("password"),
-      redirectTo: "/dashboard",
+      // Choose the financial year first (R31).
+      redirectTo: "/year",
     });
     return null;
   } catch (e) {
@@ -89,6 +92,18 @@ export async function resetPassword(token: string, password: string): Promise<Ac
     console.error(e);
     return { ok: false, error: "Something went wrong. Please try again." };
   }
+}
+
+/** Remembers the chosen financial year ("2026" or "all") on this device and opens the CRM. */
+export async function chooseYear(form: FormData) {
+  await requireUser();
+  const v = String(form.get("year") ?? "");
+  const next = String(form.get("next") ?? "");
+  if (v === "all" || /^20\d\d$/.test(v)) {
+    (await cookies()).set(YEAR_COOKIE, v, { path: "/", maxAge: 60 * 60 * 24 * 400, sameSite: "lax", httpOnly: true, secure: process.env.NODE_ENV === "production" });
+  }
+  revalidatePath("/", "layout");
+  redirect(next.startsWith("/") && !next.startsWith("//") ? next : "/dashboard");
 }
 
 export async function logout() {

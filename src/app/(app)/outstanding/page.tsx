@@ -9,6 +9,7 @@ import { outstandingList } from "@/server/finance/service";
 import { isEmailConfigured } from "@/server/mailer";
 import { assignees } from "@/server/queries";
 import { requireUser } from "@/server/session";
+import { selectedRange } from "@/server/year";
 import { InvoiceButtons, InvoiceStatePill } from "../clients/[id]/finance";
 import { OutstandingFilterBar } from "./filters";
 
@@ -19,7 +20,7 @@ export default async function OutstandingPage({ searchParams }: { searchParams: 
   const sp = await searchParams;
   const all = seesAllSales(user.role);
   const [{ all: rows, shown, summary: sum, ageing, forecast }, owners, features] = await Promise.all([
-    outstandingList(user, sp),
+    outstandingList(user, { ...sp, year: await selectedRange() }),
     all ? assignees(user) : Promise.resolve(null),
     getFeatures(),
   ]);

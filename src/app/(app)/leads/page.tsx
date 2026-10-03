@@ -7,6 +7,7 @@ import { seesAllSales } from "@/lib/permissions";
 import { AvatarName, Empty, FollowUp, PageHeader, Pill, Table } from "@/components/ui";
 import { ConvertLeadButton } from "@/components/convert-lead";
 import { requireUser } from "@/server/session";
+import { selectedRange } from "@/server/year";
 import { assignees, leadsList } from "@/server/queries";
 import { getLocations } from "@/server/locations";
 import { LeadFilters } from "./lead-filters";
@@ -21,7 +22,7 @@ export default async function LeadsPage({ searchParams }: { searchParams: SP }) 
   const user = await requireUser();
   const sp = await searchParams;
   const [rows, team, locations] = await Promise.all([
-    leadsList(user, sp),
+    leadsList(user, { ...sp, year: await selectedRange() }),
     assignees(user),
     getLocations(),
   ]);

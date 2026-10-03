@@ -17,3 +17,23 @@ export function financialYear(date: DateStr) {
     months: { OR: [{ year: start, month: { gte: 4 } }, { year: start + 1, month: { lte: 3 } }] },
   };
 }
+
+/** First and last day of the financial year that starts in April of `start` ("2026-04-01" … "2027-03-31"). */
+export function fyRange(start: number): { from: DateStr; to: DateStr } {
+  return { from: `${start}-04-01`, to: `${start + 1}-03-31` };
+}
+
+/** "2026-27" for the year starting April 2026. */
+export const fyLabel = (start: number) => `${start}-${String((start + 1) % 100).padStart(2, "0")}`;
+
+/** The year chosen after login: a start year, or null for "All years". */
+export type YearChoice = number | null;
+
+/** Cookie that remembers the chosen financial year on this device ("2026" or "all"). */
+export const YEAR_COOKIE = "wl_fy";
+
+export function parseYearCookie(v: string | undefined, today: DateStr): YearChoice {
+  if (v === "all") return null;
+  const n = Number(v);
+  return Number.isInteger(n) && n >= 2000 && n <= 2100 ? n : financialYear(today).start;
+}

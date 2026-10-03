@@ -7,6 +7,7 @@ import { ExportButtons } from "@/components/export-buttons";
 import { clientLedger, ledgerClients, ledgerSummary, resolvePeriod } from "@/server/finance/ledger";
 import { assignees } from "@/server/queries";
 import { requireUser } from "@/server/session";
+import { selectedRange, yearAnchor } from "@/server/year";
 import { LedgerFilters } from "./filters";
 
 export const metadata = { title: "Ledger" };
@@ -19,7 +20,8 @@ export default async function LedgerPage({ searchParams }: { searchParams: SP })
   const user = await requireUser();
   const sp = await searchParams;
   const all = seesAllSales(user.role);
-  const period = resolvePeriod(sp);
+  // Periods are worked out inside the financial year chosen after login.
+  const period = resolvePeriod(sp, yearAnchor(await selectedRange()));
   const [clients, owners] = await Promise.all([ledgerClients(user), all ? assignees(user) : Promise.resolve(null)]);
   const chosen = sp.client && clients.some((c) => c.id === sp.client) ? sp.client : null;
   const range = `${period.label} · ${dmy(period.from)} – ${dmy(period.to)}`;

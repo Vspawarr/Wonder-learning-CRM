@@ -7,14 +7,29 @@ import { NotFoundError } from "../errors";
 import { INVOICE_STATE_LABEL } from "../finance/money";
 import { clientLedger, ledgerSummary, resolvePeriod } from "../finance/ledger";
 import { collectionsSummary, outstandingList } from "../finance/service";
-import { clientsList, leadsList, pipelineCards, taskList, type TaskKind } from "../queries";
+import { YEAR_FILTERS, YEAR_STANDING_LABEL, clientsList, leadsList, pipelineCards, taskList, type TaskKind } from "../queries";
 import type { Cell, Report } from "./types";
+import { financialYear, fyLabel, fyRange, parseYearCookie } from "@/lib/fy";
+import { yearAnchor } from "../year";
 import { getFeatures } from "../features";
 import { renewalCandidates } from "../renewals";
 import { targetProgress } from "../targets";
 import { DASH_SECTIONS, parseSections, type DashSection } from "@/lib/dashboard-sections";
 
 type Params = Record<string, string | undefined>;
+
+/** The financial year chosen after login (the export route passes ?fy=); undefined = All years (R31). */
+function yearOf(p: Params) {
+  if (p.fy === undefined) return undefined;
+  const y = parseYearCookie(p.fy || undefined, todayIST());
+  return y === null ? undefined : fyRange(y);
+}
+/** "FY 2026-27" / "All years" for the subtitle (nothing when no year was passed, e.g. in tests). */
+function yearLine(p: Params) {
+  if (p.fy === undefined) return undefined;
+  const y = yearOf(p);
+  return y ? `FY ${fyLabel(financialYear(y.from).start)}` : "All years";
+}
 const dmy = (s: string | null | undefined) => (s ? s.split("-").reverse().join("/") : "");
 const PRIORITY: Record<string, string> = {
   LOW: "Low",
@@ -33,10 +48,11 @@ const rangeLine = (label: string, p: Params) =>
   p.from || p.to ? `${label} ${p.from ? dmy(p.from) : "…"} – ${p.to ? dmy(p.to) : "…"}` : undefined;
 
 async function leads(user: SessionUser, p: Params): Promise<Report> {
-  const rows = await leadsList(user, { q: p.q, status: p.status, src: p.src, sort: p.sort, from: p.from, to: p.to });
+  const rows = await leadsList(user, { q: p.q, status: p.status, src: p.src, sort: p.sort, from: p.from, to: p.to, year: yearOf(p) });
   return {
     title: "Leads",
     subtitle: filtersLine([
+      yearLine(p),
       `Status: ${p.status || "All"}`,
       p.src && `Source: ${p.src}`,
       rangeLine("Added", p),
@@ -84,11 +100,13 @@ async function opportunities(user: SessionUser, p: Params): Promise<Report> {
     cat: p.cat,
     from: p.from,
     to: p.to,
+    year: yearOf(p),
   });
   const total = rows.reduce((s, o) => s + o.value, 0);
   return {
     title: "Opportunities",
     subtitle: filtersLine([
+      yearLine(p),
       `Stage: ${STAGE_LABEL[stage as keyof typeof STAGE_LABEL] ?? stage}`,
       p.cat && `Category: ${TEMPERATURE_LABEL[p.cat as "HOT"] ?? p.cat}`,
       rangeLine("Added", p),
@@ -130,10 +148,18 @@ async function opportunities(user: SessionUser, p: Params): Promise<Report> {
 }
 
 async function clients(user: SessionUser, p: Params): Promise<Report> {
-  const rows = await clientsList(user, { q: p.q, status: p.status, from: p.from, to: p.to });
+  const year = yearOf(p);
+  const rows = await clientsList(user, { q: p.q, status: p.status, from: p.from, to: p.to, year, yr: p.yr });
+  const yl = year ? fyLabel(financialYear(year.from).start) : null;
   return {
     title: "Clients",
-    subtitle: filtersLine([p.status && `Status: ${CLIENT_STATUS_LABEL[p.status as "ACTIVE"] ?? p.status}`, p.q && `Search: "${p.q}"`, rangeLine("Client since", p)]),
+    subtitle: filtersLine([
+      yearLine(p),
+      p.status && `Status: ${CLIENT_STATUS_LABEL[p.status as "ACTIVE"] ?? p.status}`,
+      yl && p.yr && YEAR_FILTERS[p.yr] && `In ${yl}: ${{ ordered: "Ordered", renewed: "Renewed", new: "New", notrenewed: "Not renewed", none: "No order" }[p.yr]}`,
+      p.q && `Search: "${p.q}"`,
+      rangeLine("Client since", p),
+    ]),
     landscape: false,
     sections: [
       {
@@ -144,6 +170,7 @@ async function clients(user: SessionUser, p: Params): Promise<Report> {
           { key: "mobile", header: "Mobile", width: 1 },
           { key: "city", header: "City", width: 0.9 },
           { key: "status", header: "Status", width: 0.8 },
+          { key: "year", header: yl ? `In ${yl}` : "Last order", width: 1 },
           { key: "since", header: "Since", width: 0.8 },
           { key: "owner", header: "Assigned to", width: 1 },
         ],
@@ -154,6 +181,9 @@ async function clients(user: SessionUser, p: Params): Promise<Report> {
           mobile: c.mobile,
           city: c.city,
           status: CLIENT_STATUS_LABEL[c.status],
+          year: c.standing
+            ? `${YEAR_STANDING_LABEL[c.standing]}${c.yearAmount ? ` · ₹${c.yearAmount.toLocaleString("en-IN")}` : c.lastOrdered ? ` · last ${c.lastOrdered}` : ""}`
+            : c.lastOrdered ?? "None",
           since: dmy(istDate(c.since)),
           owner: c.owner.name,
         })),
@@ -164,12 +194,12 @@ async function clients(user: SessionUser, p: Params): Promise<Report> {
 }
 
 async function outstanding(user: SessionUser, p: Params): Promise<Report> {
-  const { shown, summary, ageing, forecast } = await outstandingList(user, p);
+  const { shown, summary, ageing, forecast } = await outstandingList(user, { ...p, year: yearOf(p) });
   const sum = (k: "total" | "paid" | "balance") => shown.reduce((s, r) => s + r[k], 0);
   const show = { overdue: "Overdue", paid: "Paid", all: "All invoices" }[p.show ?? ""] ?? "To collect";
   return {
     title: "Outstanding",
-    subtitle: filtersLine([`Showing: ${show}`, p.q && `Search: "${p.q}"`, rangeLine("Invoice date", p)]),
+    subtitle: filtersLine([yearLine(p), `Showing: ${show}`, p.q && `Search: "${p.q}"`, rangeLine("Invoice date", p)]),
     sections: [
       {
         heading: "Summary",
@@ -251,7 +281,7 @@ async function outstanding(user: SessionUser, p: Params): Promise<Report> {
 }
 
 async function ledger(user: SessionUser, p: Params): Promise<Report> {
-  const period = resolvePeriod(p);
+  const period = resolvePeriod(p, yearAnchor(yearOf(p)));
   if (p.client) {
     const l = await clientLedger(user, p.client, period);
     return {
@@ -372,6 +402,7 @@ async function dashboard(user: SessionUser, p: Params): Promise<Report> {
     to: p.to,
     exec: all ? p.exec : undefined,
     state: p.state,
+    year: yearOf(p),
   } as Parameters<typeof salesDashboard>[1];
   // Same sections as on screen (?show=…; the export route fills in the remembered choice).
   const shown = parseSections(p.show);
@@ -435,7 +466,7 @@ async function dashboard(user: SessionUser, p: Params): Promise<Report> {
 
   if (has("finance")) {
     const cash = await collectionsSummary(user, { exec: f.exec, state: f.state }, d.range.from, d.range.to);
-    const owed = await outstandingList(user, { owner: f.exec });
+    const owed = await outstandingList(user, { owner: f.exec, year: f.year });
     numbers(`Finance · collected ${range}, owed as of today`, [
       { k: "Collected", v: cash.collectedCount, m: cash.collected },
       { k: "Outstanding", m: cash.outstanding },
@@ -553,6 +584,7 @@ async function dashboard(user: SessionUser, p: Params): Promise<Report> {
   return {
     title: "Dashboard",
     subtitle: filtersLine([
+      yearLine(p),
       range,
       all ? (f.exec ? "One salesperson" : "Whole team") : `For ${user.name}`,
       f.state && `State: ${f.state}`,

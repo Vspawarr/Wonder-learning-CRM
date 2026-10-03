@@ -309,3 +309,19 @@ to-do in calendar."
 | To-do opens on the **Calendar** (month); **List** is one tap away (`/tasks?view=list`) | ✅ | |
 | **Double-click a day** (month) or a day header / hour (week) to open "New to-do" with that date (and hour) filled in | ✅ | Double-clicking an existing item opens that item instead |
 | Phones (no double-click): each day's list under the calendar has a **+ Add** button | ✅ | |
+
+## R31. Choose the financial year after login (3 Oct)
+
+"As this CRM will be used every year, at start there should be option to select Financial year (Apr-Mar). After
+year completed there will be renewals of some clients and some client will not continue with. Also option to
+select all financial year, specific year. If client not continued with us next year still his data won't be lost,
+it will be there in our record so next year we can contact him. After login there should be screen to select
+financial year first, like Apr26-Mar27 (it will display as 2026-27)."
+
+| Change | Status | Notes |
+|---|---|---|
+| After login, a **Choose financial year** screen: each year as **2026-27** (Apr 2026 – Mar 2027), newest first, plus **All years** | ✅ | `/year`; next year appears from February; remembered on the device |
+| The chosen year shows in the top bar (**FY 2026-27**, on phones **26-27**); tap it to change any time | ✅ | |
+| Leads, opportunities, pipeline, outstanding, ledger, dashboard and their PDF/Excel follow the chosen year | ✅ | Items still open carry into the next year (see Business rules) |
+| **Clients are never removed by year.** Clients list shows **In 2026-27: Renewed / New / Ordered again / Not renewed / No order**, with the year's order value, and filter chips for each | ✅ | Schools that didn't continue stay listed with "last ordered 2025-26", so they can be contacted again |
+| A school's own page always shows its full history, whatever year is chosen | ✅ | |

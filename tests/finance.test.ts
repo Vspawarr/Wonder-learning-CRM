@@ -3,7 +3,7 @@ import { db } from "@/lib/db";
 import { addDays, fromDbDate, todayIST } from "@/lib/dates";
 import type { SessionUser } from "@/lib/permissions";
 import { convertToClient } from "@/server/clients";
-import { convertLead, createLead } from "@/server/leads";
+import { convertLead, createLead, disqualifyLead } from "@/server/leads";
 import { moveOpportunity } from "@/server/opportunities";
 import { createQuotation, markQuotationSent } from "@/server/quotation/service";
 import { invoiceState, totals } from "@/server/finance/money";
@@ -764,5 +764,65 @@ describe("targets, ageing and quotation validity", () => {
         where: { clientId, title: { startsWith: "Quotation QUO/" } },
       }),
     ).toBe(1);
+  });
+});
+
+describe("financial year chosen after login (R31)", () => {
+  it("parses the remembered year and gives Apr–Mar ranges", async () => {
+    const { parseYearCookie, fyRange, fyLabel } = await import("@/lib/fy");
+    expect(parseYearCookie("all", "2026-10-03")).toBeNull();
+    expect(parseYearCookie("2025", "2026-10-03")).toBe(2025);
+    expect(parseYearCookie(undefined, "2027-02-10")).toBe(2026); // nothing chosen: the current year
+    expect(fyRange(2026)).toEqual({ from: "2026-04-01", to: "2027-03-31" });
+    expect(fyLabel(2026)).toBe("2026-27");
+  });
+
+  it("dashboard presets work inside the chosen year; a past year opens on the whole year", async () => {
+    const { periodRange } = await import("@/server/dashboard-periods");
+    const y25 = { from: "2025-04-01", to: "2026-03-31" };
+    expect(periodRange({ year: y25 }, "2026-10-03")).toEqual(y25);
+    expect(periodRange({ year: y25, period: "month" }, "2026-10-03")).toEqual({ from: "2026-03-01", to: "2026-03-31" });
+    expect(periodRange({ year: { from: "2026-04-01", to: "2027-03-31" } }, "2026-10-03")).toEqual({ from: "2026-10-01", to: "2026-10-03" });
+  });
+
+  it("clients stay listed every year with their standing: renewed, new, not renewed", async () => {
+    const { clientsList } = await import("@/server/queries");
+    const { fyRange } = await import("@/lib/fy");
+    const { financialYear } = await import("@/lib/fy");
+    const now = financialYear(today).start;
+    // Last year's order only → this year "Not renewed", last year "New".
+    const so = await createSalesOrder(exA, clientId, order());
+    await db.salesOrder.update({ where: { id: so }, data: { date: new Date(`${now - 1}-06-15T00:00:00Z`) } });
+    await db.client.update({ where: { id: clientId }, data: { createdAt: new Date(`${now - 1}-05-01T00:00:00Z`) } });
+    const thisYear = await clientsList(head, { year: fyRange(now) });
+    expect(thisYear.find((c) => c.id === clientId)).toMatchObject({ standing: "NOT_RENEWED", lastOrdered: `${now - 1}-${String((now) % 100).padStart(2, "0")}` });
+    expect((await clientsList(head, { year: fyRange(now - 1) })).find((c) => c.id === clientId)?.standing).toBe("NEW");
+    expect(await clientsList(head, { year: fyRange(now), yr: "notrenewed" })).toHaveLength(1);
+    expect(await clientsList(head, { year: fyRange(now), yr: "renewed" })).toHaveLength(0);
+    // Ordering again this year → "Renewed". The client never disappears.
+    await createSalesOrder(exA, clientId, order());
+    expect((await clientsList(head, { year: fyRange(now) })).find((c) => c.id === clientId)?.standing).toBe("RENEWED");
+    // A year before the school became a client: not listed. All years: always listed.
+    expect(await clientsList(head, { year: fyRange(now - 3) })).toHaveLength(0);
+    expect((await clientsList(head, {})).find((c) => c.id === clientId)?.standing).toBeNull();
+  });
+
+  it("leads and deals still open carry into the next year; closed ones stay in their year", async () => {
+    const { leadsList, pipelineCards } = await import("@/server/queries");
+    const { fyRange, financialYear } = await import("@/lib/fy");
+    const now = financialYear(today).start;
+    const lastYear = new Date(`${now - 1}-08-01T06:00:00Z`);
+    const open = await createLead(exA, leadData(exA.id, { schoolName: "Carry Over School" }));
+    const closed = await createLead(exA, leadData(exA.id, { schoolName: "Closed Last Year" }));
+    await disqualifyLead(exA, closed, { reason: "Not Interested" });
+    await db.lead.updateMany({ where: { id: { in: [open, closed] } }, data: { createdAt: lastYear } });
+    await db.lead.update({ where: { id: closed }, data: { disqualifiedAt: lastYear } });
+    const names = async (y: number) => (await leadsList(head, { year: fyRange(y) })).map((l) => l.schoolName);
+    expect(await names(now)).toEqual(expect.arrayContaining(["Carry Over School"]));
+    expect(await names(now)).not.toContain("Closed Last Year");
+    expect(await names(now - 1)).toEqual(expect.arrayContaining(["Carry Over School", "Closed Last Year"]));
+    // The won deal from setup was made today: not in last year's pipeline.
+    expect((await pipelineCards(head, { year: fyRange(now - 1) })).map((o) => o.id)).not.toContain(oppId);
+    expect((await pipelineCards(head, { year: fyRange(now) })).map((o) => o.id)).toContain(oppId);
   });
 });

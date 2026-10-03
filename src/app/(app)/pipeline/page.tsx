@@ -2,6 +2,7 @@ import { seesAllSales } from "@/lib/permissions";
 import { inrS } from "@/lib/format";
 import { PageHeader } from "@/components/ui";
 import { requireUser } from "@/server/session";
+import { selectedRange } from "@/server/year";
 import { isEmailConfigured } from "@/server/mailer";
 import { assignees, oppDetail, pipelineCards, productOptions } from "@/server/queries";
 import { Board } from "./board";
@@ -15,7 +16,7 @@ export default async function PipelinePage({ searchParams }: { searchParams: Pro
   const sp = await searchParams;
   const all = seesAllSales(user.role);
   const [cards, team, detail, products] = await Promise.all([
-    pipelineCards(user, { owner: sp.owner }),
+    pipelineCards(user, { owner: sp.owner, year: await selectedRange() }),
     assignees(user),
     sp.opp ? oppDetail(user, sp.opp) : null,
     sp.opp ? productOptions() : [],

@@ -135,6 +135,29 @@ grey = done/cancelled (R28).
 - **From – to date** filter: leads and opportunities by date added, clients by client-since date, outstanding
   by invoice date, To-do list by due date. India time. Exports use the same range and print it under the title.
 
+## Financial year (R31)
+
+- After login everyone chooses the **financial year** (1 April – 31 March, shown as **2026-27**) or **All years**.
+  It is remembered on that device, shown in the top bar, and can be changed there any time.
+- **Lists follow the year as "alive during the year":**
+  - Leads: added during the year, **or still open**, or converted / disqualified during it. A lead added in March
+    and still being worked shows in April too.
+  - Opportunities and the pipeline: added during the year, still open, or won / lost during it.
+  - Outstanding: invoices dated in the year, plus **earlier invoices still unpaid** (still owed).
+  - Ledger: its periods (this FY, last FY, this month) are worked out inside the chosen year.
+  - Dashboard: in the current year the period buttons work as before; a past year opens on the whole year.
+    The top strip (live counts) is always today's position.
+  - Exports print the year in their subtitle and use the same rules.
+  - To-do is not filtered by year (it's today's work; the calendar moves by date).
+- **Clients are never hidden by year** (only schools that became clients after the chosen year). For the chosen
+  year each client shows: **Renewed** (ordered this year and last year), **New** (first order ever), **Ordered
+  again** (ordered this year after a gap), **Not renewed** (ordered last year, not this year), **No order**,
+  with this year's order value (sales orders, not cancelled). Filter chips: Ordered · Renewed · New · Not renewed
+  · No order. With All years, the column shows the last year the school ordered.
+- A record's own page (lead, opportunity, client) always shows its whole history.
+- Renewal opportunities still follow the **academic year (June – May)**; receipt and PO numbers follow the
+  financial year.
+
 ## Dashboard
 
 - Top strip: live counts (active leads → opportunities → open quotations → open sales orders → clients →

@@ -9,7 +9,17 @@ const STATUS: [string, string][] = [
   ["ACTIVE", "Active"],
 ];
 
-export function ClientFilterBar() {
+// The chosen financial year: which schools ordered, renewed or didn't continue (R31).
+const YEAR: [string, string][] = [
+  ["", "All"],
+  ["ordered", "Ordered"],
+  ["renewed", "Renewed"],
+  ["new", "New"],
+  ["notrenewed", "Not renewed"],
+  ["none", "No order"],
+];
+
+export function ClientFilterBar({ year }: { year: string | null }) {
   const router = useRouter();
   const path = usePathname();
   const sp = useSearchParams();
@@ -30,6 +40,7 @@ export function ClientFilterBar() {
   }, [q]);
 
   const status = sp.get("status") ?? "";
+  const yr = sp.get("yr") ?? "";
   return (
     <div className="mb-3 flex flex-wrap items-center gap-2.5">
       <input
@@ -46,6 +57,16 @@ export function ClientFilterBar() {
           </button>
         ))}
       </div>
+      {year ? (
+        <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label={`In ${year}`}>
+          <span className="small muted mr-0.5">In {year}:</span>
+          {YEAR.map(([v, l]) => (
+            <button key={l} className={`chip ${yr === v ? "on" : ""}`} onClick={() => set("yr", v)}>
+              {l}
+            </button>
+          ))}
+        </div>
+      ) : null}
     </div>
   );
 }

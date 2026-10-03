@@ -6,6 +6,7 @@ import { inrS } from "@/lib/format";
 import { seesAllSales } from "@/lib/permissions";
 import { AvatarName, Card, DueTag, Empty, HBars, Kpi, PageHeader, Ribbon, Table, VBars } from "@/components/ui";
 import { requireUser } from "@/server/session";
+import { selectedRange } from "@/server/year";
 import { lifecycleCounts, salesDashboard, serviceSummary, type DashFilters } from "@/server/dashboard";
 import { collectionsSummary, outstandingList } from "@/server/finance/service";
 import { renewalCandidates } from "@/server/renewals";
@@ -43,7 +44,7 @@ function SectionHead({ id, sub }: { id: DashSection; sub?: string }) {
 
 export default async function DashboardPage({ searchParams }: { searchParams: Promise<DashFilters & { show?: string }> }) {
   const user = await requireUser();
-  const f = await searchParams;
+  const f = { ...(await searchParams), year: await selectedRange() };
   const shown = parseSections(f.show ?? (await cookies()).get("dash_sections")?.value);
   const has = (s: DashSection) => shown.includes(s);
   const all = seesAllSales(user.role);
@@ -55,7 +56,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
     getLocations(),
     lifecycleCounts(user),
     has("service") ? serviceSummary(user, f) : null,
-    has("finance") ? outstandingList(user, { owner: exec }) : null,
+    has("finance") ? outstandingList(user, { owner: exec, year: f.year }) : null,
     has("service") && features.renewals ? renewalCandidates(user) : null,
   ]);
   const today = todayIST();

@@ -10,10 +10,23 @@ export const PERIODS = [
   ["custom", "Custom"],
 ] as const;
 
-export type DashFilters = { period?: string; from?: string; to?: string; exec?: string; state?: string };
+export type DashFilters = {
+  period?: string;
+  from?: string;
+  to?: string;
+  exec?: string;
+  state?: string;
+  /** The financial year chosen after login; presets are worked out inside it (R31). */
+  year?: { from: DateStr; to: DateStr };
+};
 
 /** Inclusive IST date range for a period preset (financial year starts 1 April). */
-export function periodRange(f: DashFilters, today: DateStr = todayIST()): { from: DateStr; to: DateStr } {
+export function periodRange(f: DashFilters, now: DateStr = todayIST()): { from: DateStr; to: DateStr } {
+  // In a past (or future) financial year, "today" is that year's last (or first) day, and the
+  // dashboard opens on the whole year.
+  const fy = f.year;
+  const today = fy && now > fy.to ? fy.to : fy && now < fy.from ? fy.from : now;
+  if (fy && !f.period && today !== now) return { from: fy.from, to: fy.to };
   const [y, m] = today.split("-").map(Number);
   const iso = (yy: number, mm: number, dd = 1) => `${yy}-${String(mm).padStart(2, "0")}-${String(dd).padStart(2, "0")}`;
   switch (f.period) {

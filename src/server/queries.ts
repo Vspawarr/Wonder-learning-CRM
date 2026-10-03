@@ -5,6 +5,7 @@ import type { KitSection } from "@/lib/quotation-text";
 import { db } from "@/lib/db";
 import type { PoDetails } from "./finance/po";
 import { CLOSED_STAGES, STAGES, type Stage } from "@/lib/constants";
+import { financialYear, fyLabel } from "@/lib/fy";
 import { addDays, fmtDateTimeIST, fromDbDate, isDateStr, istDayStart, optDate, toDbDate, todayIST } from "@/lib/dates";
 
 /** Custom "from – to" filter (YYYY-MM-DD, either end optional) on a timestamp column, in India time. */
@@ -21,6 +22,31 @@ export function dateBetween(from?: string, to?: string): Prisma.DateTimeFilter |
   if (!f && !t) return undefined;
   return { ...(f ? { gte: toDbDate(f) } : {}), ...(t ? { lte: toDbDate(t) } : {}) };
 }
+/** A financial year's first and last day (undefined = All years). */
+export type YearRange = { from: string; to: string } | undefined;
+
+/**
+ * Leads that were alive during the year: added before it ended, and either added during it, still open,
+ * or converted / disqualified during it. So a lead added in March and still being worked shows in April too.
+ */
+export function leadsInYear(y: YearRange): Prisma.LeadWhereInput {
+  if (!y) return {};
+  const start = istDayStart(y.from);
+  return {
+    createdAt: { lt: istDayStart(addDays(y.to, 1)) },
+    OR: [{ createdAt: { gte: start } }, { status: { in: [...ACTIVE_LEAD_STATUSES] } }, { convertedAt: { gte: start } }, { disqualifiedAt: { gte: start } }],
+  };
+}
+/** Opportunities alive during the year: added before it ended, and added during it, still open, or won/lost during it. */
+export function oppsInYear(y: YearRange): Prisma.OpportunityWhereInput {
+  if (!y) return {};
+  const start = istDayStart(y.from);
+  return {
+    createdAt: { lt: istDayStart(addDays(y.to, 1)) },
+    OR: [{ createdAt: { gte: start } }, { closedAt: null }, { closedAt: { gte: start } }],
+  };
+}
+
 import { SALES_ROLES, canAssignOthers, seesAllSales, type SessionUser } from "@/lib/permissions";
 import { clientScope, leadScope, oppScope, taskScope } from "./access";
 import { ACTIVE_LEAD_STATUSES } from "./rules";
@@ -77,10 +103,10 @@ export async function productOptions(): Promise<ProductOption[]> {
 /* ---------- leads ---------- */
 
 /** sort: "new" (default, newest first), "old" (oldest first) or "follow" (next follow-up first). */
-export type LeadFilters = { q?: string; status?: string; src?: string; sort?: string; from?: string; to?: string };
+export type LeadFilters = { q?: string; status?: string; src?: string; sort?: string; from?: string; to?: string; year?: YearRange };
 
 export async function leadsList(user: SessionUser, f: LeadFilters) {
-  const where: Prisma.LeadWhereInput = { ...leadScope(user) };
+  const where: Prisma.LeadWhereInput = { ...leadScope(user), AND: [leadsInYear(f.year)] };
   const status = f.status || "All";
   if (status === "Active") where.status = { in: [...ACTIVE_LEAD_STATUSES] };
   else if (status === "Converted") where.status = "CONVERTED";
@@ -222,11 +248,13 @@ export type OppFilters = {
   /** Added (created) between these dates. */
   from?: string;
   to?: string;
+  /** The chosen financial year (deals alive during it). */
+  year?: YearRange;
 };
 
 /** Opportunities for the pipeline board and the Opportunities list. */
 export async function pipelineCards(user: SessionUser, f: OppFilters = {}) {
-  const where: Prisma.OpportunityWhereInput = { ...oppScope(user) };
+  const where: Prisma.OpportunityWhereInput = { ...oppScope(user), AND: [oppsInYear(f.year)] };
   if (f.owner && seesAllSales(user.role)) where.ownerId = f.owner;
   if (f.cat && ["HOT", "WARM", "COLD"].includes(f.cat)) where.temperature = f.cat as "HOT";
   if (f.stage === "Open") where.stage = { notIn: [...CLOSED_STAGES] };
@@ -469,8 +497,28 @@ export async function taskTargets(user: SessionUser) {
 
 /* ---------- clients ---------- */
 
-export async function clientsList(user: SessionUser, f: { q?: string; status?: string; from?: string; to?: string }) {
-  const where: Prisma.ClientWhereInput = { ...clientScope(user) };
+/** How a client stands in the chosen year (R31): ordered again, first order, came back, didn't renew, or no order. */
+export type YearStanding = "RENEWED" | "NEW" | "BACK" | "NOT_RENEWED" | "NONE";
+export const YEAR_STANDING_LABEL: Record<YearStanding, string> = {
+  RENEWED: "Renewed",
+  NEW: "New",
+  BACK: "Ordered again",
+  NOT_RENEWED: "Not renewed",
+  NONE: "No order",
+};
+/** Filter chips on Clients: which standings each shows. */
+export const YEAR_FILTERS: Record<string, YearStanding[]> = {
+  ordered: ["RENEWED", "NEW", "BACK"],
+  renewed: ["RENEWED"],
+  new: ["NEW"],
+  notrenewed: ["NOT_RENEWED"],
+  none: ["NONE", "NOT_RENEWED"],
+};
+
+export async function clientsList(user: SessionUser, f: { q?: string; status?: string; from?: string; to?: string; year?: YearRange; yr?: string }) {
+  // Clients are never hidden by year (so schools that didn't continue can be contacted again), except
+  // schools that only became clients after the chosen year.
+  const where: Prisma.ClientWhereInput = { ...clientScope(user), ...(f.year ? { AND: [{ createdAt: { lt: istDayStart(addDays(f.year.to, 1)) } }] } : {}) };
   if (f.status === "ONBOARDING" || f.status === "ACTIVE") where.status = f.status;
   const since = createdBetween(f.from, f.to);
   if (since) where.createdAt = since;
@@ -491,17 +539,52 @@ export async function clientsList(user: SessionUser, f: { q?: string; status?: s
     orderBy: [{ status: "asc" }, { createdAt: "desc" }],
     take: 500,
   });
-  return rows.map((c) => ({
-    id: c.id,
-    number: c.number,
-    schoolName: c.schoolName,
-    contactName: c.contactName,
-    mobile: c.mobile,
-    city: c.city,
-    status: c.status,
-    since: c.createdAt.toISOString(),
-    owner: c.owner,
-  }));
+  // Orders (not cancelled) per client, by financial year, for the year standing and the "last ordered" year.
+  const orders = rows.length
+    ? await db.salesOrder.findMany({
+        where: { clientId: { in: rows.map((c) => c.id) }, status: { not: "CANCELLED" } },
+        select: { clientId: true, date: true, items: { select: { qty: true, price: true } } },
+      })
+    : [];
+  const byClient = new Map<string, { years: Set<number>; amount: Map<number, number> }>();
+  for (const o of orders) {
+    const fy = financialYear(fromDbDate(o.date)).start;
+    const e = byClient.get(o.clientId) ?? { years: new Set<number>(), amount: new Map<number, number>() };
+    e.years.add(fy);
+    e.amount.set(fy, (e.amount.get(fy) ?? 0) + o.items.reduce((t, i) => t + i.qty * Number(i.price), 0));
+    byClient.set(o.clientId, e);
+  }
+  const y = f.year ? financialYear(f.year.from).start : null;
+  const out = rows.map((c) => {
+    const e = byClient.get(c.id);
+    const years = e ? [...e.years].sort((a, b) => a - b) : [];
+    let standing: YearStanding | null = null;
+    if (y !== null) {
+      const now = years.includes(y);
+      const prev = years.includes(y - 1);
+      const before = years.some((v) => v < y);
+      standing = now ? (prev ? "RENEWED" : before ? "BACK" : "NEW") : prev ? "NOT_RENEWED" : "NONE";
+    }
+    return {
+      id: c.id,
+      number: c.number,
+      schoolName: c.schoolName,
+      contactName: c.contactName,
+      mobile: c.mobile,
+      city: c.city,
+      status: c.status,
+      since: c.createdAt.toISOString(),
+      owner: c.owner,
+      /** Standing in the chosen year (null for All years). */
+      standing,
+      /** Ordered value in the chosen year (kits × rate, before GST). */
+      yearAmount: y !== null ? Math.round(e?.amount.get(y) ?? 0) : null,
+      /** "2025-26": the last year this school ordered, if ever. */
+      lastOrdered: years.length ? fyLabel(years[years.length - 1]) : null,
+    };
+  });
+  const keep = f.yr && y !== null ? YEAR_FILTERS[f.yr] : undefined;
+  return keep ? out.filter((c) => c.standing && keep.includes(c.standing)) : out;
 }
 
 const quoteInclude = {

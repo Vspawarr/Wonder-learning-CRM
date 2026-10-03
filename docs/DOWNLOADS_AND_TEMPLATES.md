@@ -43,7 +43,7 @@ the Android APK and the logo.)
 ## Report exports (PDF and Excel)
 
 The **PDF / Excel** buttons on each list. Route `/api/export/<report>?format=pdf|xlsx&<the screen's filters>`.
-Exports follow the screen's **From – to** dates too and print the range under the title (R28).
+Exports follow the screen's **From – to** dates and the **financial year chosen after login** (R31), and print both under the title (R28).
 Code: `src/server/reports/index.ts` (one builder per report, using the screen's own query and access rules),
 `render.ts` (Excel), `pdf.tsx` (PDF). Tests: `tests/ledger-reports.test.ts`.
 
@@ -51,7 +51,7 @@ Code: `src/server/reports/index.ts` (one builder per report, using the screen's 
 |---|---|---|
 | `leads` | Leads | Lead, Added (date + time), School, Contact, Mobile, City, Source, Status, Assigned to, Next follow-up |
 | `opportunities` | Opportunities | Opp., School, Contact, City, Stage, Category, Value, Chance %, Expected close, Next action, Assigned to |
-| `clients` | Clients | Client, School, Contact, Mobile, City, Status, Since, Assigned to |
+| `clients` | Clients | Client, School, Contact, Mobile, City, Status, In 2026-27 (standing + order value; "Last order" for All years), Since, Assigned to |
 | `outstanding` | Outstanding | Summary, ageing, expected collections, then each invoice: Invoice, Date, School, PO No., Due, Total, Received, Balance, Status, Assigned to |
 | `ledger` | Ledger | One client: Date, Ref. No., Particulars, Debit, Credit, Balance. All clients: Client, School, City, Assigned to, Opening, Invoiced, Received, Closing |
 | `todo` | To-do | When, Date, Time, Type, Task, Related to, Priority, Postponed, Assigned to |

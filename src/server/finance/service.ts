@@ -1340,11 +1340,22 @@ export async function collectionsSummary(user: SessionUser, f: { exec?: string; 
   };
 }
 
-export type OutstandingFilters = { q?: string; show?: string; owner?: string; from?: string; to?: string };
+export type OutstandingFilters = {
+  q?: string;
+  show?: string;
+  owner?: string;
+  from?: string;
+  to?: string;
+  /** Chosen financial year: its invoices, plus earlier ones still unpaid (they are still owed). */
+  year?: { from: string; to: string };
+};
 
 /** The Outstanding page's rows and totals (same filters for the screen and its exports). */
 export async function outstandingList(user: SessionUser, f: OutstandingFilters) {
-  const rows = await invoiceRows(user, seesAllSales(user.role) && f.owner ? { client: { ownerId: f.owner } } : {});
+  const y = f.year;
+  const rows = (await invoiceRows(user, seesAllSales(user.role) && f.owner ? { client: { ownerId: f.owner } } : {})).filter(
+    (r) => !y || (r.date <= y.to && (r.date >= y.from || (r.balance > 0 && r.state !== "CANCELLED"))),
+  );
   const q = (f.q ?? "").toLowerCase();
   const shown = rows.filter((r) => {
     if (q && !r.client.schoolName.toLowerCase().includes(q) && !r.number.toLowerCase().includes(q)) return false;

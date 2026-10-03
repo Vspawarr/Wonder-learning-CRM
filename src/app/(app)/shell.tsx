@@ -15,10 +15,13 @@ export type NavGroup = { group: string; items: { href: string; label: string; ic
 export function Shell({
   nav,
   user,
+  year,
   children,
 }: {
   nav: NavGroup[];
   user: { id: string; name: string; role: string };
+  /** The chosen financial year: "2026-27", or null for All years. */
+  year: string | null;
   children: React.ReactNode;
 }) {
   const path = usePathname();
@@ -79,13 +82,25 @@ export function Shell({
       <div className="relative min-w-0 min-[901px]:overflow-y-auto">
         <header className="sticky top-0 z-20 flex items-center gap-3 border-b border-line bg-bg px-3.5 py-2.5 min-[901px]:px-7 min-[901px]:py-3">
           <button
-            className="grid h-[38px] w-[38px] place-items-center rounded-[10px] border border-line bg-surf min-[901px]:hidden"
+            className="grid h-[38px] w-[38px] shrink-0 place-items-center rounded-[10px] border border-line bg-surf min-[901px]:hidden"
             aria-label="Open menu"
             onClick={() => setOpen(true)}
           >
             <Icon name="menu" />
           </button>
           <h1 className="min-w-0 truncate text-[20px]">{title}</h1>
+          <Link
+            href={`/year?next=${encodeURIComponent(path)}`}
+            className="fychip shrink-0"
+            title="Financial year: tap to change"
+            aria-label={`Financial year ${year ?? "All years"}, change`}
+          >
+            <span className="max-[480px]:hidden">
+              <Icon name="calendar" size={14} />
+            </span>
+            <span className="max-[480px]:hidden">{year ? `FY ${year}` : "All years"}</span>
+            <span className="min-[481px]:hidden">{year ? year.slice(2) : "All"}</span>
+          </Link>
           <TopBarTools />
         </header>
         <main className="max-w-[1520px] px-3.5 pt-4 pb-[70px] min-[901px]:px-7 min-[901px]:pt-[22px]">{children}</main>

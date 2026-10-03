@@ -7,10 +7,12 @@ import { getFeatures } from "@/server/features";
 import { ToastProvider } from "@/components/client";
 import { requireUser } from "@/server/session";
 import { Shell, type NavGroup } from "./shell";
+import { selectedYear } from "@/server/year";
+import { fyLabel } from "@/lib/fy";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const user = await requireUser();
-  const [due, features] = await Promise.all([
+  const [due, features, year] = await Promise.all([
     db.task.count({
       where: {
         assigneeId: user.id,
@@ -19,6 +21,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       },
     }),
     getFeatures(),
+    selectedYear(),
   ]);
 
   const nav: NavGroup[] = [
@@ -61,7 +64,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       }}
     >
       <ToastProvider>
-        <Shell nav={nav} user={{ id: user.id, name: user.name, role: ROLE_LABEL[user.role] }}>
+        <Shell nav={nav} user={{ id: user.id, name: user.name, role: ROLE_LABEL[user.role] }} year={year === null ? null : fyLabel(year)}>
           {children}
         </Shell>
       </ToastProvider>
