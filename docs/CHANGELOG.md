@@ -7,7 +7,7 @@ commit id, what changed in plain words, and the requirement it answers (R… in 
 
 ## 3 Oct 2026
 
-- `PENDING` **Price list and filters.** Nursery Core/Focus/Plus kits and 33 optional items loaded with school
+- `c6f240b` **Price list and filters.** Nursery Core/Focus/Plus kits and 33 optional items loaded with school
   price and MRP; products have an MRP that fills quotations; conflicts list in `docs/PRICING.md`. Create
   quotation on a lead (moves to the opportunity on conversion). Facebook/Instagram merged into Social Media.
   Pipeline fits one screen. Filters default to All. To-do calendar (month/week). From–to date filter on
