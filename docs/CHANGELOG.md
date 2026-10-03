@@ -7,7 +7,7 @@ commit id, what changed in plain words, and the requirement it answers (R… in 
 
 ## 3 Oct 2026
 
-- `PENDING` **Transport and kit changes on quotations.** Hidden transport per kit on any quotation line (inside
+- `8261a5f` **Transport and kit changes on quotations.** Hidden transport per kit on any quotation line (inside
   the price, never printed). Change kit items: take items out or add optional items, with MRP/price following
   the item prices; the checklist follows. Prices only from the Excel: class-kit prices from the sample PO cleared;
   fixed freight ₹100 removed from Focus (₹2,854) and Plus (₹3,144). Kit items carry their prices. (R29)
