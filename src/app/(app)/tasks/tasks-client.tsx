@@ -19,7 +19,7 @@ import type { InvoiceRow } from "@/server/finance/service";
 import type { Option, TaskRow } from "@/server/queries";
 import { InvoiceButtons } from "../clients/[id]/finance";
 
-const PRIORITY_LABEL: Record<string, string> = {
+export const PRIORITY_LABEL: Record<string, string> = {
   LOW: "Low",
   MEDIUM: "Medium",
   HIGH: "High",
@@ -211,7 +211,7 @@ export function TaskBoard({
   );
 }
 
-function CompleteModal({
+export function CompleteModal({
   task,
   onClose,
 }: {
@@ -269,7 +269,7 @@ function CompleteModal({
   );
 }
 
-function PostponeModal({
+export function PostponeModal({
   task,
   onClose,
 }: {
@@ -356,7 +356,7 @@ function PostponeModal({
   );
 }
 
-function CancelModal({
+export function CancelModal({
   task,
   onClose,
 }: {

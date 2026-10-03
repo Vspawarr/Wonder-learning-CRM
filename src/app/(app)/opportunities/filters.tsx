@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { STAGES, STAGE_LABEL, TEMPERATURE_LABEL } from "@/lib/constants";
 import type { Option } from "@/server/queries";
 
-const CHIPS: [string, string][] = [["Open", "Open"], ["All", "All"], ...STAGES.map((s) => [s, STAGE_LABEL[s]] as [string, string])];
+const CHIPS: [string, string][] = [["All", "All"], ["Open", "Open"], ...STAGES.map((s) => [s, STAGE_LABEL[s]] as [string, string])];
 
 export function OppFilterBar({ team }: { team: Option[] | null }) {
   const router = useRouter();
@@ -28,7 +28,7 @@ export function OppFilterBar({ team }: { team: Option[] | null }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [q]);
 
-  const stage = sp.get("stage") ?? "Open";
+  const stage = sp.get("stage") || "All";
   const cat = sp.get("cat") ?? "";
   return (
     <div className="mb-3 flex flex-wrap items-center gap-2.5">
@@ -41,7 +41,7 @@ export function OppFilterBar({ team }: { team: Option[] | null }) {
       />
       <div className="flex flex-wrap gap-1.5" role="group" aria-label="Stage">
         {CHIPS.map(([v, l]) => (
-          <button key={v} className={`chip ${stage === v ? "on" : ""}`} onClick={() => set("stage", v === "Open" ? "" : v)}>
+          <button key={v} className={`chip ${stage === v ? "on" : ""}`} onClick={() => set("stage", v === "All" ? "" : v)}>
             {l}
           </button>
         ))}

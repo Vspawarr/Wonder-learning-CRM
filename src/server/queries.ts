@@ -4,7 +4,22 @@ import type { Prisma } from "@/generated/prisma/client";
 import { db } from "@/lib/db";
 import type { PoDetails } from "./finance/po";
 import { CLOSED_STAGES, STAGES, type Stage } from "@/lib/constants";
-import { addDays, fmtDateTimeIST, fromDbDate, optDate, todayIST } from "@/lib/dates";
+import { addDays, fmtDateTimeIST, fromDbDate, isDateStr, istDayStart, optDate, toDbDate, todayIST } from "@/lib/dates";
+
+/** Custom "from – to" filter (YYYY-MM-DD, either end optional) on a timestamp column, in India time. */
+export function createdBetween(from?: string, to?: string): Prisma.DateTimeFilter | undefined {
+  const f = from && isDateStr(from) ? from : null;
+  const t = to && isDateStr(to) ? to : null;
+  if (!f && !t) return undefined;
+  return { ...(f ? { gte: istDayStart(f) } : {}), ...(t ? { lt: istDayStart(addDays(t, 1)) } : {}) };
+}
+/** The same for a date-only column (due dates, invoice dates). */
+export function dateBetween(from?: string, to?: string): Prisma.DateTimeFilter | undefined {
+  const f = from && isDateStr(from) ? from : null;
+  const t = to && isDateStr(to) ? to : null;
+  if (!f && !t) return undefined;
+  return { ...(f ? { gte: toDbDate(f) } : {}), ...(t ? { lte: toDbDate(t) } : {}) };
+}
 import { SALES_ROLES, canAssignOthers, seesAllSales, type SessionUser } from "@/lib/permissions";
 import { clientScope, leadScope, oppScope, taskScope } from "./access";
 import { ACTIVE_LEAD_STATUSES } from "./rules";
@@ -34,6 +49,7 @@ export async function taskAssignees(user: SessionUser): Promise<Option[]> {
 }
 
 export type ProductOption = {
+  mrp: number | null;
   id: string;
   name: string;
   price: number | null;
@@ -47,6 +63,7 @@ export async function productOptions(): Promise<ProductOption[]> {
     id: p.id,
     name: p.name,
     price: p.price === null ? null : Number(p.price),
+    mrp: p.mrp === null ? null : Number(p.mrp),
     active: p.active,
   }));
 }
@@ -54,15 +71,17 @@ export async function productOptions(): Promise<ProductOption[]> {
 /* ---------- leads ---------- */
 
 /** sort: "new" (default, newest first), "old" (oldest first) or "follow" (next follow-up first). */
-export type LeadFilters = { q?: string; status?: string; src?: string; sort?: string };
+export type LeadFilters = { q?: string; status?: string; src?: string; sort?: string; from?: string; to?: string };
 
 export async function leadsList(user: SessionUser, f: LeadFilters) {
   const where: Prisma.LeadWhereInput = { ...leadScope(user) };
-  const status = f.status ?? "Active";
+  const status = f.status || "All";
   if (status === "Active") where.status = { in: [...ACTIVE_LEAD_STATUSES] };
   else if (status === "Converted") where.status = "CONVERTED";
   else if (status === "Disqualified") where.status = "DISQUALIFIED";
   if (f.src) where.source = f.src;
+  const added = createdBetween(f.from, f.to);
+  if (added) where.createdAt = added;
   const q = f.q?.trim();
   if (q) {
     const num = Number(q.replace(/^L-/i, ""));
@@ -123,6 +142,8 @@ export async function leadDetail(user: SessionUser, id: string) {
         include: { assignee: { select: { name: true } } },
         orderBy: { dueDate: "asc" },
       },
+      // Quotations made while it is still a lead (they move to the opportunity on conversion).
+      quotations: { where: { opportunityId: null, clientId: null }, include: quoteInclude, orderBy: { createdAt: "desc" } },
     },
   });
   if (!l) return null;
@@ -155,6 +176,7 @@ export async function leadDetail(user: SessionUser, id: string) {
     disqualifyReason: l.disqualifyReason,
     disqualifyRemarks: l.disqualifyRemarks,
     interests: l.interests.map((i) => i.product),
+    quotations: l.quotations.map(quoteSummary),
     opportunity: l.opportunities[0] ?? null,
     openTasks: l.tasks.map((t) => ({
       id: t.id,
@@ -191,6 +213,9 @@ export type OppFilters = {
   q?: string;
   stage?: string;
   cat?: string;
+  /** Added (created) between these dates. */
+  from?: string;
+  to?: string;
 };
 
 /** Opportunities for the pipeline board and the Opportunities list. */
@@ -200,6 +225,8 @@ export async function pipelineCards(user: SessionUser, f: OppFilters = {}) {
   if (f.cat && ["HOT", "WARM", "COLD"].includes(f.cat)) where.temperature = f.cat as "HOT";
   if (f.stage === "Open") where.stage = { notIn: [...CLOSED_STAGES] };
   else if (f.stage && (STAGES as readonly string[]).includes(f.stage)) where.stage = f.stage as Stage;
+  const added = createdBetween(f.from, f.to);
+  if (added) where.createdAt = added;
   const q = f.q?.trim();
   if (q) {
     const num = Number(q.replace(/^O-/i, ""));
@@ -334,7 +361,8 @@ export type OppDetail = NonNullable<Awaited<ReturnType<typeof oppDetail>>>;
 /** "followups" = about a lead, deal or client; "todos" = a person's own to-dos. */
 export type TaskKind = "all" | "followups" | "todos";
 
-export async function taskList(user: SessionUser, team: boolean, kind: TaskKind = "all") {
+export async function taskList(user: SessionUser, team: boolean, kind: TaskKind = "all", range: { from?: string; to?: string } = {}) {
+  const due = dateBetween(range.from, range.to);
   const mine: Prisma.TaskWhereInput = {
     ...(team && seesAllSales(user.role) ? taskScope(user) : { assigneeId: user.id }),
     ...(kind === "todos" ? { leadId: null, opportunityId: null, clientId: null } : {}),
@@ -352,16 +380,16 @@ export async function taskList(user: SessionUser, team: boolean, kind: TaskKind 
   } as const;
   const [open, done] = await Promise.all([
     db.task.findMany({
-      where: { ...mine, status: "OPEN" },
+      where: { ...mine, status: "OPEN", ...(due ? { dueDate: due } : {}) },
       include,
       orderBy: [{ dueDate: "asc" }, { dueTime: { sort: "asc", nulls: "last" } }, { createdAt: "asc" }],
       take: 1000,
     }),
     db.task.findMany({
-      where: { ...mine, status: { in: ["DONE", "CANCELLED"] } },
+      where: { ...mine, status: { in: ["DONE", "CANCELLED"] }, ...(due ? { dueDate: due } : {}) },
       include,
       orderBy: { completedAt: "desc" },
-      take: 15,
+      take: due ? 500 : 15,
     }),
   ]);
   const shape = (t: (typeof open)[number]) => ({
@@ -435,9 +463,11 @@ export async function taskTargets(user: SessionUser) {
 
 /* ---------- clients ---------- */
 
-export async function clientsList(user: SessionUser, f: { q?: string; status?: string }) {
+export async function clientsList(user: SessionUser, f: { q?: string; status?: string; from?: string; to?: string }) {
   const where: Prisma.ClientWhereInput = { ...clientScope(user) };
   if (f.status === "ONBOARDING" || f.status === "ACTIVE") where.status = f.status;
+  const since = createdBetween(f.from, f.to);
+  if (since) where.createdAt = since;
   const q = f.q?.trim();
   if (q) {
     const num = Number(q.replace(/^C-/i, ""));

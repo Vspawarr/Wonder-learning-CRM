@@ -40,17 +40,19 @@ client shows a warning (the user may still save). The Excel upload skips same sc
 
 ## Products
 
-- The catalogue is **one student kit per class** (Play Group, Nursery, LKG / Jr. KG, UKG / Sr. KG) plus
-  **optional add-ons** (Hindi Swar / Vyanjan / Shabad Gyan / Matra Gyan, Cursive, Phonics Reader, Nursery
-  Practice Notebooks). A kit's **contents** (groups and items, as on the client's checklist) print on the
+- The catalogue is **one student kit per class** (Play Group, Nursery, LKG / Jr. KG, UKG / Sr. KG), the
+  **Nursery Core / Focus / Plus kits** from the price list, and **33 optional items** (books, notebooks,
+  others). Each product has a school price and an **MRP** (R28; open questions in `PRICING.md`). A kit's **contents** (groups and items, as on the client's checklist) print on the
   **kit checklist PDF**; the PO says "Material Exclude: Refer Checklist" and the checklist goes with it.
-- Kit qty on quotations, POs and orders = number of students (kits). Prices on products are starting values;
-  quotations still have MRP and price typed by hand. GST 0% (educational material).
+- Kit qty on quotations, POs and orders = number of students (kits). Adding a product to a quotation fills in
+  its MRP and price; both can still be changed by hand. GST 0% (educational material).
 - Products added in Settings → Products with contents get a K-code (kits), others a P-code.
 
 ## Quotations, PO and orders
 
-- Quotation from an opportunity or a client; products from the list; **MRP and Price typed by hand**,
+- Quotation from a **lead** (not yet converted or disqualified), an opportunity or a client. A lead's
+  quotations move to its opportunity when it is converted; sending one moves a New lead to Contacted (R28).
+- Quotation lines: products from the list; **MRP and Price typed by hand**,
   no discount column, GST % per line; validity days (default from Settings → Quotation). After the
   validity date it shows **Expired**, and a follow-up is booked the day before.
 - Drafts can be edited; **sent quotations are locked**: use **Revise** to make a new version.
@@ -110,7 +112,15 @@ client shows a warning (the user may still save). The Excel upload skips same sc
 Everyone has To-do: automatic school follow-ups plus their own items (Internal Meeting, Document
 Preparation, Report / Admin Work, Training, Reminder, Other), with optional time and priority.
 Actions: Done (with outcome, optional next date), Postpone (reason, counted), Cancel. Managers who see
-everyone can switch on "Show whole team".
+everyone can switch on "Show whole team". **List** or **Calendar** view: month or week (hours 8 AM–8 PM;
+earlier/later times sit in the first/last hour); blue = school follow-up, purple = own to-do, red = overdue,
+grey = done/cancelled (R28).
+
+## Filters
+
+- Status filters start on **All** (leads, opportunities, reports); the dashboard's "Active leads" link opens Active.
+- **From – to date** filter: leads and opportunities by date added, clients by client-since date, outstanding
+  by invoice date, To-do list by due date. India time. Exports use the same range and print it under the title.
 
 ## Dashboard
 
@@ -129,7 +139,7 @@ targets · several contacts · client documents · quotation validity. New optio
 
 ## Lists (single source of truth)
 
-Fixed lists live only in `src/lib/constants.ts`: lead sources, designations, follow-up types, own to-do
+Fixed lists live only in `src/lib/constants.ts`: lead sources (Facebook and Instagram are merged into **Social Media**, R28), designations, follow-up types, own to-do
 types, competitors, lost reasons, stages + probabilities, payment modes, document categories, contact roles.
 States and cities live in the database (Settings → Locations). The form, the Excel template and the upload
 read the same lists, so they can't drift apart (R9, R10).

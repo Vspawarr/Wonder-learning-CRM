@@ -13,6 +13,7 @@ const DOCS = [
   { id: "status", file: "docs/STATUS.md", label: "Status" },
   { id: "requirements", file: "docs/REQUIREMENTS.md", label: "Requirements" },
   { id: "rules", file: "docs/BUSINESS_RULES.md", label: "Business rules" },
+  { id: "pricing", file: "docs/PRICING.md", label: "Pricing & conflicts" },
   { id: "downloads", file: "docs/DOWNLOADS_AND_TEMPLATES.md", label: "Downloads & templates" },
   { id: "changelog", file: "docs/CHANGELOG.md", label: "Change log" },
   { id: "deploy", file: "DEPLOY.md", label: "Going online" },

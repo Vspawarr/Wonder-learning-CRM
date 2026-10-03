@@ -156,6 +156,7 @@ type QuoteForPo = {
   poDetails: unknown;
   opportunityId: string | null;
   clientId: string | null;
+  leadId: string | null;
   items: { description: string; price: unknown }[];
   preparedBy: { name: string; mobile: string | null; email: string };
 };
@@ -167,7 +168,9 @@ async function templateFor(q: QuoteForPo) {
     ? await db.client.findUnique({ where: { id: q.clientId }, select: { mobile: true, email: true, contactName: true } })
     : q.opportunityId
       ? (await db.opportunity.findUnique({ where: { id: q.opportunityId }, select: { lead: { select: { mobile: true, email: true, contactName: true } } } }))?.lead
-      : null;
+      : q.leadId
+        ? await db.lead.findUnique({ where: { id: q.leadId }, select: { mobile: true, email: true, contactName: true } })
+        : null;
   const issued = fromDbDate(q.sentAt ?? q.date);
   const fy = financialYear(issued);
   return renderPoTemplatePdf({

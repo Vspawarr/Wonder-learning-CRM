@@ -76,6 +76,7 @@ export async function saveProduct(actor: SessionUser, id: string | null, raw: un
     name: d.name,
     category: d.category,
     price: d.price,
+    mrp: d.mrp,
     gstRate: d.gstRate,
     active: d.active,
     contents: d.contents ?? Prisma.DbNull,

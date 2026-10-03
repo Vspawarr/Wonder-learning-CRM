@@ -1,3 +1,4 @@
+import { DateRangeFilter } from "@/components/date-range";
 import Link from "next/link";
 import { ExportButtons } from "@/components/export-buttons";
 import { STAGE_COLOR, STAGE_LABEL, oppCode, TEMPERATURE_LABEL } from "@/lib/constants";
@@ -19,19 +20,23 @@ type SP = Promise<{
   owner?: string;
   cat?: string;
   opp?: string;
+  from?: string;
+  to?: string;
 }>;
 
 export default async function OpportunitiesPage({ searchParams }: { searchParams: SP }) {
   const user = await requireUser();
   const sp = await searchParams;
   const all = seesAllSales(user.role);
-  const stage = sp.stage ?? "Open";
+  const stage = sp.stage || "All";
   const [rows, team, detail, products] = await Promise.all([
     pipelineCards(user, {
       q: sp.q,
       stage: stage === "All" ? undefined : stage,
       owner: sp.owner,
       cat: sp.cat,
+      from: sp.from,
+      to: sp.to,
     }),
     assignees(user),
     sp.opp ? oppDetail(user, sp.opp) : null,
@@ -39,7 +44,7 @@ export default async function OpportunitiesPage({ searchParams }: { searchParams
   ]);
   const today = todayIST();
   const total = rows.reduce((n, r) => n + r.value, 0);
-  const filtered = !!(sp.q || sp.owner || sp.cat || stage !== "Open");
+  const filtered = !!(sp.q || sp.owner || sp.cat || sp.from || sp.to || stage !== "All");
   const href = (id: string) => {
     const p = new URLSearchParams(Object.entries(sp).filter(([k, v]) => k !== "opp" && v) as [string, string][]);
     p.set("opp", id);
@@ -55,6 +60,9 @@ export default async function OpportunitiesPage({ searchParams }: { searchParams
         </Link>
       </PageHeader>
       <OppFilterBar team={all ? team : null} />
+      <div className="mb-3">
+        <DateRangeFilter label="Added" />
+      </div>
 
       {/* Computer: table */}
       <div className="hidden min-[901px]:block">

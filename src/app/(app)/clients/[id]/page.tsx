@@ -75,7 +75,7 @@ export default async function ClientPage({ params }: { params: Promise<{ id: str
           ))}
       </dl>
       <div className="small muted mt-4">
-        From <Link href={`/opportunities?stage=All&opp=${c.opportunity.id}`}>opportunity {oppCode(c.opportunity.number)}</Link>
+        From <Link href={`/opportunities?opp=${c.opportunity.id}`}>opportunity {oppCode(c.opportunity.number)}</Link>
         {c.opportunity.leadId && c.opportunity.lead ? (
           <>
             {" "}

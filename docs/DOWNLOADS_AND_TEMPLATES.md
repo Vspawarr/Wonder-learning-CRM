@@ -22,7 +22,7 @@ the Android APK and the logo.)
   Area/Location · Address · Current Publication/Curriculum · Current Student Strength · Number of Branches ·
   Lead Source* · Reference Name · Lead Status · **Opportunity Category (if Qualified)** · Assigned To* ·
   Next Follow-up Date* · Follow-up Type · Follow-up Remark
-- **Dropdowns (hard, "stop" style):** Designation, State, City (follows the row's State), Lead Source, Lead
+- **Dropdowns (hard, "stop" style):** Designation, State, City (follows the row's State), Lead Source (incl. "Social Media"; Facebook/Instagram are refused), Lead
   Status (New / Contacted / Qualified), Opportunity Category (Hot / Warm / Cold), Assigned To (active
   sales people at download time), Follow-up Type. Dates DD/MM/YYYY. Whole numbers for strength and branches.
 - **Where the lists come from:** `src/lib/constants.ts` (designations, sources, statuses, categories,
@@ -43,6 +43,7 @@ the Android APK and the logo.)
 ## Report exports (PDF and Excel)
 
 The **PDF / Excel** buttons on each list. Route `/api/export/<report>?format=pdf|xlsx&<the screen's filters>`.
+Exports follow the screen's **From – to** dates too and print the range under the title (R28).
 Code: `src/server/reports/index.ts` (one builder per report, using the screen's own query and access rules),
 `render.ts` (Excel), `pdf.tsx` (PDF). Tests: `tests/ledger-reports.test.ts`.
 
@@ -67,7 +68,7 @@ and PO numbers run per financial year with starting-number settings.
 
 | Document | Number | Made from | Download / share | Code |
 |---|---|---|---|---|
-| Quotation (3 pages, client's format) | QUO/YYYY/MM/NNN | Opportunity or client | `/api/quotations/<id>/pdf`; public link `/q/<token>` | `src/server/quotation/pdf.tsx`, text in Settings → Quotation (`content.ts`) |
+| Quotation (3 pages, client's format) | QUO/YYYY/MM/NNN | Lead, opportunity or client | `/api/quotations/<id>/pdf`; public link `/q/<token>` | `src/server/quotation/pdf.tsx`, text in Settings → Quotation (`content.ts`) |
 | Sample quotation (to check Settings text) | QUO/…/000 | Settings → Quotation | `/api/quotations/sample` (Admin) | same |
 | PO template (client's PO format; school signs and stamps) | PO/2627/N, given on first save | Sent quotation + details saved in "Send PO template" (`Quotation.poDetails`) | `/api/quotations/<id>/po-template`; public `/q/<token>/po` | `src/server/finance/po-pdf.tsx`, `po.ts`; texts in Settings → Documents |
 | Kit checklist (client's checklist layout, one coloured page per class) | — | Products with contents | `/api/products/checklist[?ids=]`; public `/q/<token>/checklist` (the quotation's kits) | `src/server/products/checklist-pdf.tsx`, `checklist.ts` |

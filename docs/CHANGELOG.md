@@ -7,6 +7,11 @@ commit id, what changed in plain words, and the requirement it answers (R… in 
 
 ## 3 Oct 2026
 
+- `PENDING` **Price list and filters.** Nursery Core/Focus/Plus kits and 33 optional items loaded with school
+  price and MRP; products have an MRP that fills quotations; conflicts list in `docs/PRICING.md`. Create
+  quotation on a lead (moves to the opportunity on conversion). Facebook/Instagram merged into Social Media.
+  Pipeline fits one screen. Filters default to All. To-do calendar (month/week). From–to date filter on
+  leads, opportunities, clients, outstanding and To-do, also in the exports. (R28)
 - `d1d1d3b` **Client's own templates and kit-wise products.** Products are now the four class kits
   (with contents from the client's checklist) plus seven optional add-ons; the seven sample services are
   removed (one-time migration). New kit checklist PDF. Receipt and PO template rebuilt in the client's

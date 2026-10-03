@@ -331,7 +331,8 @@ function QuotationEditor({
             const p = products.find((x) => x.id === add)!;
             setD({
               ...d,
-              items: [...d.items, { productId: p.id, description: p.name, mrp: "", price: "" }],
+              // Prefill from the price list (Settings → Products); both stay editable.
+              items: [...d.items, { productId: p.id, description: p.name, mrp: p.mrp == null ? "" : String(p.mrp), price: p.price == null ? "" : String(p.price) }],
             });
             setAdd("");
           }}

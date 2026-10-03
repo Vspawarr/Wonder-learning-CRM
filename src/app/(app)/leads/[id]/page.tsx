@@ -5,7 +5,9 @@ import { fmtDateTimeIST, todayIST } from "@/lib/dates";
 import { ActivityLog } from "@/components/activity";
 import { BackLink, Card, ContactFacts, DueTag, FollowUp, Pill } from "@/components/ui";
 import { requireUser } from "@/server/session";
-import { assignees, leadDetail } from "@/server/queries";
+import { assignees, leadDetail, productOptions } from "@/server/queries";
+import { isEmailConfigured } from "@/server/mailer";
+import { QuotationsPanel } from "../../pipeline/quotations";
 import { getLocations } from "@/server/locations";
 import { isActiveLead } from "@/server/rules";
 import { LeadActions, LeadEditor } from "./lead-client";
@@ -20,7 +22,7 @@ export default async function LeadPage({ params }: { params: Promise<{ id: strin
   const user = await requireUser();
   const lead = await leadDetail(user, (await params).id);
   if (!lead) notFound();
-  const [team, locations] = await Promise.all([assignees(user), getLocations()]);
+  const [team, locations, products] = await Promise.all([assignees(user), getLocations(), productOptions()]);
   const active = isActiveLead(lead.status);
   const today = todayIST();
   // A reassigned lead keeps showing its current owner even if they're not a choice for this user.
@@ -88,6 +90,30 @@ export default async function LeadPage({ params }: { params: Promise<{ id: strin
           )}
         </div>
         <div className="flex flex-col gap-4">
+          {active || lead.quotations.length ? (
+            <Card title="Quotations">
+              {active ? (
+                <p className="small muted mb-2">
+                  Some schools ask for a quotation straight away: make it here. When the lead becomes an opportunity, its quotations move with it.
+                </p>
+              ) : null}
+              <QuotationsPanel
+                heading={false}
+                target={{
+                  parent: { leadId: lead.id },
+                  schoolName: lead.schoolName,
+                  closed: !active,
+                  stage: null,
+                  email: lead.email,
+                  mobile: lead.mobile,
+                  quotations: lead.quotations,
+                }}
+                products={products}
+                emailReady={isEmailConfigured()}
+                me={{ name: user.name }}
+              />
+            </Card>
+          ) : null}
           <Card title="Next follow-up">
             <div className="text-[15px]">
               <FollowUp date={lead.nextFollowUpDate} today={today} />

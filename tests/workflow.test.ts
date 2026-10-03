@@ -335,6 +335,28 @@ describe("products", () => {
   });
 });
 
+describe("list filters", () => {
+  it("leads show All by default and can be limited to an added-date range", async () => {
+    const { leadsList } = await import("@/server/queries");
+    const a = await createLead(exA, leadData(exA.id, { schoolName: "Range A", mobile: "90000 00001" }));
+    const b = await createLead(exA, leadData(exA.id, { schoolName: "Range B", mobile: "90000 00002" }));
+    await convertLead(exA, b, { temperature: "WARM" });
+    await db.lead.update({ where: { id: a }, data: { createdAt: new Date("2026-01-15T10:00:00+05:30") } });
+    const all = await leadsList(head, {});
+    expect(all.map((l) => l.schoolName)).toEqual(expect.arrayContaining(["Range A", "Range B"])); // converted one included
+    expect((await leadsList(head, { status: "Active" })).map((l) => l.schoolName)).not.toContain("Range B");
+    const jan = await leadsList(head, { from: "2026-01-01", to: "2026-01-31" });
+    expect(jan.map((l) => l.schoolName)).toEqual(["Range A"]);
+    expect((await leadsList(head, { from: "2026-01-16" })).map((l) => l.schoolName)).not.toContain("Range A");
+  });
+
+  it("products keep an MRP next to the school price", async () => {
+    const id = await saveProduct(admin, null, { name: "Swar Book Hindi", price: 140, mrp: 180, gstRate: 0, active: true });
+    const p = await db.product.findUniqueOrThrow({ where: { id } });
+    expect([Number(p.price), Number(p.mrp)]).toEqual([140, 180]);
+  });
+});
+
 describe("class kits and the kit checklist", () => {
   it("a kit keeps its contents as groups, gets a K code, and prints on the checklist", async () => {
     const { checklistPdf, checklistKits, checklistForQuotation } = await import("@/server/products/checklist");

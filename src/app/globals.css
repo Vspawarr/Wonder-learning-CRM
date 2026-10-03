@@ -247,6 +247,64 @@
     display: inline-block; font-size: 12px; padding: 1px 7px; border-radius: 6px; background: var(--surf2);
     border: 1px solid var(--line); color: var(--ink2);
   }
+  /* To-do calendar (month / week), like Google or Teams */
+  .cal { padding: 12px; }
+  .cal-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 8px; }
+  .cal-legend { display: flex; flex-wrap: wrap; gap: 4px 14px; margin-bottom: 10px; }
+  .cal-legend span { display: inline-flex; align-items: center; gap: 5px; }
+  .cal-legend i, .cal-dots i, .cal-row i { width: 9px; height: 9px; border-radius: 99px; display: inline-block; flex: none; }
+  .ev-school { --ev: var(--sky); --evs: var(--skysoft); }
+  .ev-own { --ev: var(--grape); --evs: var(--grapesoft); }
+  .ev-late { --ev: var(--coral); --evs: var(--coralsoft); }
+  .ev-done { --ev: var(--ink3); --evs: var(--surf2); }
+  .cal-legend i, .cal-dots i, .cal-row i { background: var(--ev); }
+  .cal-month { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); border-top: 1px solid var(--line); border-left: 1px solid var(--line); }
+  .cal-dow { font-size: 12px; font-weight: 650; color: var(--ink3); text-align: center; padding: 6px 0; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); background: var(--surf2); }
+  .cal-cell { min-height: 104px; padding: 4px; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); cursor: pointer; min-width: 0; }
+  .cal-cell:hover { background: var(--surf2); }
+  .cal-cell.out { background: var(--surf2); color: var(--ink3); }
+  .cal-cell.sel { box-shadow: inset 0 0 0 2px var(--brand2); }
+  .cal-num { display: inline-grid; place-items: center; min-width: 24px; height: 24px; border-radius: 99px; font-size: 12.5px; font-weight: 650; }
+  .cal-cell.today .cal-num { background: var(--brand); color: var(--onbrand); }
+  .cal-evs { display: flex; flex-direction: column; gap: 2px; margin-top: 2px; }
+  .cev {
+    display: block; width: 100%; text-align: left; font-size: 11.5px; line-height: 1.35; padding: 1px 6px; border-radius: 5px; border: 0;
+    background: var(--evs); color: var(--ink); border-left: 3px solid var(--ev); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer;
+  }
+  .cev.ev-done { text-decoration: line-through; color: var(--ink3); }
+  .cal-more { font-size: 11px; color: var(--ink2); padding-left: 4px; }
+  .cal-dots { display: none; gap: 3px; justify-content: center; margin-top: 2px; }
+  .cal-agenda { display: none; }
+  .cal-week { display: grid; grid-template-columns: 58px repeat(7, minmax(0, 1fr)); border-top: 1px solid var(--line); }
+  .cal-wday { background: none; border: 0; border-bottom: 1px solid var(--line); padding: 6px 0; display: flex; flex-direction: column; align-items: center; color: var(--ink2); cursor: pointer; }
+  .cal-wday span { font-size: 11.5px; }
+  .cal-wday b { font-size: 18px; font-family: var(--font-head); color: var(--ink); width: 34px; height: 34px; display: grid; place-items: center; border-radius: 99px; }
+  .cal-wday.today b { background: var(--brand); color: var(--onbrand); }
+  .cal-hour { font-size: 11px; color: var(--ink3); text-align: right; padding: 3px 6px 0 0; border-bottom: 1px solid var(--line); }
+  .cal-slot { min-height: 40px; border-left: 1px solid var(--line); border-bottom: 1px solid var(--line); padding: 2px; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+  .cal-slot.allday { background: var(--surf2); min-height: 32px; }
+  .cal-weeklist { display: none; }
+  .cal-day { margin-top: 12px; }
+  .cal-day h3 { margin-bottom: 4px; }
+  .cal-row { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; background: none; border: 0; border-bottom: 1px solid var(--line); padding: 8px 2px; color: var(--ink); cursor: pointer; }
+  .cal-row.ev-done .font-semibold { text-decoration: line-through; color: var(--ink3); }
+  @media (max-width: 760px) {
+    .cal-cell { min-height: 54px; text-align: center; }
+    .cal-evs { display: none; }
+    .cal-dots { display: flex; }
+    .cal-agenda { display: block; }
+    .cal-week { display: none; }
+    .cal-weeklist { display: block; }
+  }
+
+  /* custom from–to date filter */
+  .daterange { display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  @media (max-width: 600px) {
+    .daterange { display: grid; grid-template-columns: auto minmax(0, 1fr) auto minmax(0, 1fr); width: 100%; }
+    .daterange > div { width: auto !important; }
+    .daterange > button { grid-column: 1 / -1; justify-self: start; }
+  }
+
   /* dashboard section buttons */
   .dsec { display: flex; gap: 8px; flex-wrap: wrap; }
   .dchip {
@@ -324,11 +382,11 @@
   .vb .bl { font-size: 12px; color: var(--ink3); white-space: nowrap; }
 
   /* kanban */
-  .board {
-    display: grid; grid-auto-flow: column; grid-auto-columns: minmax(258px, 1fr); gap: 12px; overflow-x: auto;
-    padding-bottom: 10px; align-items: start;
-  }
-  .col { background: var(--surf2); border: 1px solid var(--line); border-radius: 12px; padding: 10px; min-height: 260px; }
+  /* All six stages in one screen: no sideways scrolling (R28). */
+  .board { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 10px; padding-bottom: 10px; align-items: start; }
+  .col { background: var(--surf2); border: 1px solid var(--line); border-radius: 12px; padding: 8px; min-height: 260px; min-width: 0; }
+  .col header { flex-wrap: wrap; gap: 2px 6px; }
+  .board .kc { padding: 8px 9px; overflow-wrap: anywhere; }
   .col.over { outline: 2px dashed var(--brand2); background: var(--brandsoft); }
   .kc {
     display: block; width: 100%; text-align: left; background: var(--surf); border: 1px solid var(--line); border-radius: 10px;
@@ -486,9 +544,11 @@
   .kgrid.kgrid-2 .kpi .v { font-size: 20px; }
 }
 
-/* Pipeline on phones: narrower columns that snap into place while swiping */
+/* Pipeline on narrower screens: three stages per row, then one under another on phones */
+@media (max-width: 1200px) {
+  .board { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
 @media (max-width: 600px) {
-  .board { grid-auto-columns: 78vw; scroll-snap-type: x mandatory; gap: 10px; }
-  .board > * { scroll-snap-align: start; }
-  .col { min-height: 180px; }
+  .board { grid-template-columns: minmax(0, 1fr); }
+  .col { min-height: 0; }
 }

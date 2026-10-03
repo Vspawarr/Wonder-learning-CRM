@@ -28,14 +28,18 @@ const time12 = (t: string | null) => {
   return `${((h + 11) % 12) + 1}:${String(m).padStart(2, "0")} ${h < 12 ? "AM" : "PM"}`;
 };
 const filtersLine = (parts: (string | false | undefined | null)[]) => parts.filter(Boolean).join(" · ") || undefined;
+/** "Added 01/10/2026 – 31/10/2026" for the custom date filter, or nothing. */
+const rangeLine = (label: string, p: Params) =>
+  p.from || p.to ? `${label} ${p.from ? dmy(p.from) : "…"} – ${p.to ? dmy(p.to) : "…"}` : undefined;
 
 async function leads(user: SessionUser, p: Params): Promise<Report> {
-  const rows = await leadsList(user, { q: p.q, status: p.status, src: p.src, sort: p.sort });
+  const rows = await leadsList(user, { q: p.q, status: p.status, src: p.src, sort: p.sort, from: p.from, to: p.to });
   return {
     title: "Leads",
     subtitle: filtersLine([
-      `Status: ${p.status ?? "Active"}`,
+      `Status: ${p.status || "All"}`,
       p.src && `Source: ${p.src}`,
+      rangeLine("Added", p),
       p.q && `Search: "${p.q}"`,
       !seesAllSales(user.role) && "My leads only",
     ]),
@@ -72,12 +76,14 @@ async function leads(user: SessionUser, p: Params): Promise<Report> {
 }
 
 async function opportunities(user: SessionUser, p: Params): Promise<Report> {
-  const stage = p.stage ?? "Open";
+  const stage = p.stage || "All";
   const rows = await pipelineCards(user, {
     q: p.q,
     stage: stage === "All" ? undefined : stage,
     owner: p.owner,
     cat: p.cat,
+    from: p.from,
+    to: p.to,
   });
   const total = rows.reduce((s, o) => s + o.value, 0);
   return {
@@ -85,6 +91,7 @@ async function opportunities(user: SessionUser, p: Params): Promise<Report> {
     subtitle: filtersLine([
       `Stage: ${STAGE_LABEL[stage as keyof typeof STAGE_LABEL] ?? stage}`,
       p.cat && `Category: ${TEMPERATURE_LABEL[p.cat as "HOT"] ?? p.cat}`,
+      rangeLine("Added", p),
       p.q && `Search: "${p.q}"`,
     ]),
     sections: [
@@ -123,10 +130,10 @@ async function opportunities(user: SessionUser, p: Params): Promise<Report> {
 }
 
 async function clients(user: SessionUser, p: Params): Promise<Report> {
-  const rows = await clientsList(user, { q: p.q, status: p.status });
+  const rows = await clientsList(user, { q: p.q, status: p.status, from: p.from, to: p.to });
   return {
     title: "Clients",
-    subtitle: filtersLine([p.status && `Status: ${CLIENT_STATUS_LABEL[p.status as "ACTIVE"] ?? p.status}`, p.q && `Search: "${p.q}"`]),
+    subtitle: filtersLine([p.status && `Status: ${CLIENT_STATUS_LABEL[p.status as "ACTIVE"] ?? p.status}`, p.q && `Search: "${p.q}"`, rangeLine("Client since", p)]),
     landscape: false,
     sections: [
       {
@@ -162,7 +169,7 @@ async function outstanding(user: SessionUser, p: Params): Promise<Report> {
   const show = { overdue: "Overdue", paid: "Paid", all: "All invoices" }[p.show ?? ""] ?? "To collect";
   return {
     title: "Outstanding",
-    subtitle: filtersLine([`Showing: ${show}`, p.q && `Search: "${p.q}"`]),
+    subtitle: filtersLine([`Showing: ${show}`, p.q && `Search: "${p.q}"`, rangeLine("Invoice date", p)]),
     sections: [
       {
         heading: "Summary",
@@ -317,7 +324,7 @@ async function ledger(user: SessionUser, p: Params): Promise<Report> {
 async function todo(user: SessionUser, p: Params): Promise<Report> {
   const team = seesAllSales(user.role) && p.team === "1";
   const kind: TaskKind = p.kind === "todos" || p.kind === "followups" ? p.kind : "all";
-  const { open } = await taskList(user, team, kind);
+  const { open } = await taskList(user, team, kind, { from: p.from, to: p.to });
   const today = todayIST();
   const when = (d: string) => (daysFrom(d, today) < 0 ? "Overdue" : daysFrom(d, today) === 0 ? "Today" : "Upcoming");
   return {
@@ -325,6 +332,7 @@ async function todo(user: SessionUser, p: Params): Promise<Report> {
     subtitle: filtersLine([
       team ? "Whole team" : `For ${user.name}`,
       kind === "todos" ? "Own to-dos" : kind === "followups" ? "School follow-ups" : "Everything",
+      rangeLine("Due", p),
     ]),
     sections: [
       {

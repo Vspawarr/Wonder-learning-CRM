@@ -1,3 +1,4 @@
+import { DateRangeFilter } from "@/components/date-range";
 import Link from "next/link";
 import { ExportButtons } from "@/components/export-buttons";
 import { LEAD_STATUS_LABEL, leadCode } from "@/lib/constants";
@@ -14,7 +15,7 @@ import { BulkLeadButtons } from "./bulk-upload";
 
 export const metadata = { title: "Leads" };
 
-type SP = Promise<{ q?: string; status?: string; src?: string; sort?: string; new?: string }>;
+type SP = Promise<{ q?: string; status?: string; src?: string; sort?: string; new?: string; from?: string; to?: string }>;
 
 export default async function LeadsPage({ searchParams }: { searchParams: SP }) {
   const user = await requireUser();
@@ -25,7 +26,7 @@ export default async function LeadsPage({ searchParams }: { searchParams: SP }) 
     getLocations(),
   ]);
   const today = todayIST();
-  const empty = sp.q || sp.src || (sp.status && sp.status !== "Active") ? "No leads match these filters." : "No leads yet. Add your first lead.";
+  const empty = sp.q || sp.src || (sp.status && sp.status !== "All") ? "No leads match these filters." : "No leads yet. Add your first lead.";
   // Leads that haven't become an opportunity yet (Qualified ones convert automatically).
   const convertible = (status: string) => status === "NEW" || status === "CONTACTED";
 
@@ -40,6 +41,9 @@ export default async function LeadsPage({ searchParams }: { searchParams: SP }) 
         <NewLeadButton key={sp.new} autoOpen={!!sp.new} team={team} locations={locations} defaultAssignee={team.some((t) => t.id === user.id) ? user.id : ""} />
       </PageHeader>
       <LeadFilters />
+      <div className="mb-3">
+        <DateRangeFilter label="Added" />
+      </div>
       <div className="hidden min-[901px]:block">
         <Table head={["Lead", "Added", "School", "City", "Source", "Status", "Assigned to", "Next follow-up", ""]} empty={empty}>
           {rows.map((l) => (

@@ -1,3 +1,4 @@
+import { DateRangeFilter } from "@/components/date-range";
 import { ExportButtons } from "@/components/export-buttons";
 import Link from "next/link";
 import { CLIENT_STATUS_LABEL, clientCode } from "@/lib/constants";
@@ -13,7 +14,7 @@ import { renewalCandidates } from "@/server/renewals";
 
 export const metadata = { title: "Clients" };
 
-export default async function ClientsPage({ searchParams }: { searchParams: Promise<{ q?: string; status?: string }> }) {
+export default async function ClientsPage({ searchParams }: { searchParams: Promise<{ q?: string; status?: string; from?: string; to?: string }> }) {
   const user = await requireUser();
   const sp = await searchParams;
   const [rows, features] = await Promise.all([clientsList(user, sp), getFeatures()]);
@@ -32,6 +33,9 @@ export default async function ClientsPage({ searchParams }: { searchParams: Prom
       </PageHeader>
       {renewals ? <RenewalsBanner ay={renewals.ay.label} count={renewals.clients.length} canCreate={seesAllSales(user.role)} /> : null}
       <ClientFilterBar />
+      <div className="mb-3">
+        <DateRangeFilter label="Client since" />
+      </div>
 
       <div className="hidden min-[901px]:block">
         <Table head={["Client", "School", "City", "Mobile", "Status", "Since", "Assigned to"]} empty={empty}>

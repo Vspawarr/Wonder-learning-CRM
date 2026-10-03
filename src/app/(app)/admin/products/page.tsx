@@ -17,6 +17,7 @@ export default async function ProductsPage() {
     name: p.name,
     category: p.category,
     price: p.price === null ? null : Number(p.price),
+    mrp: p.mrp === null ? null : Number(p.mrp),
     gstRate: p.gstRate === null ? null : Number(p.gstRate),
     active: p.active,
     contents: Array.isArray(p.contents) ? (p.contents as KitSection[]) : null,
@@ -29,7 +30,7 @@ export default async function ProductsPage() {
     <>
       <PageHeader
         title="Products"
-        sub="Student kits (one per class) and optional add-ons offered on quotations. Price and GST are reference values; quotations have MRP and price typed on each one. A kit's contents print on the kit checklist."
+        sub="Student kits and optional items from the price list. Adding a product to a quotation fills in its MRP and school price (both can still be changed there). A kit's contents print on the kit checklist."
       >
         {kits.length ? (
           <a className="btn" href="/api/products/checklist" target="_blank" rel="noreferrer">
@@ -39,7 +40,7 @@ export default async function ProductsPage() {
         <ProductButton />
       </PageHeader>
       <div className="hidden min-[901px]:block">
-        <Table head={["Code", "Name", "Category", ["Price", "num"], ["GST", "num"], "Status", ""]} empty="No products yet. Add one.">
+        <Table head={["Code", "Name", "Category", ["School price", "num"], ["MRP", "num"], ["GST", "num"], "Status", ""]} empty="No products yet. Add one.">
           {rows.map((p) => (
             <tr key={p.id}>
               <td className="faint">{p.code}</td>
@@ -59,6 +60,7 @@ export default async function ProductsPage() {
               </td>
               <td>{p.category ?? <span className="faint">—</span>}</td>
               <td className="num">{p.price === null ? <span className="faint">Not set</span> : inr(p.price)}</td>
+              <td className="num">{p.mrp === null ? <span className="faint">—</span> : inr(p.mrp)}</td>
               <td className="num">{p.gstRate === null ? <span className="faint">Not set</span> : `${p.gstRate}%`}</td>
               <td>
                 <Pill>{p.active ? "Active" : "Inactive"}</Pill>
@@ -83,6 +85,7 @@ export default async function ProductsPage() {
             <div className="small muted mt-0.5">
               {p.code}
               {p.category ? ` · ${p.category}` : ""} · {p.price === null ? "price not set" : inr(p.price)}
+              {p.mrp === null ? "" : ` · MRP ${inr(p.mrp)}`}
               {p.gstRate === null ? "" : ` · GST ${p.gstRate}%`}
               {p.contents?.length ? ` · kit of ${count(p)} items` : ""}
             </div>

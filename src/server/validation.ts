@@ -216,6 +216,7 @@ export const productInput = z.object({
   name: reqText("Name", 200),
   category: optText(100),
   price: optMoney,
+  mrp: optMoney,
   gstRate: optMoney.refine((n) => n === null || n <= 100, "GST must be a percentage."),
   active: z.boolean().default(true),
   /** Kit contents as typed: "## Common Kit | 19 objects" headings, one item per line. Blank = not a kit. */

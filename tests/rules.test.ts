@@ -83,3 +83,20 @@ describe("lead category", () => {
     expect(() => parse(leadInput, { ...base, temperature: "", status: "QUALIFIED" })).toThrow(/category/);
   });
 });
+
+describe("lead sources and calendar dates", () => {
+  it("Facebook and Instagram are merged into Social Media", async () => {
+    const { SOURCES } = await import("@/lib/constants");
+    expect(SOURCES).toContain("Social Media");
+    expect(SOURCES).not.toContain("Facebook");
+    expect(SOURCES).not.toContain("Instagram");
+  });
+
+  it("calendar months cover whole Monday–Sunday weeks; weeks start on Monday", async () => {
+    const { calendarRange, addMonths } = await import("@/lib/calendar");
+    expect(calendarRange("month", "2026-10-15")).toEqual({ from: "2026-09-28", to: "2026-11-01" });
+    expect(calendarRange("week", "2026-10-03")).toEqual({ from: "2026-09-28", to: "2026-10-04" });
+    expect(addMonths("2026-12-10", 1)).toBe("2027-01-01");
+    expect(addMonths("2026-01-31", -1)).toBe("2025-12-01");
+  });
+});

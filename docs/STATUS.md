@@ -19,7 +19,7 @@ _Last updated: 3 Oct 2026. Update this page whenever the situation changes._
 | Item | Why it matters | Ref |
 |---|---|---|
 | Feedback from the client's testing | Final changes before go-live | — |
-| Prices for the 7 optional add-ons; confirm kit prices (taken from the Caring Hood PO) | Settings → Products | R27 |
+| Answers to the 22 price-list conflicts (`docs/PRICING.md`): which Nursery kit/price the PO used, prices and MRPs for the other classes, kit contents vs checklist | Settings → Products | R27, R28 |
 | Current receipt-book and PO numbers to continue from | Settings → Documents → Numbering | R27 |
 | Whether receipts should carry a scanned signature image (now: name only) | Printing someone's signature automatically needs their OK | R27 |
 | Invoice sample | Invoice PDF layout is provisional; add GSTIN, HSN/SAC, place of supply, bank details | R12, R19 C |
@@ -37,13 +37,13 @@ _Last updated: 3 Oct 2026. Update this page whenever the situation changes._
 - Email is off on the live site until SMTP is set up; WhatsApp and Download work.
 - Optional "manager approval for low prices" was not built (not requested).
 - Later ideas not started: morning summary, automatic lead capture (website/Facebook/IndiaMART), WhatsApp
-  Business API, To-do calendar, "untouched 15+ days" list, change history, Accounts role.
+  Business API, "untouched 15+ days" list, change history, Accounts role.
 
 ## Working on the code (developers / Claude)
 
 - Start with `CLAUDE.md`, then this folder. You should not need old chat history.
 - Local: see `README.md` (Postgres via docker compose, `npm run dev`). Tests: `npm test` (integration tests
-  against `TEST_DATABASE_URL`, 120 passing on 3 Oct), `npm run lint`, `npm run typecheck`.
+  against `TEST_DATABASE_URL`, 126 passing on 3 Oct), `npm run lint`, `npm run typecheck`.
 - Database changes: add a migration in `prisma/migrations/` (Vercel runs `prisma migrate deploy` on each deploy).
 - Before every push: tests, lint, typecheck, a build, a look at desktop and phone width, the downloads
   checklist in `DOWNLOADS_AND_TEMPLATES.md`, then update `CHANGELOG.md`, `REQUIREMENTS.md` and this page.

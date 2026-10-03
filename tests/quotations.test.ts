@@ -248,3 +248,33 @@ describe("standard text", () => {
     ]);
   });
 });
+
+describe("quotation on a lead (before it becomes an opportunity)", () => {
+  it("is made on the lead, follows the lead's access, and moves to the opportunity on conversion", async () => {
+    const leadId = await createLead(exA, leadData(exA.id, { schoolName: "Early Ask School", mobile: "98111 22334" }));
+    const q = await createQuotation(exA, { leadId }, quote({ schoolName: "Early Ask School" }));
+    let row = await db.quotation.findUniqueOrThrow({ where: { id: q } });
+    expect(row).toMatchObject({ leadId, opportunityId: null, clientId: null });
+    await expect(createQuotation(exB, { leadId }, quote())).rejects.toThrow(/not found/);
+    await expect(quotationPdf(exB, q)).rejects.toThrow(/not found/);
+    expect((await quotationPdf(head, q)).pdf.subarray(0, 4).toString()).toBe("%PDF");
+
+    // Sending it counts as contacting a new lead.
+    await markQuotationSent(exA, q, "whatsapp");
+    expect((await db.lead.findUniqueOrThrow({ where: { id: leadId } })).status).toBe("CONTACTED");
+
+    const opp = await convertLead(exA, leadId, { temperature: "HOT" });
+    row = await db.quotation.findUniqueOrThrow({ where: { id: q } });
+    expect(row.opportunityId).toBe(opp);
+    // After conversion, a new quotation "on the lead" goes on its opportunity.
+    const q2 = await createQuotation(exA, { leadId }, quote());
+    expect((await db.quotation.findUniqueOrThrow({ where: { id: q2 } })).opportunityId).toBe(opp);
+  });
+
+  it("can't be made on a disqualified lead", async () => {
+    const { disqualifyLead } = await import("@/server/leads");
+    const leadId = await createLead(exA, leadData(exA.id, { schoolName: "No Go School", mobile: "98111 22335" }));
+    await disqualifyLead(exA, leadId, { reason: "Not Interested" });
+    await expect(createQuotation(exA, { leadId }, quote())).rejects.toThrow(/disqualified/);
+  });
+});

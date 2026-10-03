@@ -79,7 +79,9 @@ model Product {
   name      String
   type      ProductType
   category  String?
-  price     Decimal?    @db.Decimal(12, 2) // null until real pricing is entered
+  price     Decimal?    @db.Decimal(12, 2) // school price (SP), null until real pricing is entered
+  /// Printed MRP from the client's price list; fills the MRP column on quotations.
+  mrp       Decimal?    @db.Decimal(12, 2)
   gstRate   Decimal?    @db.Decimal(5, 2) // percent, e.g. 18.00
   active    Boolean     @default(true)
   sortOrder Int         @default(0)
@@ -185,6 +187,7 @@ model Lead {
   opportunities Opportunity[]
   tasks         Task[]
   activities    Activity[]
+  quotations    Quotation[]
 
   @@index([assignedToId, status])
   @@index([nextFollowUpDate])
@@ -448,7 +451,10 @@ model Quotation {
   month  Int
   seq    Int
 
-  // New business is quoted on an opportunity; repeat orders on the client.
+  // New business is quoted on an opportunity; repeat orders on the client. A quotation made while the
+  // school is still a lead keeps leadId and gets the opportunity's id when the lead converts.
+  leadId        String?
+  lead          Lead?        @relation(fields: [leadId], references: [id], onDelete: Cascade)
   opportunityId String?
   opportunity   Opportunity? @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
   clientId      String?
@@ -482,6 +488,7 @@ model Quotation {
   salesOrders SalesOrder[]
 
   @@unique([year, month, seq])
+  @@index([leadId])
   @@index([opportunityId])
   @@index([clientId])
 }

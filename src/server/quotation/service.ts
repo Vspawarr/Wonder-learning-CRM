@@ -6,7 +6,7 @@ import { CLOSED_STAGES } from "@/lib/constants";
 import { addDays, fromDbDate, isDateStr, todayIST, toDbDate } from "@/lib/dates";
 import { getFeatures } from "../features";
 import type { SessionUser } from "@/lib/permissions";
-import { clientScope, oppScope } from "../access";
+import { clientScope, leadScope, oppScope } from "../access";
 import { DomainError, NotFoundError } from "../errors";
 import { isEmailConfigured, sendMail } from "../mailer";
 import { moveOpportunity } from "../opportunities";
@@ -60,11 +60,39 @@ export const emailInput = z.object({
 
 const formatNumber = (y: number, m: number, seq: number) => `QUO/${y}/${String(m).padStart(2, "0")}/${String(seq).padStart(3, "0")}`;
 
-/** New business is quoted on an opportunity; repeat orders on an existing client. */
-export type QuoteParent = { opportunityId: string } | { clientId: string };
+/** New business is quoted on an opportunity (or already on the lead); repeat orders on an existing client. */
+export type QuoteParent = { opportunityId: string } | { clientId: string } | { leadId: string };
 const asParent = (p: string | QuoteParent): QuoteParent => (typeof p === "string" ? { opportunityId: p } : p);
 
-async function loadParent(user: SessionUser, parent: QuoteParent) {
+async function loadParent(user: SessionUser, parent: QuoteParent): Promise<{
+  opportunityId: string | null;
+  clientId: string | null;
+  /** The lead the quotation itself belongs to (lead-stage quotations only). */
+  quoteLeadId: string | null;
+  leadId: string | null;
+  closed: boolean;
+  schoolName: string;
+  address: string;
+}> {
+  if ("leadId" in parent) {
+    const l = await db.lead.findFirst({ where: { id: parent.leadId, ...leadScope(user) } });
+    if (!l) throw new NotFoundError("Lead");
+    // Once converted, quotations live on its opportunity.
+    if (l.status === "CONVERTED") {
+      const opp = await db.opportunity.findFirst({ where: { leadId: l.id }, select: { id: true } });
+      if (opp) return loadParent(user, { opportunityId: opp.id });
+    }
+    if (l.status === "DISQUALIFIED") throw new DomainError("This lead is disqualified, so it can't get a quotation.");
+    return {
+      opportunityId: null,
+      clientId: null,
+      quoteLeadId: l.id,
+      leadId: l.id,
+      closed: false,
+      schoolName: l.schoolName,
+      address: [l.address, l.area, l.city].filter(Boolean).join(", "),
+    };
+  }
   if ("clientId" in parent) {
     const c = await db.client.findFirst({
       where: { id: parent.clientId, ...clientScope(user) },
@@ -73,6 +101,7 @@ async function loadParent(user: SessionUser, parent: QuoteParent) {
     return {
       opportunityId: null,
       clientId: c.id,
+      quoteLeadId: null,
       leadId: null,
       closed: false,
       schoolName: c.schoolName,
@@ -88,6 +117,7 @@ async function loadParent(user: SessionUser, parent: QuoteParent) {
   return {
     opportunityId: opp.id,
     clientId: null,
+    quoteLeadId: null,
     leadId: opp.leadId,
     closed: CLOSED_STAGES.includes(opp.stage),
     schoolName: opp.schoolName,
@@ -97,7 +127,7 @@ async function loadParent(user: SessionUser, parent: QuoteParent) {
 
 /** Visible when its opportunity or its client is visible to this user. */
 export const quotationScope = (user: SessionUser): Prisma.QuotationWhereInput => ({
-  OR: [{ opportunity: { is: oppScope(user) } }, { client: { is: clientScope(user) } }],
+  OR: [{ opportunity: { is: oppScope(user) } }, { client: { is: clientScope(user) } }, { opportunityId: null, clientId: null, lead: { is: leadScope(user) } }],
 });
 
 export async function loadQuotation(user: SessionUser, id: string) {
@@ -105,6 +135,7 @@ export async function loadQuotation(user: SessionUser, id: string) {
     where: { id, ...quotationScope(user) },
     include: {
       opportunity: true,
+      lead: { select: { id: true, status: true, assignedToId: true } },
       items: { orderBy: { sortOrder: "asc" } },
       preparedBy: true,
     },
@@ -179,6 +210,7 @@ export async function createQuotation(user: SessionUser, parentRef: string | Quo
             seq,
             opportunityId,
             clientId,
+            leadId: parent.quoteLeadId,
             date: toDbDate(d.date),
             validityDays: d.validityDays,
             toLine: d.toLine,
@@ -241,13 +273,20 @@ export async function deleteQuotation(user: SessionUser, id: string) {
 export async function reviseQuotation(user: SessionUser, id: string) {
   const q = await loadQuotation(user, id);
   // A quotation from a deal that has since become a client is revised on the client.
-  const client = q.clientId
-    ? null
-    : await db.client.findUnique({
-        where: { opportunityId: q.opportunityId! },
-        select: { id: true },
-      });
-  const parent: QuoteParent = q.clientId ? { clientId: q.clientId } : client ? { clientId: client.id } : { opportunityId: q.opportunityId! };
+  const client =
+    q.clientId || !q.opportunityId
+      ? null
+      : await db.client.findUnique({
+          where: { opportunityId: q.opportunityId },
+          select: { id: true },
+        });
+  const parent: QuoteParent = q.clientId
+    ? { clientId: q.clientId }
+    : client
+      ? { clientId: client.id }
+      : q.opportunityId
+        ? { opportunityId: q.opportunityId }
+        : { leadId: q.leadId! };
   return createQuotation(user, parent, {
     date: todayIST(),
     validityDays: q.validityDays,
@@ -290,9 +329,11 @@ export async function markQuotationSent(user: SessionUser, id: string, via: Sent
         byId: user.id,
         opportunityId: q.opportunityId,
         clientId: q.clientId,
-        leadId: q.opportunity?.leadId ?? null,
+        leadId: q.opportunity?.leadId ?? q.leadId ?? null,
       },
     }),
+    // Sending a quotation counts as contacting a new lead.
+    ...(q.lead && !q.opportunityId && q.lead.status === "NEW" ? [db.lead.update({ where: { id: q.lead.id }, data: { status: "CONTACTED" as const } })] : []),
   ]);
   if (q.opportunity && (q.opportunity.stage === "INTERESTED" || q.opportunity.stage === "DEMO_SCHEDULED"))
     await moveOpportunity(user, q.opportunity.id, { stage: "PROPOSAL_SENT" });
@@ -303,6 +344,7 @@ export async function markQuotationSent(user: SessionUser, id: string, via: Sent
     if (remindOn >= todayIST()) {
       const owner =
         q.opportunity?.ownerId ??
+        (!q.opportunityId && !q.clientId ? q.lead?.assignedToId : null) ??
         (q.clientId
           ? (
               await db.client.findUnique({
@@ -323,6 +365,7 @@ export async function markQuotationSent(user: SessionUser, id: string, via: Sent
             createdById: user.id,
             opportunityId: q.opportunityId,
             clientId: q.opportunityId ? null : q.clientId,
+            leadId: q.opportunityId || q.clientId ? null : q.leadId,
           },
         });
     }
@@ -366,6 +409,7 @@ export async function quotationPdfByToken(token: string) {
     where: { shareToken: token },
     include: {
       opportunity: true,
+      lead: { select: { id: true, status: true, assignedToId: true } },
       items: { orderBy: { sortOrder: "asc" } },
       preparedBy: true,
     },

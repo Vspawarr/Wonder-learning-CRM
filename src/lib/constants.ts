@@ -3,8 +3,7 @@
 // these lists, so editing a list here needs no migration.
 
 export const SOURCES = [
-  "Facebook",
-  "Instagram",
+  "Social Media", // Facebook, Instagram and other social platforms (merged on 3 Oct 2026, R28)
   "Google",
   "WhatsApp",
   "Website",

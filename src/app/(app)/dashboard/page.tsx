@@ -72,7 +72,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
       </PageHeader>
       <Ribbon
         steps={[
-          { label: "Active leads", value: life.leads, color: "#1C86C4", href: "/leads" },
+          { label: "Active leads", value: life.leads, color: "#1C86C4", href: "/leads?status=Active" },
           { label: "Opportunities", value: life.opps, color: "#7A48B8", href: "/pipeline" },
           { label: "Quotations open", value: life.quotes, color: "#C77A00", href: "/pipeline" },
           { label: "Open sales orders", value: life.orders, color: "#C2417A", href: "/clients" },
@@ -93,7 +93,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
         <>
           <SectionHead id="sales" sub={period} />
           <div className="kgrid kgrid-2 mb-4">
-            <Kpi label="Leads created" value={k.leads} sub={<Delta now={k.leads} prev={k.leadsPrev} />} color="#1C86C4" href="/leads?status=All" />
+            <Kpi label="Leads created" value={k.leads} sub={<Delta now={k.leads} prev={k.leadsPrev} />} color="#1C86C4" href="/leads" />
             <Kpi label="Hot opportunities" value={k.hot} sub="Open, category Hot" color="#D9412D" href="/opportunities?cat=HOT" />
             <Kpi label="Converted" value={k.converted} sub="Leads converted in period" color="#0E8F79" href="/leads?status=Converted" />
             <Kpi
@@ -134,7 +134,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                 {d.sources.map((r) => (
                   <tr key={r.source}>
                     <td>
-                      <Link href={`/leads?status=All&src=${encodeURIComponent(r.source)}`} className="text-ink">
+                      <Link href={`/leads?src=${encodeURIComponent(r.source)}`} className="text-ink">
                         {r.source}
                       </Link>
                     </td>

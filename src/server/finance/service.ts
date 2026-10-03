@@ -1340,7 +1340,7 @@ export async function collectionsSummary(user: SessionUser, f: { exec?: string; 
   };
 }
 
-export type OutstandingFilters = { q?: string; show?: string; owner?: string };
+export type OutstandingFilters = { q?: string; show?: string; owner?: string; from?: string; to?: string };
 
 /** The Outstanding page's rows and totals (same filters for the screen and its exports). */
 export async function outstandingList(user: SessionUser, f: OutstandingFilters) {
@@ -1348,6 +1348,9 @@ export async function outstandingList(user: SessionUser, f: OutstandingFilters) 
   const q = (f.q ?? "").toLowerCase();
   const shown = rows.filter((r) => {
     if (q && !r.client.schoolName.toLowerCase().includes(q) && !r.number.toLowerCase().includes(q)) return false;
+    // Custom date range on the invoice date.
+    if (f.from && r.date < f.from) return false;
+    if (f.to && r.date > f.to) return false;
     if (f.show === "overdue") return r.state === "OVERDUE";
     if (f.show === "paid") return r.state === "PAID";
     if (f.show === "all") return true;

@@ -259,3 +259,26 @@ products if needed."
 | **PO template** replaced with the client's PO format: academic year, PO No., seller (Pune office) and buyer blocks, requisitioner, expected delivery, ship via, shipping terms, kits demanded / supplied, rate, amount, remarks, Material Exclude → Refer Checklist, terms, advance cheque/DD table, customisation YES/NO, bank account details, signature boxes, executive contact line | ✅ | The details are filled in the "Send PO template" window and saved with the quotation |
 | PO numbers **PO/2627/93** style, given by the CRM when the PO template is first saved, with a "next PO number" setting; **Upload signed PO** then fills in the PO number, kits and delivery date | ✅ | |
 | All these texts (addresses, bank, terms, customisation list, signatory) editable in **Settings → Documents** | ✅ | |
+
+## R28. Price list, lead quotations, Social Media, pipeline, filters, calendar (3 Oct)
+
+Owner shared `Pric_list.xlsx` and `cost_for_nursery.xlsx`: "Analyse this 02 excel file go through every sheet
+it has. Items and price will be done; if any conflict make list and give me we will confirm with client. Also
+we should make available quotation/create quotation button in lead as well if it doesn't converted in
+opportunity, cause some schools ask quotation in first attempt. Also in lead source Facebook, Instagram and
+all social media platform merge as Social media. Make pipeline tab vertical or should able to look in single
+frame, no need to scroll horizontal. Default active filter button should be All. Try to make to-do button
+like calendar like Google calendar or Teams calendar. Also in filters date filter should be there like from
+this date to xx date (custom)."
+
+| Change | Status | Notes |
+|---|---|---|
+| Price list loaded: **Nursery Core / Focus / Plus kits** (K05–K07, with school price, MRP and contents) and **33 optional items** (O01–O33) | ✅ | One-time migration `20261010090000_price_list`; replaced the 7 unpriced add-ons (A01–A07) |
+| Products have an **MRP**; adding a product to a quotation fills in MRP and price | ✅ | Settings → Products |
+| **Conflicts list** for the client (22 points) | ⏳ waiting on client | [PRICING.md](PRICING.md), also Settings → Project documents → Pricing & conflicts |
+| **Create quotation on a lead** (not yet converted); moves to the opportunity when the lead is converted; sending it sets a New lead to Contacted | ✅ | Lead page → Quotations card |
+| Lead source **Social Media** replaces Facebook and Instagram (existing leads updated) | ✅ | Migration `20261010100000_social_media_source`; Excel template follows |
+| **Pipeline** fits the screen: 6 columns in one row on a computer, 3 on a tablet, one under the other on a phone | ✅ | No sideways scrolling |
+| Default filter **All** on leads, opportunities and reports | ✅ | "Active" is still one tap away |
+| **To-do calendar**: Month and Week views (week with hours 8 AM–8 PM), Today / ‹ / ›, colours for school follow-up, own to-do, overdue, done; click an item to Done / Postpone / Cancel. Phones: dots + day agenda | ✅ | To-do → Calendar |
+| **From – to date filter** on leads (Added), opportunities (Added), clients (Client since), outstanding (Invoice date) and To-do list (Due); PDF/Excel follow it | ✅ | |

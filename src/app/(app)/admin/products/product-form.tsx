@@ -11,6 +11,7 @@ type P = {
   name: string;
   category: string | null;
   price: number | null;
+  mrp: number | null;
   gstRate: number | null;
   active: boolean;
   contents: KitSection[] | null;
@@ -22,6 +23,7 @@ export function ProductButton({ product }: { product?: P }) {
     name: product?.name ?? "",
     category: product?.category ?? "",
     price: product?.price == null ? "" : String(product.price),
+    mrp: product?.mrp == null ? "" : String(product.mrp),
     gstRate: product?.gstRate == null ? "" : String(product.gstRate),
     active: product?.active ?? true,
     contents: product?.contents ? sectionsToText(product.contents) : "",
@@ -49,7 +51,7 @@ export function ProductButton({ product }: { product?: P }) {
       {open ? (
         <Modal
           title={product ? `Edit ${product.name}` : "Add product"}
-          sub="Changing a price affects new opportunity items only; existing items keep the price they were added at."
+          sub="Prices fill in new quotations; quotations, orders and invoices already made keep their own prices."
           onClose={close}
           footer={
             <>
@@ -75,7 +77,10 @@ export function ProductButton({ product }: { product?: P }) {
                 <option value="0">Inactive (hidden from new quotations)</option>
               </select>
             </Field>
-            <Field label="Price (₹, before GST)" htmlFor="p-price">
+            <Field label="MRP (₹)" htmlFor="p-mrp">
+              <input className="in" id="p-mrp" type="number" min={0} step="0.01" placeholder="Not set" value={v.mrp} onChange={(e) => setV({ ...v, mrp: e.target.value })} />
+            </Field>
+            <Field label="School price (₹, before GST)" htmlFor="p-price">
               <input className="in" id="p-price" type="number" min={0} step="0.01" placeholder="Not set" value={v.price} onChange={(e) => setV({ ...v, price: e.target.value })} />
             </Field>
             <Field label="GST (%)" htmlFor="p-gst">

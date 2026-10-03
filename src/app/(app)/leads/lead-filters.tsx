@@ -4,7 +4,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { SOURCES } from "@/lib/constants";
 
-const STATUS = ["Active", "All", "Converted", "Disqualified"];
+const STATUS = ["All", "Active", "Converted", "Disqualified"];
 
 export function LeadFilters() {
   const router = useRouter();
@@ -27,7 +27,7 @@ export function LeadFilters() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [q]);
 
-  const status = sp.get("status") ?? "Active";
+  const status = sp.get("status") || "All";
   return (
     <div className="mb-3 flex flex-wrap items-center gap-2.5">
       <input
@@ -39,7 +39,7 @@ export function LeadFilters() {
       />
       <div className="flex flex-wrap gap-1.5" role="group" aria-label="Status">
         {STATUS.map((s) => (
-          <button key={s} className={`chip ${status === s ? "on" : ""}`} onClick={() => set("status", s === "Active" ? "" : s)}>
+          <button key={s} className={`chip ${status === s ? "on" : ""}`} onClick={() => set("status", s === "All" ? "" : s)}>
             {s}
           </button>
         ))}

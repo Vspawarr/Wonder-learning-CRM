@@ -87,7 +87,7 @@ export function Board({ cards: initial }: { cards: PipelineCard[] }) {
         onDragCancel={() => setDragging(null)}
         onDragEnd={onDragEnd}
       >
-        <p className="small muted mb-2 min-[601px]:hidden">Swipe sideways to see each stage. To move a deal, open it and change its Stage.</p>
+        <p className="small muted mb-2 min-[601px]:hidden">Stages are listed one under another. To move a deal, open it and change its Stage, or press and hold a card and drag it.</p>
         <div className="board">
           {STAGES.map((s) => {
             let cs = cards.filter((c) => c.stage === s);
@@ -105,7 +105,7 @@ export function Board({ cards: initial }: { cards: PipelineCard[] }) {
             );
           })}
         </div>
-        {/* The moving copy lives outside the scrolling board so auto-scroll can't stretch it. */}
+        {/* The moving copy lives outside the board so auto-scroll can't stretch it. */}
         <DragOverlay>{dragged ? <CardBody card={dragged} today={today} className="shadow-lg" /> : null}</DragOverlay>
       </DndContext>
       {lost ? <LostModal oppId={lost.id} school={lost.schoolName} competitor={lost.competitor} onClose={() => setLost(null)} /> : null}

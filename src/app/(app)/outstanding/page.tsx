@@ -1,3 +1,4 @@
+import { DateRangeFilter } from "@/components/date-range";
 import { ExportButtons } from "@/components/export-buttons";
 import Link from "next/link";
 import { seesAllSales } from "@/lib/permissions";
@@ -13,7 +14,7 @@ import { OutstandingFilterBar } from "./filters";
 
 export const metadata = { title: "Outstanding" };
 
-export default async function OutstandingPage({ searchParams }: { searchParams: Promise<{ q?: string; show?: string; owner?: string }> }) {
+export default async function OutstandingPage({ searchParams }: { searchParams: Promise<{ q?: string; show?: string; owner?: string; from?: string; to?: string }> }) {
   const user = await requireUser();
   const sp = await searchParams;
   const all = seesAllSales(user.role);
@@ -72,6 +73,9 @@ export default async function OutstandingPage({ searchParams }: { searchParams: 
         </div>
       ) : null}
       <OutstandingFilterBar owners={owners} />
+      <div className="mb-3">
+        <DateRangeFilter label="Invoice date" />
+      </div>
 
       <div className="hidden min-[1101px]:block">
         <Table head={["Invoice", "School", "Due", ["Total", "num"], ["Received", "num"], ["Balance", "num"], "Status", "Assigned to", ""]} empty={empty}>

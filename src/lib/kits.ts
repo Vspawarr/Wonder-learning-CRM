@@ -48,6 +48,7 @@ export type CatalogueProduct = {
   name: string;
   category: string;
   price: number | null;
+  mrp?: number | null;
   gstRate: number;
   /** Heading colour on the kit checklist. */
   color: string | null;
@@ -173,7 +174,6 @@ export const ADDON_PRODUCTS: CatalogueProduct[] = [
   "Nursery Practice Notebooks- 2",
 ].map((name, i) => ({ code: `A${String(i + 1).padStart(2, "0")}`, name, category: "Optional add-on", price: null, gstRate: 0, color: null, contents: null }));
 
-export const CATALOGUE: CatalogueProduct[] = [...KIT_PRODUCTS, ...ADDON_PRODUCTS];
 
 /** The sample services seeded at the start, removed by the class-kits migration (matched on code and name). */
 export const OLD_SAMPLES: [string, string][] = [
@@ -184,4 +184,141 @@ export const OLD_SAMPLES: [string, string][] = [
   ["P05", "School Audit"],
   ["P06", "Marketing Campaign"],
   ["P07", "Branding Support"],
+];
+
+/* ---------- Price list (client's "Pric_list.xlsx" and "cost_for_nursery.xlsx", Oct 2026) ---------- */
+
+/** A priced line from the client's price list: school price (SP) and MRP. */
+export type PricedItem = { name: string; sp: number; mrp: number };
+export type PricedGroup = { title: string; items: PricedItem[] };
+export type PricedKit = { code: string; name: string; sp: number; mrp: number; groups: PricedGroup[] };
+
+const P = (name: string, sp: number, mrp: number): PricedItem => ({ name, sp, mrp });
+const BOOKS_1_9 = P("Book 1 to 9", 1792, 2688);
+const HOME_CONNECT = [P("Flash Cards", 40, 75), P("10 Academic Posters", 50, 100), P("3 Tracing Sheets", 70, 80), P("Marker", 7, 12)];
+const PORTFOLIO = [P("Portfolio Book", 130, 300), P("Portfolio File", 25, 45)];
+const SKILL_BOOSTER = [P("Shape Kit", 20, 35), P("20 Art & Craft activities (Take Aways)", 220, 430)];
+const ESSENTIAL_BASE = [
+  P("I-card - Student", 60, 70),
+  P("Escort Card 2", 10, 15),
+  P("3 Greetings with Envelopes", 45, 60),
+  P("Sports Certificate", 15, 25),
+  P("Graduation Certificate", 15, 25),
+  P("Report Card", 65, 90),
+];
+const PACKING = [P("Kit Box & Packaging", 120, 145), P("Assessments", 100, 125), P("Kit Box", 70, 110), P("Freight Transport", 100, 0)];
+
+/** Nursery kit types from the "kit type" sheet. Totals are the client's (they add up). */
+export const NURSERY_KIT_TYPES: PricedKit[] = [
+  {
+    code: "K05",
+    name: "Nursery Core Kit",
+    sp: 2112,
+    mrp: 3248,
+    groups: [{ title: "Core Kit", items: [BOOKS_1_9, ...PORTFOLIO, P("Report Card", 65, 90), P("Assessments", 100, 125)] }],
+  },
+  {
+    code: "K06",
+    name: "Nursery Focus Kit",
+    sp: 2954,
+    mrp: 4430,
+    groups: [
+      { title: "Class Connect", items: [BOOKS_1_9] },
+      { title: "Home Connect", items: [...HOME_CONNECT, ...PORTFOLIO] },
+      { title: "Skill Booster", items: SKILL_BOOSTER },
+      { title: "Essential Kit", items: [...ESSENTIAL_BASE, ...PACKING] },
+    ],
+  },
+  {
+    code: "K07",
+    name: "Nursery Plus Kit",
+    sp: 3244,
+    mrp: 4970,
+    groups: [
+      { title: "Class Connect", items: [BOOKS_1_9, P("Practice Notebook - Letters Nursery", 55, 90), P("Practice Notebook - Numbers Nursery", 55, 90)] },
+      { title: "Home Connect", items: [...HOME_CONNECT, ...PORTFOLIO] },
+      { title: "Skill Booster", items: SKILL_BOOSTER },
+      {
+        title: "Essential Kit",
+        items: [...ESSENTIAL_BASE, P("Diary", 60, 120), P("Memory album", 90, 200), P("Sports Medal", 30, 40), ...PACKING],
+      },
+    ],
+  },
+];
+
+/** Optional items from the "add itms" sheet (same as "Sheet2" of the Nursery cost file). Names as in the sheet. */
+export const OPTIONAL_ITEMS: { category: string; items: PricedItem[] }[] = [
+  {
+    category: "Optional – Book",
+    items: [
+      P("Swar Book Hindi", 140, 180),
+      P("Vyanjan Book Hindi", 160, 195),
+      P("Matra Book Hindi", 135, 190),
+      P("Shabda Book Hindi", 140, 195),
+      P("Reading book 1", 150, 195),
+      P("Reading book 2", 150, 195),
+      P("Swar Marathi", 150, 195),
+      P("Vyanjan Marathi", 160, 195),
+      P("Pattern Book", 160, 195),
+      P("Cursive Book", 140, 195),
+    ],
+  },
+  {
+    category: "Optional – Notebook",
+    items: [
+      P("Practice Notebook - Letters Nursery", 55, 90),
+      P("Practice Notebook - Numbers Nursery", 55, 90),
+      P("English Writing LKG Notebook - Book 1", 48, 90),
+      P("English Writing LKG Notebook - Book 2", 44, 90),
+      P("My Number Notebook LKG - Book 1", 48, 90),
+      P("My Number Notebook LKG - Book 2", 47, 90),
+      P("My Five Line Notebook", 25, 90),
+      P("Akshar Gyan - Swar (Hindi) Notebook", 55, 90),
+      P("Akshar Gyan - Vyanjan (Hindi) Notebook", 55, 90),
+      P("My Phonics Notebook UKG - Book 1", 39.6, 90),
+      P("My Phonics Notebook UKG - Book 2", 40, 90),
+      P("My Number Notebook UKG - Book 1", 39.6, 90),
+      P("My Number Notebook UKG - Book 2", 37.4, 90),
+      P("Notation Writing Notebook UKG - Book 1", 35.2, 90),
+    ],
+  },
+  {
+    category: "Optional – Other",
+    items: [
+      P("Bag", 225, 300),
+      P("Diary", 60, 120),
+      P("Memory album", 90, 200),
+      P("Sports Medal", 30, 40),
+      P("Jumbo Crayon box", 55, 65),
+      P("Plastic Scissor", 18, 25),
+      P("Play Dough", 120, 150),
+      P("Conical Crayons", 120, 150),
+      P("Apron", 100, 120),
+    ],
+  },
+];
+
+/** Codes of the placeholder add-ons (A01–A07) replaced by the price list's optional items. */
+export const OLD_ADDON_CODES = ADDON_PRODUCTS.map((a) => [a.code, a.name] as [string, string]);
+
+/** Everything a brand-new database starts with (the live one got the same through migrations). */
+export const CATALOGUE: CatalogueProduct[] = [
+  ...KIT_PRODUCTS,
+  ...NURSERY_KIT_TYPES.map((k) => ({
+    code: k.code,
+    name: k.name,
+    category: "Student kit",
+    price: k.sp,
+    mrp: k.mrp,
+    gstRate: 0,
+    color: "#EE2A50",
+    contents: k.groups.map((g) => ({ title: g.title, items: g.items.map((i) => i.name) })),
+  })),
+  ...OPTIONAL_ITEMS.flatMap((g) => g.items.map((it) => ({ name: it.name, category: g.category, price: it.sp, mrp: it.mrp }))).map((it, i) => ({
+    ...it,
+    code: `O${String(i + 1).padStart(2, "0")}`,
+    gstRate: 0,
+    color: null,
+    contents: null,
+  })),
 ];

@@ -225,8 +225,9 @@ async function convertInTx(tx: Tx, user: SessionUser, lead: LeadRow, temperature
     where: { id },
     data: { status: "CONVERTED", convertedAt: new Date(), nextFollowUpDate: null },
   });
-  // Pending lead follow-ups carry on under the opportunity.
+  // Pending lead follow-ups and quotations made at the lead stage carry on under the opportunity.
   await tx.task.updateMany({ where: { leadId: id, status: "OPEN" }, data: { opportunityId: opp.id } });
+  await tx.quotation.updateMany({ where: { leadId: id, opportunityId: null, clientId: null }, data: { opportunityId: opp.id } });
   await tx.task.create({
     data: {
       type: "Online Demo",
