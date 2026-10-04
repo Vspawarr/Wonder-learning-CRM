@@ -84,7 +84,13 @@ client shows a warning (the user may still save). The Excel upload skips same sc
   Partially paid → Paid, or **Overdue** once past due. Cancelling an invoice is a finance-role action.
 - **Payments** can be in any number of instalments. A **partial** payment asks for the **next promise date**,
   which becomes a collection follow-up in To-do (R16.3).
-- **Counted as received** only when status is **Received** or **Cleared**. Cheques (Cheque, CDC, PDC) start
+- **Accounts approval (R36):** a payment (or advance) recorded by anyone other than Accounts (for now Director /
+  Admin, `canApprovePayments`) waits as **Awaiting approval**: it doesn't count as received, has **no receipt
+  number and no receipt**, but its amount can't be recorded again. Accounts **approves** (counts; next receipt
+  number; deposit-cheque reminder for cheques; "Send receipt" to-do for the recorder) or **rejects** with a reason
+  (never counts; to-do for the recorder, who may delete their entry). Accounts' own entries count at once. Switchable
+  in Settings → Features.
+- **Counted as received** only when approved **and** status is **Received** or **Cleared**. Cheques (Cheque, CDC, PDC) start
   **In hand** → **Deposited** → **Cleared** or **Bounced**; in hand/deposited cheques show as "pending";
   a bounced cheque makes the amount due again (urgent follow-up). A "Deposit cheque" reminder appears on
   the cheque date. If cheque tracking is switched off, cheques count immediately.

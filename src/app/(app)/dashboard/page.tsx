@@ -3,7 +3,7 @@ import Link from "next/link";
 import { STAGE_COLOR, STAGE_LABEL } from "@/lib/constants";
 import { fmtDate, todayIST } from "@/lib/dates";
 import { inrS } from "@/lib/format";
-import { seesAllSales } from "@/lib/permissions";
+import { canApprovePayments, seesAllSales } from "@/lib/permissions";
 import { AvatarName, Card, DueTag, Empty, HBars, Kpi, PageHeader, Ribbon, Table, VBars } from "@/components/ui";
 import { requireUser } from "@/server/session";
 import { selectedRange } from "@/server/year";
@@ -199,6 +199,9 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
               color="#1C86C4"
               href="/outstanding"
             />
+            {cash.awaiting ? (
+              <Kpi label="Waiting for Accounts" value={inrS(cash.awaiting)} sub="Recorded, not yet approved" color="#E8930C" href={canApprovePayments(user.role) ? "/accounts" : "/outstanding"} />
+            ) : null}
           </div>
           <div className="grid grid-cols-1 gap-4 min-[901px]:grid-cols-2">
             <Card title="How late is the money owed">

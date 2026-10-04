@@ -22,7 +22,8 @@ button on the way. It is written for everyone at Wonder Learning: salespeople, m
 | 8 | **Signed PO → sales order** | Client → **Upload signed PO** | Upload the school's signed PO | Creates the sales order (SO/…) with the kits and PO number |
 | 9 | **Kits** | Sales order → **Dispatch kits** | Send kits in one or more lots | Makes the delivery challan; you mark it received |
 | 10 | **Invoice** | Sales order → **Create invoice** | Raise the invoice (due in 45 days by default) | Numbers it (INV/…); shows it on Outstanding |
-| 11 | **Payments** | Invoice → **Record payment** | Record each instalment (cash, UPI, NEFT, cheque…) | Makes the receipt (117/26-27); books the next collection call on the promised date |
+| 11 | **Payments** | Invoice → **Record payment** | Record each instalment (cash, UPI, NEFT, cheque…) | Sends it to **Accounts for approval**; books the next collection call on the promised date |
+| 11a | **Approval** | Accounts → **Payment approvals** | Accounts checks the bank and presses **Approve** (or **Reject** with a reason) | Approved: counts as received, gets the receipt number (117/26-27), the receipt can be sent; the salesperson gets a "Send receipt" to-do |
 | 12 | **Next year** | Clients → **Renewal** | Create renewal opportunities for next financial year | Values them at this year's orders; books a call |
 
 Nothing is ever deleted at year end. A school that doesn't renew stays in Clients with its full history.
@@ -232,9 +233,23 @@ who gets payment messages).
 | **Credit note** | Reduce the invoice (return, discount, write-off) — finance roles |
 | Cancel invoice | Finance roles; the order can then be invoiced again |
 
-Payments received: **Receipt** (Preview, Download, WhatsApp, email), cheque buttons **Deposited → Cleared** or
-**Bounced** (bounced = amount due again, with an urgent follow-up), **Delete** (finance roles).
-Money counts as **received** only when it is Received or Cleared.
+Payments received: a payment recorded by a salesperson first shows **Awaiting approval** (no receipt yet) until
+Accounts approves it; a rejected one shows **Rejected** with the reason. After approval: **Receipt** (Preview,
+Download, WhatsApp, email), cheque buttons **Deposited → Cleared** or **Bounced** (bounced = amount due again, with an
+urgent follow-up). **Delete**: finance roles, or the person who recorded it while it waits or after a rejection.
+Money counts as **received** only when Accounts has approved it **and** it is Received or Cleared.
+
+### Accounts: payment approvals
+For now this section is in the **Admin / Director** login (menu **Accounts → Payment approvals**, with a count of
+what's waiting; the bell shows it too). Each payment shows the school, invoice or order, amount, date, mode,
+reference / cheque details and who recorded it.
+- **Approve**: it counts as received, gets the next receipt number, and the receipt window opens to send it. The
+  person who recorded it gets a "Send receipt" to-do (it closes when the receipt is shared).
+- **Reject**: write the reason (e.g. "UTR not found in bank"). It never counts and gets no receipt; the person who
+  recorded it gets a to-do with the reason, so they can check with the school and record it again.
+- **Decided in the last 30 days** lists approvals (with **Send receipt**) and rejections. **PDF / Excel** download.
+- Payments recorded by Accounts themselves count straight away. Switch the approval step off in Settings →
+  Features → "Payment approval by Accounts".
 
 **Documents:** **Upload document** (agreement, GST certificate…). **Timeline:** everything that happened.
 
@@ -303,7 +318,8 @@ bounced cheque · renewal (call in 7 days).
 | Upload signed PO / create a sales order | A **client** (a quotation is optional but fills everything in) |
 | Dispatch kits, take advance, proforma | A sales order |
 | Raise an invoice | A sales order |
-| Record a payment / receipt | An invoice (or a sales order for an advance) |
+| Record a payment | An invoice (or a sales order for an advance) |
+| Send a payment receipt | The payment **approved by Accounts** |
 | Take items out of a kit on a quotation | Item prices in the kit's contents (Settings → Products) |
 | Send anything by email | Email set up by the Admin (until then use Download or WhatsApp) |
 | Create renewals | A client with at least one order; Admin / Sales Head for everyone at once |

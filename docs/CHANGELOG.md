@@ -7,6 +7,9 @@ commit id, what changed in plain words, and the requirement it answers (R… in 
 
 ## 4 Oct 2026
 
+- `PENDING` **Accounts: payment approval.** Payments recorded by the team wait in Accounts → Payment approvals
+  (Director / Admin for now). Approved: counted, receipt number, receipt can be sent, "Send receipt" to-do.
+  Rejected: reason to the recorder. Menu badge, bell alert, dashboard tile, PDF/Excel, feature switch. (R36)
 - `abe44e0` **Correct school details anywhere.** Edit school details on converted / disqualified leads and in the
   opportunity window; client Edit details too. One correction updates the lead, opportunity, client and draft
   quotations. (R35)

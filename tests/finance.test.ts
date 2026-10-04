@@ -55,6 +55,8 @@ beforeEach(async () => {
   oppId = await convertLead(exA, await createLead(exA, leadData(exA.id, { schoolName: "Little Stars" })), { temperature: "WARM" });
   await moveOpportunity(exA, oppId, { stage: "WON" });
   clientId = await convertToClient(exA, oppId);
+  // These tests are about the money rules; Accounts approval (R36) has its own tests below, with it switched on.
+  await db.appSetting.upsert({ where: { key: "features" }, create: { key: "features", value: { paymentApproval: false } }, update: { value: { paymentApproval: false } } });
 });
 
 describe("money rules", () => {
@@ -887,5 +889,63 @@ describe("correct a school's details once, everywhere (R35)", () => {
     const lead = await db.lead.findUniqueOrThrow({ where: { id: (await db.opportunity.findUniqueOrThrow({ where: { id: oppId } })).leadId! } });
     expect(lead).toMatchObject({ schoolName: "Little Stars Pre-school", mobile: "98111 00777" });
     expect((await db.opportunity.findUniqueOrThrow({ where: { id: oppId } })).schoolName).toBe("Little Stars Pre-school");
+  });
+});
+
+describe("Accounts approves payments before they count (R36)", () => {
+  const on = () => db.appSetting.update({ where: { key: "features" }, data: { value: { paymentApproval: true } } });
+  const invoice = async () => {
+    const so = await createSalesOrder(exA, clientId, order());
+    return createInvoice(exA, so, { date: today, dueDate: addDays(today, 45) });
+  };
+
+  it("a salesperson's payment waits: not counted, no receipt; Accounts approves and the receipt can go", async () => {
+    const svc = await import("@/server/finance/service");
+    await on();
+    const admin = await makeUser("ADMIN");
+    const inv = await invoice();
+    const before = (await invoiceRows(exA)).find((r) => r.id === inv)!;
+    const r = await recordPayment(exA, inv, pay(1000));
+    expect(r).toMatchObject({ awaiting: true, receiptNumber: null });
+    const row = (await invoiceRows(exA)).find((x) => x.id === inv)!;
+    expect(row).toMatchObject({ paid: 0, balance: before.balance, awaiting: 1000, state: "UNPAID" });
+    await expect(svc.receiptPdf(exA, r.paymentId)).rejects.toThrow(/waiting for Accounts approval/);
+    expect(await svc.receiptPdfByToken(r.shareToken)).toBeNull();
+    // The waiting amount can't be recorded a second time.
+    await expect(recordPayment(exA, inv, pay(before.balance))).rejects.toThrow(/more than/);
+    // Only Accounts may decide.
+    await expect(svc.approvePayment(exA, r.paymentId)).rejects.toThrow(/Only Accounts/);
+    await expect(svc.approvePayment(head, r.paymentId)).rejects.toThrow(/Only Accounts/);
+    expect((await svc.approvalQueue(admin)).waiting.map((w) => w.id)).toContain(r.paymentId);
+
+    const ok = await svc.approvePayment(admin, r.paymentId);
+    expect(ok.receiptNumber).toMatch(/^\d+\/\d\d-\d\d$/);
+    expect((await invoiceRows(exA)).find((x) => x.id === inv)).toMatchObject({ paid: 1000, awaiting: 0, state: "PARTIAL" });
+    const task = await db.task.findFirstOrThrow({ where: { paymentId: r.paymentId, assigneeId: exA.id, status: "OPEN" } });
+    expect(task.title).toMatch(/^Send receipt /);
+    expect((await svc.receiptPdf(exA, r.paymentId)).pdf.subarray(0, 4).toString()).toBe("%PDF");
+    await svc.logReceiptShared(exA, r.paymentId);
+    expect((await db.task.findUniqueOrThrow({ where: { id: task.id } })).status).toBe("DONE");
+    await expect(svc.approvePayment(admin, r.paymentId)).rejects.toThrow(/already approved/);
+  });
+
+  it("rejected: never counts, the recorder is told why and may delete their entry; Accounts' own entries count at once", async () => {
+    const svc = await import("@/server/finance/service");
+    await on();
+    const admin = await makeUser("ADMIN");
+    const inv = await invoice();
+    const r = await recordPayment(exA, inv, pay(500, { reference: "UTR9" }));
+    await expect(svc.rejectPayment(admin, r.paymentId, { reason: "" })).rejects.toThrow(/why/);
+    await svc.rejectPayment(admin, r.paymentId, { reason: "UTR not found in bank" });
+    const p = await db.payment.findUniqueOrThrow({ where: { id: r.paymentId } });
+    expect(p).toMatchObject({ approval: "REJECTED", rejectReason: "UTR not found in bank", number: null });
+    expect((await invoiceRows(exA)).find((x) => x.id === inv)).toMatchObject({ paid: 0, awaiting: 0 });
+    expect(await db.task.count({ where: { paymentId: r.paymentId, assigneeId: exA.id, title: { contains: "rejected by Accounts" } } })).toBe(1);
+    await expect(deletePayment(exB, r.paymentId)).rejects.toThrow(/not found/);
+    await deletePayment(exA, r.paymentId);
+    // An Admin's own payment needs no approval.
+    const own = await recordPayment(admin, inv, pay(300));
+    expect(own.awaiting).toBe(false);
+    expect(own.receiptNumber).toBeTruthy();
   });
 });

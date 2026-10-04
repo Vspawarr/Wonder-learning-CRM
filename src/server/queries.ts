@@ -50,7 +50,7 @@ export function oppsInYear(y: YearRange): Prisma.OpportunityWhereInput {
 import { SALES_ROLES, canAssignOthers, seesAllSales, type SessionUser } from "@/lib/permissions";
 import { clientScope, leadScope, oppScope, taskScope } from "./access";
 import { ACTIVE_LEAD_STATUSES } from "./rules";
-import { outstandingSummary, pendingOf, receivedOf, totals } from "./finance/money";
+import { awaitingOf, outstandingSummary, pendingOf, receivedOf, totals } from "./finance/money";
 import { invoiceRows } from "./finance/service";
 
 export type Option = { id: string; name: string };
@@ -637,7 +637,7 @@ export async function clientDetail(user: SessionUser, id: string) {
           poFile: { select: { fileName: true } },
           advances: {
             where: { invoiceId: null },
-            select: { amount: true, status: true },
+            select: { amount: true, status: true, approval: true },
           },
           dispatches: {
             include: {
@@ -752,6 +752,7 @@ export async function clientDetail(user: SessionUser, id: string) {
       })),
       advanceReceived: receivedOf(so.advances),
       advancePending: pendingOf(so.advances),
+      advanceAwaiting: awaitingOf(so.advances),
       createdAt: fmtDateTimeIST(so.createdAt),
       kits: so.items.reduce((n, i) => n + i.qty, 0),
       lines: so.items.length,
@@ -772,6 +773,9 @@ export async function clientDetail(user: SessionUser, id: string) {
       invoiceNumber: p.invoice?.number ?? null,
       orderNumber: p.salesOrder?.number ?? null,
       status: p.status,
+      approval: p.approval,
+      rejectReason: p.rejectReason,
+      recordedById: p.recordedById,
       bank: p.bank,
       chequeDate: p.chequeDate ? fromDbDate(p.chequeDate) : null,
       amount: Number(p.amount),

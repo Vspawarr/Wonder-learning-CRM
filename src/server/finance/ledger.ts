@@ -8,7 +8,7 @@ import { addDays, fromDbDate, isDateStr, todayIST, toDbDate, type DateStr } from
 import { seesAllSales, type SessionUser } from "@/lib/permissions";
 import { clientScope } from "../access";
 import { NotFoundError } from "../errors";
-import { COUNTED_STATUSES, r2 } from "./money";
+import { COUNTED_WHERE, r2 } from "./money";
 
 export type LedgerPeriod = { from: DateStr; to: DateStr; label: string };
 
@@ -59,7 +59,7 @@ export async function clientLedger(user: SessionUser, clientId: string, period: 
       include: { salesOrder: { select: { number: true, poNumber: true } } },
     }),
     db.payment.findMany({
-      where: { clientId, date: { lte: toDbDate(period.to) }, status: { in: [...COUNTED_STATUSES] } },
+      where: { clientId, date: { lte: toDbDate(period.to) }, ...COUNTED_WHERE },
       include: { invoice: { select: { number: true } }, salesOrder: { select: { number: true } } },
     }),
     db.creditNote.findMany({
@@ -81,7 +81,7 @@ export async function clientLedger(user: SessionUser, clientId: string, period: 
       date: fromDbDate(p.date),
       at: p.createdAt.getTime(),
       kind: "PAYMENT" as const,
-      ref: p.number,
+      ref: p.number ?? "",
       particulars: `${p.invoice ? "Payment received" : "Advance received"} · ${p.mode}${p.reference ? ` ${p.reference}` : ""} · against ${p.invoice?.number ?? `order ${p.salesOrder?.number}`}`,
       debit: 0,
       credit: Number(p.amount),
@@ -143,7 +143,7 @@ export async function ledgerSummary(user: SessionUser, period: LedgerPeriod, f: 
       city: true,
       owner: { select: { name: true } },
       invoices: { where: { status: "ISSUED", date: { lte: to } }, select: { date: true, total: true } },
-      payments: { where: { date: { lte: to }, status: { in: [...COUNTED_STATUSES] } }, select: { date: true, amount: true } },
+      payments: { where: { date: { lte: to }, ...COUNTED_WHERE }, select: { date: true, amount: true } },
       creditNotes: { where: { date: { lte: to } }, select: { date: true, amount: true } },
     },
     orderBy: { schoolName: "asc" },

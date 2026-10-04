@@ -6,7 +6,7 @@ import { salesDashboard, serviceSummary } from "../dashboard";
 import { NotFoundError } from "../errors";
 import { INVOICE_STATE_LABEL } from "../finance/money";
 import { clientLedger, ledgerSummary, resolvePeriod } from "../finance/ledger";
-import { collectionsSummary, outstandingList } from "../finance/service";
+import { approvalQueue, collectionsSummary, outstandingList } from "../finance/service";
 import { YEAR_FILTERS, YEAR_STANDING_LABEL, clientsList, leadsList, pipelineCards, taskList, type TaskKind } from "../queries";
 import type { Cell, Report } from "./types";
 import { financialYear, fyLabel, fyRange, parseYearCookie } from "@/lib/fy";
@@ -472,6 +472,7 @@ async function dashboard(user: SessionUser, p: Params): Promise<Report> {
       { k: "Outstanding", m: cash.outstanding },
       { k: "Overdue", v: cash.overdueCount, m: cash.overdue },
       { k: "Cheques not cleared", m: owed.forecast.chequesPending },
+      { k: "Waiting for Accounts approval", m: cash.awaiting },
     ]);
     sections.push({
       heading: "How late is the money owed",
@@ -594,7 +595,49 @@ async function dashboard(user: SessionUser, p: Params): Promise<Report> {
   };
 }
 
+/** Accounts → Payment approvals (R36): what waits, and what was decided in the last 30 days. */
+async function approvals(user: SessionUser): Promise<Report> {
+  const { waiting, decided } = await approvalQueue(user);
+  const base = [
+    { key: "school", header: "School", width: 1.8 },
+    { key: "against", header: "Against", width: 1.4 },
+    { key: "amount", header: "Amount", width: 0.9, kind: "money" as const },
+    { key: "date", header: "Paid on", width: 0.8 },
+    { key: "mode", header: "Mode / ref.", width: 1.3 },
+    { key: "by", header: "Recorded by", width: 1 },
+  ];
+  const row = (p: (typeof waiting)[number]) => ({
+    school: p.client.schoolName,
+    against: p.against,
+    amount: p.amount,
+    date: p.date.split("-").reverse().join("/"),
+    mode: [p.mode, p.reference, p.bank].filter(Boolean).join(" · "),
+    by: p.recordedBy,
+  });
+  return {
+    title: "Payment approvals",
+    subtitle: `${waiting.length} waiting · decided in the last 30 days: ${decided.length}`,
+    landscape: true,
+    sections: [
+      {
+        heading: "Waiting for approval",
+        columns: base,
+        rows: waiting.map(row),
+        totals: { school: "Total", amount: waiting.reduce((t, p) => t + p.amount, 0) },
+        empty: "Nothing waiting.",
+      },
+      {
+        heading: "Decided in the last 30 days",
+        columns: [...base, { key: "decision", header: "Decision", width: 0.8 }, { key: "receipt", header: "Receipt / reason", width: 1.4 }, { key: "decidedBy", header: "By", width: 0.9 }],
+        rows: decided.map((p) => ({ ...row(p), decision: p.approval === "APPROVED" ? "Approved" : "Rejected", receipt: p.number ?? p.rejectReason ?? "", decidedBy: p.decidedBy ?? "" })),
+        empty: "No decisions yet.",
+      },
+    ],
+  };
+}
+
 export const REPORTS = {
+  approvals,
   leads,
   opportunities,
   clients,

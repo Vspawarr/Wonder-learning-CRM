@@ -55,6 +55,7 @@ Code: `src/server/reports/index.ts` (one builder per report, using the screen's 
 | `outstanding` | Outstanding | Summary, ageing, expected collections, then each invoice: Invoice, Date, School, PO No., Due, Total, Received, Balance, Status, Assigned to |
 | `ledger` | Ledger | One client: Date, Ref. No., Particulars, Debit, Credit, Balance. All clients: Client, School, City, Assigned to, Opening, Invoiced, Received, Closing |
 | `todo` | To-do | When, Date, Time, Type, Task, Related to, Priority, Postponed, Assigned to |
+| `approvals` | Accounts → Payment approvals (Director / Admin) | Waiting for approval, then decided in the last 30 days: School, Against, Amount, Paid on, Mode / ref., Recorded by, Decision, Receipt / reason, By |
 | `dashboard` | Dashboard | Follows the **Show** buttons: Sales (key numbers, pipeline by stage, lead sources, biggest deals) · Finance (collected/outstanding/overdue/cheques, ageing, expected collections) · Team & management (win rate, lost, interactions, team table, targets, lost reasons, competitors) · Service & delivery (follow-ups, orders to deliver, kits in transit, onboarding, renewals, lists) |
 
 Wording rule: the salesperson is always **"Assigned to"**; "Owner" only means the school's owner.
@@ -75,7 +76,7 @@ and PO numbers run per financial year with starting-number settings.
 | Signed PO (uploaded file) | school's PO No. | Upload signed PO | `/api/sales-orders/<id>/po` | `src/server/finance/po.ts` (PDF or photo, max 4 MB) |
 | Proforma invoice | PI/YYYY/MM/NNN | Sales order | `/api/sales-orders/<id>/proforma` | `invoice-pdf.tsx` (proforma title) |
 | Invoice 🟡 | INV/YYYY/MM/NNN | Sales order | `/api/invoices/<id>/pdf`; public `/i/<token>` | `src/server/finance/invoice-pdf.tsx`. **Provisional layout until the client's invoice sample arrives** |
-| Payment receipt (client's receipt format) | N/26-27 (financial year) | Payment / advance | `/api/payments/<id>/receipt`; public `/r/<token>` | `receipt-pdf.tsx`; address and signatory in Settings → Documents |
+| Payment receipt (client's receipt format; only after Accounts approval) | N/26-27 (financial year), given on approval | Payment / advance | `/api/payments/<id>/receipt`; public `/r/<token>` | `receipt-pdf.tsx`; address and signatory in Settings → Documents |
 | Credit note | CN/YYYY/MM/NNN | Invoice | `/api/credit-notes/<id>/pdf` | `credit-note-pdf.tsx` |
 | Delivery challan | DC/YYYY/MM/NNN | Dispatch | `/api/dispatches/<id>/challan` | `challan-pdf.tsx` |
 

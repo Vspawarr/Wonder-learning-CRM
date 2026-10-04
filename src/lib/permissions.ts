@@ -18,6 +18,12 @@ export const canManageProducts = (role: Role) => canManageSettings(role) || role
 /** Directors, Admins and the Sales Head control money corrections: cancel invoices, delete payments, credit notes. */
 export const canManageFinance = seesAllSales;
 
+/**
+ * The Accounts section: approving payments recorded by the team (R36). For now Directors and Admins;
+ * a separate Accounts role can be added here later.
+ */
+export const canApprovePayments = canManageSettings;
+
 /** Anyone who sees all sales data may view the user list. */
 export const canViewUsers = seesAllSales;
 

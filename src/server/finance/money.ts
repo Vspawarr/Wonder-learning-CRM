@@ -67,12 +67,18 @@ export const COUNTED_STATUSES = ["RECEIVED", "CLEARED"] as const;
 /** Cheques taken but not yet cleared. */
 export const PENDING_STATUSES = ["IN_HAND", "DEPOSITED"] as const;
 
-type Pay = { amount: { toString(): string } | number; status: string };
-const sumIf = (ps: Pay[], ok: readonly string[]) => r2(ps.filter((p) => ok.includes(p.status)).reduce((s, p) => s + Number(p.amount), 0));
-/** Money actually received. */
+/** Prisma filter for payments that count as received: approved by Accounts (R36) and received / cleared. */
+export const COUNTED_WHERE: { status: { in: ("RECEIVED" | "CLEARED")[] }; approval: "APPROVED" } = { status: { in: [...COUNTED_STATUSES] }, approval: "APPROVED" };
+
+type Pay = { amount: { toString(): string } | number; status: string; approval: string };
+const total = (ps: Pay[]) => r2(ps.reduce((s, p) => s + Number(p.amount), 0));
+const sumIf = (ps: Pay[], ok: readonly string[]) => total(ps.filter((p) => p.approval === "APPROVED" && ok.includes(p.status)));
+/** Money actually received (approved by Accounts). */
 export const receivedOf = (ps: Pay[]) => sumIf(ps, COUNTED_STATUSES);
-/** Cheques in hand or deposited, not yet cleared. */
+/** Approved cheques in hand or deposited, not yet cleared. */
 export const pendingOf = (ps: Pay[]) => sumIf(ps, PENDING_STATUSES);
+/** Recorded by the team, waiting for Accounts to approve (R36). Not received yet, but no longer "to collect". */
+export const awaitingOf = (ps: Pay[]) => total(ps.filter((p) => p.approval === "PENDING"));
 export const creditedOf = (cns: { amount: { toString(): string } | number }[]) => r2(cns.reduce((s, c) => s + Number(c.amount), 0));
 
 export const AGE_BUCKETS = ["Not yet due", "1–30 days", "31–60 days", "61–90 days", "Over 90 days"] as const;

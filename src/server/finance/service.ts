@@ -7,7 +7,7 @@ import { db, type Tx } from "@/lib/db";
 import { CHEQUE_MODES, DEFAULT_PAYMENT_DAYS, PAYMENT_MODES } from "@/lib/constants";
 import { addDays, fmtDateTimeIST, fromDbDate, isDateStr, todayIST, toDbDate } from "@/lib/dates";
 import { inr } from "@/lib/format";
-import { canManageFinance, seesAllSales, type SessionUser } from "@/lib/permissions";
+import { canApprovePayments, canManageFinance, seesAllSales, type SessionUser } from "@/lib/permissions";
 import { clientScope } from "../access";
 import { DomainError, NotFoundError } from "../errors";
 import { isEmailConfigured, sendMail } from "../mailer";
@@ -20,7 +20,7 @@ import { renderInvoicePdf, type InvoicePdfData } from "./invoice-pdf";
 import { renderReceiptPdf } from "./receipt-pdf";
 import { renderCreditNotePdf } from "./credit-note-pdf";
 import { rupeesInWords } from "./words";
-import { COUNTED_STATUSES, ageing, creditedOf, invoiceState, lineAmount, outstandingSummary, pendingOf, r2, receivedOf, totals } from "./money";
+import { COUNTED_STATUSES, COUNTED_WHERE, awaitingOf, ageing, creditedOf, invoiceState, lineAmount, outstandingSummary, pendingOf, r2, receivedOf, totals } from "./money";
 import { getFeatures } from "../features";
 
 const num = (label: string, min: number) =>
@@ -200,7 +200,7 @@ const stateOf = (inv: {
   total: Prisma.Decimal;
   status: "ISSUED" | "CANCELLED";
   dueDate: Date;
-  payments: { amount: Prisma.Decimal; status: string }[];
+  payments: { amount: Prisma.Decimal; status: string; approval: string }[];
   creditNotes: { amount: Prisma.Decimal }[];
 }) =>
   invoiceState(
@@ -557,6 +557,32 @@ async function syncCollectionTask(tx: Tx, user: SessionUser, invoiceId: string) 
 type PaymentData = z.output<typeof paymentInput>;
 
 /** Creates a payment (with its receipt number) and, for a cheque, a "deposit cheque" reminder. */
+/** Does a payment recorded by this person wait for Accounts? (Switchable; Accounts' own entries don't.) */
+async function needsApproval(user: SessionUser) {
+  return (await getFeatures()).paymentApproval && !canApprovePayments(user.role);
+}
+
+/** Reminder to deposit a cheque, once the payment counts (recorded by Accounts, or approved). */
+async function depositReminder(tx: Tx, user: SessionUser, p: { id: string; amount: Prisma.Decimal | number; reference: string | null; bank: string | null; chequeDate: Date | null; clientId: string }, school: string, ownerId: string) {
+  const today = todayIST();
+  const cd = p.chequeDate ? fromDbDate(p.chequeDate) : null;
+  const on = cd && cd > today ? cd : today;
+  await tx.task.create({
+    data: {
+      type: "Other",
+      title: `Deposit cheque ${p.reference ?? ""} (${inr(Number(p.amount))}) – ${school}`.replace("  ", " "),
+      remark: [p.bank, cd ? `cheque dated ${cd.split("-").reverse().join("/")}` : null].filter(Boolean).join(" · ") || null,
+      dueDate: toDbDate(on),
+      priority: "HIGH",
+      isAuto: true,
+      assigneeId: ownerId,
+      createdById: user.id,
+      clientId: p.clientId,
+      paymentId: p.id,
+    },
+  });
+}
+
 async function createPayment(
   user: SessionUser,
   target: {
@@ -569,44 +595,30 @@ async function createPayment(
   d: PaymentData,
 ) {
   const cheque = CHEQUE_MODES.includes(d.mode) && (await getFeatures()).cheques;
+  const data = {
+    shareToken: randomBytes(24).toString("base64url"),
+    invoiceId: target.invoiceId,
+    salesOrderId: target.salesOrderId,
+    clientId: target.clientId,
+    amount: d.amount,
+    date: toDbDate(d.date),
+    mode: d.mode,
+    reference: d.reference,
+    note: d.note,
+    bank: cheque ? d.bank : null,
+    chequeDate: cheque && d.chequeDate ? toDbDate(d.chequeDate) : null,
+    status: cheque ? ("IN_HAND" as const) : ("RECEIVED" as const),
+    recordedById: user.id,
+  };
+  // Recorded by the team: waits for Accounts, with no receipt number yet (R36).
+  if (await needsApproval(user)) {
+    const p = await db.payment.create({ data: { ...data, approval: "PENDING" } });
+    return { p, cheque, awaiting: true };
+  }
   return withNextNumber("payment", "RCPT", async (tx, n) => {
-    const p = await tx.payment.create({
-      data: {
-        ...n,
-        shareToken: randomBytes(24).toString("base64url"),
-        invoiceId: target.invoiceId,
-        salesOrderId: target.salesOrderId,
-        clientId: target.clientId,
-        amount: d.amount,
-        date: toDbDate(d.date),
-        mode: d.mode,
-        reference: d.reference,
-        note: d.note,
-        bank: cheque ? d.bank : null,
-        chequeDate: cheque && d.chequeDate ? toDbDate(d.chequeDate) : null,
-        status: cheque ? "IN_HAND" : "RECEIVED",
-        recordedById: user.id,
-      },
-    });
-    if (cheque) {
-      const today = todayIST();
-      const on = d.chequeDate && d.chequeDate > today ? d.chequeDate : today;
-      await tx.task.create({
-        data: {
-          type: "Other",
-          title: `Deposit cheque ${d.reference ?? ""} (${inr(d.amount)}) – ${target.school}`.replace("  ", " "),
-          remark: [d.bank, d.chequeDate ? `cheque dated ${d.chequeDate.split("-").reverse().join("/")}` : null].filter(Boolean).join(" · ") || null,
-          dueDate: toDbDate(on),
-          priority: "HIGH",
-          isAuto: true,
-          assigneeId: target.ownerId,
-          createdById: user.id,
-          clientId: target.clientId,
-          paymentId: p.id,
-        },
-      });
-    }
-    return { p, cheque };
+    const p = await tx.payment.create({ data: { ...data, ...n, approval: "APPROVED", approvedById: user.id, approvedAt: new Date() } });
+    if (cheque) await depositReminder(tx, user, p, target.school, target.ownerId);
+    return { p, cheque, awaiting: false };
   });
 }
 
@@ -617,13 +629,13 @@ export async function recordPayment(user: SessionUser, invoiceId: string, raw: u
   const inv = await loadInvoice(user, invoiceId);
   if (inv.status === "CANCELLED") throw new DomainError("This invoice is cancelled.");
   const s0 = stateOf(inv);
-  const available = r2(s0.balance - pendingOf(inv.payments));
+  const available = r2(s0.balance - pendingOf(inv.payments) - awaitingOf(inv.payments));
   if (s0.balance <= 0) throw new DomainError("This invoice is already fully paid.");
-  if (available <= 0) throw new DomainError("Cheques already received cover the balance. Mark them cleared when the bank confirms.");
+  if (available <= 0) throw new DomainError("Payments already recorded (cheques not cleared, or waiting for Accounts approval) cover the balance.");
   if (d.amount > available + 0.001) throw new DomainError(`That's more than the ${inr(available)} still due on ${inv.number}.`);
   if (d.promiseDate && d.promiseDate < todayIST()) throw new DomainError("The promised payment date can't be in the past.");
   {
-    const { p, cheque } = await createPayment(
+    const { p, cheque, awaiting } = await createPayment(
       user,
       {
         clientId: inv.clientId,
@@ -647,7 +659,7 @@ export async function recordPayment(user: SessionUser, invoiceId: string, raw: u
     await db.activity.create({
       data: {
         type: "SYSTEM",
-        subject: `Payment ${inr(d.amount)} ${cheque ? "by cheque (not yet cleared)" : "received"} for ${inv.number} (${chequeText(d)}) · receipt ${p.number} · ${s.balance > 0 ? `${inr(s.balance)} still due` : "paid in full"}${promised ? ` · next payment promised ${dmy(toDbDate(promised)).replace(/-/g, "/")}` : ""}`,
+        subject: `Payment ${inr(d.amount)} ${cheque ? "by cheque (not yet cleared)" : "received"} for ${inv.number} (${chequeText(d)}) · ${awaiting ? "sent to Accounts for approval" : `receipt ${p.number} · ${s.balance > 0 ? `${inr(s.balance)} still due` : "paid in full"}`}${promised ? ` · next payment promised ${dmy(toDbDate(promised)).replace(/-/g, "/")}` : ""}`,
         byId: user.id,
         clientId: inv.clientId,
       },
@@ -658,6 +670,8 @@ export async function recordPayment(user: SessionUser, invoiceId: string, raw: u
       receiptNumber: p.number,
       shareToken: p.shareToken,
       amount: d.amount,
+      /** True when it waits for Accounts: no receipt until approved (R36). */
+      awaiting,
     };
   }
 }
@@ -676,11 +690,11 @@ export async function recordAdvance(user: SessionUser, salesOrderId: string, raw
       gstRate: Number(i.gstRate),
     })),
   ).total;
-  const taken = r2(receivedOf(so.advances) + pendingOf(so.advances));
+  const taken = r2(receivedOf(so.advances) + pendingOf(so.advances) + awaitingOf(so.advances));
   const available = r2(total - taken);
   if (available <= 0) throw new DomainError("Advances already cover the whole order.");
   if (d.amount > available + 0.001) throw new DomainError(`That's more than the order's remaining ${inr(available)}.`);
-  const { p, cheque } = await createPayment(
+  const { p, cheque, awaiting } = await createPayment(
     user,
     {
       clientId: so.clientId,
@@ -694,7 +708,7 @@ export async function recordAdvance(user: SessionUser, salesOrderId: string, raw
   await db.activity.create({
     data: {
       type: "SYSTEM",
-      subject: `Advance ${inr(d.amount)} ${cheque ? "by cheque (not yet cleared)" : "received"} on order ${so.number} (${chequeText(d)}) · receipt ${p.number}`,
+      subject: `Advance ${inr(d.amount)} ${cheque ? "by cheque (not yet cleared)" : "received"} on order ${so.number} (${chequeText(d)}) · ${awaiting ? "sent to Accounts for approval" : `receipt ${p.number}`}`,
       byId: user.id,
       clientId: so.clientId,
     },
@@ -705,6 +719,7 @@ export async function recordAdvance(user: SessionUser, salesOrderId: string, raw
     receiptNumber: p.number,
     shareToken: p.shareToken,
     amount: d.amount,
+    awaiting,
   };
 }
 
@@ -715,6 +730,7 @@ export async function setChequeStatus(user: SessionUser, paymentId: string, stat
     include: { client: true },
   });
   if (!p) throw new NotFoundError("Payment");
+  if (p.approval !== "APPROVED") throw new DomainError("This payment is waiting for Accounts approval.");
   if (p.status !== "IN_HAND" && p.status !== "DEPOSITED") throw new DomainError("This cheque is already settled.");
   if (status === "DEPOSITED" && p.status !== "IN_HAND") throw new DomainError("This cheque is already deposited.");
   if (status !== "DEPOSITED") assertFinance(user);
@@ -751,7 +767,7 @@ export async function setChequeStatus(user: SessionUser, paymentId: string, stat
     await tx.activity.create({
       data: {
         type: "SYSTEM",
-        subject: `Cheque ${p.reference ?? ""} for ${inr(Number(p.amount))} ${label} · receipt ${p.number}`,
+        subject: `Cheque ${p.reference ?? ""} for ${inr(Number(p.amount))} ${label} · receipt ${p.number ?? "—"}`,
         byId: user.id,
         clientId: p.clientId,
       },
@@ -760,19 +776,20 @@ export async function setChequeStatus(user: SessionUser, paymentId: string, stat
 }
 
 export async function deletePayment(user: SessionUser, paymentId: string) {
-  assertFinance(user);
   const p = await db.payment.findFirst({
     where: { id: paymentId, client: clientScope(user) },
     include: { invoice: true, salesOrder: true },
   });
   if (!p) throw new NotFoundError("Payment");
+  // Whoever recorded it may remove their own entry while it is waiting or after it was rejected (R36).
+  if (!(p.approval !== "APPROVED" && p.recordedById === user.id)) assertFinance(user);
   await db.$transaction(async (tx) => {
     await tx.payment.delete({ where: { id: paymentId } });
     if (p.invoiceId) await syncCollectionTask(tx, user, p.invoiceId);
     await tx.activity.create({
       data: {
         type: "SYSTEM",
-        subject: `Payment ${inr(Number(p.amount))} (${p.number}) for ${p.invoice?.number ?? `order ${p.salesOrder?.number}`} deleted`,
+        subject: `Payment ${inr(Number(p.amount))} (${p.number ?? (p.approval === "REJECTED" ? "rejected" : "awaiting approval")}) for ${p.invoice?.number ?? `order ${p.salesOrder?.number}`} deleted`,
         byId: user.id,
         clientId: p.clientId,
       },
@@ -903,7 +920,7 @@ async function pdfFor(inv: Awaited<ReturnType<typeof loadInvoice>>) {
     credited,
     balance: inv.status === "CANCELLED" ? 0 : r2(Math.max(0, Number(inv.total) - paid - credited)),
     payments: inv.payments
-      .filter((p) => (COUNTED_STATUSES as readonly string[]).includes(p.status))
+      .filter((p) => p.approval === "APPROVED" && (COUNTED_STATUSES as readonly string[]).includes(p.status))
       .sort((a, b) => a.date.getTime() - b.date.getTime())
       .map((p) => ({
         date: dmy(p.date),
@@ -978,7 +995,7 @@ const receiptInclude = {
   invoice: {
     include: {
       payments: {
-        select: { id: true, amount: true, status: true, createdAt: true },
+        select: { id: true, amount: true, status: true, approval: true, createdAt: true },
       },
       creditNotes: { select: { amount: true } },
     },
@@ -987,7 +1004,7 @@ const receiptInclude = {
     include: {
       items: true,
       advances: {
-        select: { id: true, amount: true, status: true, createdAt: true },
+        select: { id: true, amount: true, status: true, approval: true, createdAt: true },
       },
     },
   },
@@ -1005,6 +1022,9 @@ async function loadPayment(user: SessionUser, id: string) {
 }
 
 async function receiptFor(p: Awaited<ReturnType<typeof loadPayment>>) {
+  if (p.approval !== "APPROVED" || !p.number)
+    throw new DomainError(p.approval === "REJECTED" ? "This payment was rejected by Accounts, so it has no receipt." : "This payment is waiting for Accounts approval. The receipt can be sent once it is approved.");
+  const number = p.number;
   const docs = await getDocumentSettings();
   const so = p.salesOrder;
   // Like the client's receipt book: the whole PO's value, everything received on it so far
@@ -1028,7 +1048,7 @@ async function receiptFor(p: Awaited<ReturnType<typeof loadPayment>>) {
     ? [`Cheque # ${p.reference ?? "—"}`, ...(p.bank ? [`${p.bank},`] : []), ...(p.chequeDate ? [`dtd. ${dmy(p.chequeDate).replace(/-/g, "/")}`] : [])]
     : [p.mode, ...(p.reference ? [`Ref. ${p.reference}`] : []), ...(p.bank ? [p.bank] : [])];
   const pdf = await renderReceiptPdf({
-    number: p.number,
+    number,
     date: dmy(p.date).replace(/-/g, "/"),
     schoolName: p.client.schoolName,
     amount,
@@ -1047,7 +1067,7 @@ async function receiptFor(p: Awaited<ReturnType<typeof loadPayment>>) {
     signatory: docs.signatory,
     addressLines: docs.receiptLines,
   });
-  return { number: p.number, pdf };
+  return { number, pdf };
 }
 
 export const receiptFileName = (number: string) => `Receipt-${number.replace(/\//g, "-")}.pdf`;
@@ -1063,11 +1083,13 @@ export async function receiptPdfByToken(token: string) {
     where: { shareToken: token },
     include: receiptInclude,
   });
-  return p ? receiptFor(p) : null;
+  return p && p.approval === "APPROVED" ? receiptFor(p) : null;
 }
 
 export async function logReceiptShared(user: SessionUser, paymentId: string) {
   const p = await loadPayment(user, paymentId);
+  if (p.approval !== "APPROVED") throw new DomainError("This payment is waiting for Accounts approval.");
+  await receiptSent(paymentId, "shared on WhatsApp");
   await db.activity.create({
     data: {
       type: "WHATSAPP",
@@ -1082,17 +1104,17 @@ export async function emailReceipt(user: SessionUser, paymentId: string, raw: un
   if (!isEmailConfigured()) throw new DomainError("Email sending isn't set up yet. Use WhatsApp or download the PDF instead.");
   const d = parse(emailInput, raw);
   const p = await loadPayment(user, paymentId);
-  const { pdf } = await receiptFor(p);
+  const { pdf, number } = await receiptFor(p);
   try {
     await sendMail({
       to: d.to,
       cc: d.cc ?? undefined,
       replyTo: user.email,
-      subject: `Payment receipt ${p.number} – Wonder Learning`,
+      subject: `Payment receipt ${number} – Wonder Learning`,
       text: d.message,
       attachments: [
         {
-          filename: receiptFileName(p.number),
+          filename: receiptFileName(number),
           content: pdf,
           contentType: "application/pdf",
         },
@@ -1102,10 +1124,11 @@ export async function emailReceipt(user: SessionUser, paymentId: string, raw: un
     console.error(e);
     throw new DomainError("The email couldn't be sent. Check the address and try again, or download the PDF instead.");
   }
+  await receiptSent(paymentId, `emailed to ${d.to}`);
   await db.activity.create({
     data: {
       type: "EMAIL",
-      subject: `Receipt ${p.number} emailed to ${d.to}`,
+      subject: `Receipt ${number} emailed to ${d.to}`,
       byId: user.id,
       clientId: p.clientId,
     },
@@ -1214,7 +1237,7 @@ export async function proformaPdf(user: SessionUser, salesOrderId: string) {
     credited: 0,
     balance: r2(Math.max(0, t.total - paid)),
     payments: so.advances
-      .filter((p) => (COUNTED_STATUSES as readonly string[]).includes(p.status))
+      .filter((p) => p.approval === "APPROVED" && (COUNTED_STATUSES as readonly string[]).includes(p.status))
       .map((p) => ({
         date: dmy(p.date),
         amount: Number(p.amount),
@@ -1243,6 +1266,8 @@ export type InvoiceRow = {
   paid: number;
   /** Cheques received but not yet cleared. */
   pending: number;
+  /** Recorded, waiting for Accounts approval (R36). */
+  awaiting: number;
   credited: number;
   balance: number;
   state: ReturnType<typeof invoiceState>["state"];
@@ -1276,7 +1301,7 @@ export async function invoiceRows(user: SessionUser, where: Prisma.InvoiceWhereI
       },
     },
     include: {
-      payments: { select: { amount: true, status: true } },
+      payments: { select: { amount: true, status: true, approval: true } },
       creditNotes: { select: { amount: true } },
       salesOrder: { select: { id: true, number: true, poNumber: true } },
       client: {
@@ -1303,6 +1328,8 @@ export async function invoiceRows(user: SessionUser, where: Prisma.InvoiceWhereI
     dueDate: fromDbDate(r.dueDate),
     total: Number(r.total),
     pending: pendingOf(r.payments),
+    /** Recorded, waiting for Accounts to approve (R36). */
+    awaiting: awaitingOf(r.payments),
     credited: creditedOf(r.creditNotes),
     ...stateOf(r),
     shareToken: r.shareToken,
@@ -1326,7 +1353,7 @@ export async function collectionsSummary(user: SessionUser, f: { exec?: string; 
     db.payment.aggregate({
       where: {
         date: { gte: toDbDate(from), lte: toDbDate(to) },
-        status: { in: [...COUNTED_STATUSES] },
+        ...COUNTED_WHERE,
         client: { ...clientScope(user), ...client },
       },
       _sum: { amount: true },
@@ -1337,6 +1364,8 @@ export async function collectionsSummary(user: SessionUser, f: { exec?: string; 
     ...outstandingSummary(rows),
     collected: Number(collected._sum.amount ?? 0),
     collectedCount: collected._count._all,
+    /** Recorded by the team, waiting for Accounts (R36). */
+    awaiting: r2(rows.reduce((t, r) => t + r.awaiting, 0)),
   };
 }
 
@@ -1409,4 +1438,139 @@ async function collectionForecast(rows: InvoiceRow[]) {
     buckets,
     chequesPending: r2(open.reduce((t, r) => t + r.pending, 0)),
   };
+}
+
+/* ---------- Accounts: payment approval (R36) ---------- */
+
+function assertAccounts(user: SessionUser) {
+  if (!canApprovePayments(user.role)) throw new DomainError("Only Accounts can approve or reject payments.");
+}
+
+/** Finishes the "Send receipt" to-do once the receipt has gone to the school. */
+async function receiptSent(paymentId: string, how: string) {
+  await db.task.updateMany({
+    where: { paymentId, status: "OPEN", title: { startsWith: "Send receipt" } },
+    data: { status: "DONE", outcome: `Receipt ${how}`, completedAt: new Date() },
+  });
+}
+
+/** Accounts approves: the payment counts as received, gets its receipt number, and the receipt can be sent. */
+export async function approvePayment(user: SessionUser, paymentId: string) {
+  assertAccounts(user);
+  const p = await db.payment.findUnique({
+    where: { id: paymentId },
+    include: { client: true, invoice: { select: { number: true } }, salesOrder: { select: { number: true } } },
+  });
+  if (!p) throw new NotFoundError("Payment");
+  if (p.approval !== "PENDING") throw new DomainError(`This payment is already ${p.approval === "APPROVED" ? "approved" : "rejected"}.`);
+  const against = p.invoice ? `invoice ${p.invoice.number}` : `order ${p.salesOrder?.number} (advance)`;
+  const done = await withNextNumber("payment", "RCPT", async (tx, n) => {
+    const upd = await tx.payment.update({
+      where: { id: paymentId, approval: "PENDING" },
+      data: { ...n, approval: "APPROVED", approvedById: user.id, approvedAt: new Date(), rejectReason: null },
+    });
+    if (upd.status === "IN_HAND") await depositReminder(tx, user, upd, p.client.schoolName, p.client.ownerId);
+    if (upd.invoiceId) await syncCollectionTask(tx, user, upd.invoiceId);
+    if (p.recordedById !== user.id)
+      await tx.task.create({
+        data: {
+          type: "Other",
+          title: `Send receipt ${n.number} to ${p.client.schoolName}`,
+          remark: `Payment ${inr(Number(p.amount))} for ${against} approved by Accounts.`,
+          dueDate: toDbDate(todayIST()),
+          priority: "HIGH",
+          isAuto: true,
+          assigneeId: p.recordedById,
+          createdById: user.id,
+          clientId: p.clientId,
+          paymentId,
+        },
+      });
+    await tx.activity.create({
+      data: { type: "SYSTEM", subject: `Payment ${inr(Number(p.amount))} for ${against} approved by Accounts · receipt ${n.number}`, byId: user.id, clientId: p.clientId },
+    });
+    return upd;
+  });
+  return { paymentId, receiptNumber: done.number!, shareToken: done.shareToken, amount: Number(done.amount), against };
+}
+
+export const rejectInput = z.object({ reason: z.string().trim().min(3, "Write why it is rejected (e.g. amount not in bank).").max(300) });
+
+/** Accounts rejects: it never counts, has no receipt, and whoever recorded it is told why. */
+export async function rejectPayment(user: SessionUser, paymentId: string, raw: unknown) {
+  assertAccounts(user);
+  const { reason } = parse(rejectInput, raw);
+  const p = await db.payment.findUnique({ where: { id: paymentId }, include: { client: true, invoice: { select: { number: true } }, salesOrder: { select: { number: true } } } });
+  if (!p) throw new NotFoundError("Payment");
+  if (p.approval !== "PENDING") throw new DomainError(`This payment is already ${p.approval === "APPROVED" ? "approved" : "rejected"}.`);
+  const against = p.invoice ? `invoice ${p.invoice.number}` : `order ${p.salesOrder?.number} (advance)`;
+  await db.$transaction(async (tx) => {
+    await tx.payment.update({ where: { id: paymentId }, data: { approval: "REJECTED", rejectReason: reason, approvedById: user.id, approvedAt: new Date() } });
+    if (p.invoiceId) await syncCollectionTask(tx, user, p.invoiceId);
+    if (p.recordedById !== user.id)
+      await tx.task.create({
+        data: {
+          type: "Other",
+          title: `Payment ${inr(Number(p.amount))} rejected by Accounts – ${p.client.schoolName}`,
+          remark: `${reason}. Check with the school, then record it again (and delete the rejected entry).`,
+          dueDate: toDbDate(todayIST()),
+          priority: "HIGH",
+          isAuto: true,
+          assigneeId: p.recordedById,
+          createdById: user.id,
+          clientId: p.clientId,
+          paymentId,
+        },
+      });
+    await tx.activity.create({
+      data: { type: "SYSTEM", subject: `Payment ${inr(Number(p.amount))} for ${against} rejected by Accounts: ${reason}`, byId: user.id, clientId: p.clientId },
+    });
+  });
+}
+
+const queueInclude = {
+  client: { select: { id: true, schoolName: true, city: true, mobile: true, email: true, owner: { select: { name: true } } } },
+  invoice: { select: { number: true } },
+  salesOrder: { select: { number: true } },
+  recordedBy: { select: { name: true } },
+  approvedBy: { select: { name: true } },
+} as const;
+
+const queueRow = (p: Prisma.PaymentGetPayload<{ include: typeof queueInclude }>) => ({
+  id: p.id,
+  number: p.number,
+  shareToken: p.shareToken,
+  approval: p.approval,
+  rejectReason: p.rejectReason,
+  amount: Number(p.amount),
+  date: fromDbDate(p.date),
+  mode: p.mode,
+  reference: p.reference,
+  bank: p.bank,
+  chequeDate: p.chequeDate ? fromDbDate(p.chequeDate) : null,
+  note: p.note,
+  status: p.status,
+  against: p.invoice ? `Invoice ${p.invoice.number}` : `Order ${p.salesOrder?.number ?? ""} (advance)`,
+  client: p.client,
+  recordedBy: p.recordedBy.name,
+  recordedAt: p.createdAt.toISOString(),
+  decidedBy: p.approvedBy?.name ?? null,
+  decidedAt: p.approvedAt?.toISOString() ?? null,
+});
+export type ApprovalRow = ReturnType<typeof queueRow>;
+
+/** The Accounts page: payments waiting (oldest first) and recent decisions (last 30 days). */
+export async function approvalQueue(user: SessionUser) {
+  assertAccounts(user);
+  const since = new Date(Date.now() - 30 * 864e5);
+  const [waiting, decided] = await Promise.all([
+    db.payment.findMany({ where: { approval: "PENDING" }, include: queueInclude, orderBy: { createdAt: "asc" } }),
+    db.payment.findMany({ where: { approval: { not: "PENDING" }, approvedAt: { gte: since } }, include: queueInclude, orderBy: { approvedAt: "desc" }, take: 100 }),
+  ]);
+  return { waiting: waiting.map(queueRow), decided: decided.map(queueRow) };
+}
+
+/** How many payments wait for Accounts (menu badge, bell). */
+export async function approvalCount() {
+  return db.payment.count({ where: { approval: "PENDING" } });
 }

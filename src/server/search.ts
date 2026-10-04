@@ -1,3 +1,4 @@
+import { canApprovePayments } from "@/lib/permissions";
 import { db } from "@/lib/db";
 import { clientCode, leadCode, oppCode, STAGE_LABEL } from "@/lib/constants";
 import { toDbDate, todayIST } from "@/lib/dates";
@@ -79,15 +80,17 @@ export type Alert = { tone: "bad" | "warn" | "info"; icon: "check" | "rupee" | "
 
 export async function attentionAlerts(user: SessionUser): Promise<Alert[]> {
   const today = toDbDate(todayIST());
-  const [overdueTasks, todayTasks, invoices, cheques, renewals] = await Promise.all([
+  const [overdueTasks, todayTasks, invoices, cheques, renewals, approvals] = await Promise.all([
     db.task.count({ where: { ...taskScope(user), assigneeId: user.id, status: "OPEN", dueDate: { lt: today } } }),
     db.task.count({ where: { ...taskScope(user), assigneeId: user.id, status: "OPEN", dueDate: today } }),
     invoiceRows(user, { status: { not: "CANCELLED" } }),
-    db.payment.count({ where: { status: "IN_HAND", OR: [{ invoice: { client: clientScope(user) } }, { salesOrder: { client: clientScope(user) } }] } }),
+    db.payment.count({ where: { status: "IN_HAND", approval: "APPROVED", OR: [{ invoice: { client: clientScope(user) } }, { salesOrder: { client: clientScope(user) } }] } }),
     getFeatures().then((f) => (f.renewals ? renewalCandidates(user).then((r) => r.clients.length) : 0)),
+    canApprovePayments(user.role) ? db.payment.count({ where: { approval: "PENDING" } }) : 0,
   ]);
   const overdue = invoices.filter((i) => i.state === "OVERDUE");
   const a: Alert[] = [];
+  if (approvals) a.push({ tone: "warn", icon: "rupee", text: `${approvals} payment${approvals > 1 ? "s" : ""} waiting for your approval`, href: "/accounts" });
   if (overdueTasks) a.push({ tone: "bad", icon: "check", text: `${overdueTasks} overdue to-do${overdueTasks > 1 ? "s" : ""}`, href: "/tasks" });
   if (todayTasks) a.push({ tone: "warn", icon: "check", text: `${todayTasks} to-do${todayTasks > 1 ? "s" : ""} due today`, href: "/tasks" });
   for (const i of overdue.slice(0, 6))

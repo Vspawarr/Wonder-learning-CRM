@@ -370,3 +370,17 @@ one place should reflect everywhere." ✅
 | **Edit school details** in the opportunity window (school name, contact, designation, mobile, email, state, city, area, address, curriculum, strength, branches) | ✅ | For renewal deals it corrects the client |
 | One correction (lead, opportunity or client **Edit details**) updates the lead, its opportunities, the client and draft quotations | ✅ | Sent quotations keep what the school received; orders, invoices and receipts read the client's current details |
 | Timeline note "School details corrected: mobile, …" | ✅ | |
+
+## R36. Accounts section: payments approved before receipts (4 Oct)
+
+"Now create one account section; currently it will be under admin account, later we will decide owner of account
+section. In account, once payment recorded by user it will go for approval to accounts; once it is approved it will
+reflect in system and then only user or account can send payment receipt to school owner."
+
+| Change | Status | Notes |
+|---|---|---|
+| **Accounts → Payment approvals** page (Director / Admin login for now), menu count badge, bell alert | ✅ | Owner of Accounts to be decided ⏳ (a separate role can be added) |
+| Payments and advances recorded by the team wait as **Awaiting approval**: not counted (client strip, Outstanding, Ledger, Dashboard, targets), no receipt; can't be recorded twice | ✅ | |
+| **Approve**: counts as received, gets the receipt number (so rejected entries leave no gaps), receipt window opens; recorder gets a "Send receipt" to-do | ✅ | Receipt can be sent by the user or Accounts only after approval |
+| **Reject** with a reason: never counts; recorder gets a to-do with the reason and may delete the entry | ✅ | |
+| Dashboard Finance tile "Waiting for Accounts", PDF/Excel of the approvals page, switch in Settings → Features | ✅ | Payments recorded by Accounts count at once; existing payments stay approved |

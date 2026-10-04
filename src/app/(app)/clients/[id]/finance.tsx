@@ -4,7 +4,7 @@
 import { useRouter } from "next/navigation";
 import { useApp } from "@/components/app-context";
 import { useState } from "react";
-import { Field, Modal, Options, useAction } from "@/components/client";
+import { Field, Modal, Options, useAction, useToast } from "@/components/client";
 import { DateInput } from "@/components/date-input";
 import { Icon } from "@/components/icons";
 import { Pill, type Tone } from "@/components/ui";
@@ -315,9 +315,10 @@ export function SalesOrdersPanel({
                       <span className="text-sun">PO pending</span>
                     ) : null}
                   </div>
-                  {so.advanceReceived || so.advancePending ? (
+                  {so.advanceReceived || so.advancePending || so.advanceAwaiting ? (
                     <div className="small mt-1">
                       Advance received <b>{money(so.advanceReceived)}</b>
+                      {so.advanceAwaiting ? <span className="text-sun"> · waiting for Accounts approval {money(so.advanceAwaiting)}</span> : null}
                       {so.advancePending ? (
                         <span className="text-sun">
                           {" "}
@@ -376,7 +377,7 @@ export function SalesOrdersPanel({
                         >
                           Proforma invoice
                         </a>
-                        {so.total - so.advanceReceived - so.advancePending >
+                        {so.total - so.advanceReceived - so.advancePending - so.advanceAwaiting >
                         0 ? (
                           <button
                             className="btn sm"
@@ -486,7 +487,8 @@ export function SalesOrdersPanel({
               Math.round(
                 (advanceFor.total -
                   advanceFor.advanceReceived -
-                  advanceFor.advancePending) *
+                  advanceFor.advancePending -
+                  advanceFor.advanceAwaiting) *
                   100,
               ) / 100,
             total: advanceFor.total,
@@ -1048,8 +1050,8 @@ export function InvoiceButtons({
   // Reminders go to the school's payments contact (e.g. Accounts) when one is set.
   const pay = row.client.payContact;
   const to: Contact = pay && !contact.people ? { ...contact, people: [{ ...pay, forPayments: true }] } : contact;
-  // Cheques not yet cleared already cover part of the balance.
-  const payable = Math.round((row.balance - row.pending) * 100) / 100;
+  // Cheques not yet cleared, and payments waiting for Accounts, already cover part of the balance.
+  const payable = Math.round((row.balance - row.pending - row.awaiting) * 100) / 100;
   return (
     <div className="flex flex-wrap gap-1.5">
       <a
@@ -1187,8 +1189,9 @@ export function InvoicesPanel({
               </b>
             </div>
           </div>
-          {r.pending || r.credited ? (
+          {r.pending || r.credited || r.awaiting ? (
             <div className="small mb-1.5">
+              {r.awaiting ? <span className="text-sun">Waiting for Accounts approval: {money(r.awaiting)}. </span> : null}
               {r.pending ? (
                 <span className="text-sun">
                   Cheques awaiting clearance: {money(r.pending)}.{" "}
@@ -1251,6 +1254,7 @@ export function PaymentModal({
     promiseDate: "",
   });
   const { pending, run } = useAction();
+  const toast = useToast();
   const amt = Number(p.amount.replace(/,/g, ""));
   const partial =
     target.kind === "invoice" &&
@@ -1267,19 +1271,22 @@ export function PaymentModal({
           : recordAdvance(target.id, data);
       },
       {
-        success: cheque
-          ? "Cheque recorded. It counts as received once you mark it cleared."
-          : "Payment recorded. Receipt ready to send.",
-        onDone: (r) =>
-          r
-            ? onSaved({
-                paymentId: r.paymentId,
-                number: r.receiptNumber,
-                shareToken: r.shareToken,
-                amount: r.amount,
-                balance: r.balance,
-              })
-            : onClose(),
+        onDone: (r) => {
+          if (!r) return onClose();
+          // Recorded by the team: Accounts approves it first; the receipt comes after that (R36).
+          if (r.awaiting || !r.receiptNumber) {
+            toast("Payment recorded and sent to Accounts for approval. You can send the receipt once it is approved.");
+            return onClose();
+          }
+          toast(cheque ? "Cheque recorded. It counts as received once you mark it cleared." : "Payment recorded. Receipt ready to send.");
+          onSaved({
+            paymentId: r.paymentId,
+            number: r.receiptNumber,
+            shareToken: r.shareToken,
+            amount: r.amount,
+            balance: r.balance,
+          });
+        },
       },
     );
   return (
@@ -1641,7 +1648,7 @@ export function PaymentsPanel({
   me: { name: string };
 }) {
   const { pending, run } = useAction();
-  const { canFinance } = useApp();
+  const { canFinance, userId } = useApp();
   const [receipt, setReceipt] = useState<ReceiptInfo | null>(null);
   if (!client.payments.length && !client.creditNotes.length)
     return <div className="small muted">No payments recorded yet.</div>;
@@ -1657,26 +1664,32 @@ export function PaymentsPanel({
         const against = p.invoiceNumber
           ? `invoice ${p.invoiceNumber}`
           : `order ${p.orderNumber} (advance)`;
-        const open = p.status === "IN_HAND" || p.status === "DEPOSITED";
+        const approved = p.approval === "APPROVED";
+        const open = approved && (p.status === "IN_HAND" || p.status === "DEPOSITED");
+        // Whoever recorded it may remove it while it waits or after a rejection (R36).
+        const canDelete = canFinance || (!approved && p.recordedById === userId);
         return (
           <div key={p.id} className="border-b border-line py-2 last:border-0">
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0">
                 <b
                   className={
-                    p.status === "BOUNCED" ? "text-coral line-through" : ""
+                    p.status === "BOUNCED" || p.approval === "REJECTED" ? "text-coral line-through" : ""
                   }
                 >
                   {money(p.amount)}
                 </b>{" "}
-                {p.status !== "RECEIVED" ? (
+                {p.approval === "PENDING" ? <Pill tone="warn">Awaiting approval</Pill> : null}
+                {p.approval === "REJECTED" ? <Pill tone="bad">Rejected</Pill> : null}{" "}
+                {approved && p.status !== "RECEIVED" ? (
                   <Pill tone={chequeTone[p.status]}>
                     {PAYMENT_STATUS_LABEL[p.status]}
                   </Pill>
                 ) : null}
                 <div className="small muted">
-                  {p.number} · {against}
+                  {p.number ?? (p.approval === "PENDING" ? "Receipt after Accounts approval" : "No receipt")} · {against}
                 </div>
+                {p.approval === "REJECTED" && p.rejectReason ? <div className="small text-coral">Rejected by Accounts: {p.rejectReason}</div> : null}
                 <div className="small muted">
                   {dmy(p.date)} · {p.mode}
                   {p.reference ? ` · ${p.reference}` : ""}
@@ -1688,21 +1701,23 @@ export function PaymentsPanel({
               </div>
             </div>
             <div className="mt-1.5 flex flex-wrap gap-1.5">
-              <button
-                className="btn sm"
-                onClick={() =>
-                  setReceipt({
-                    paymentId: p.id,
-                    number: p.number,
-                    shareToken: p.shareToken,
-                    amount: p.amount,
-                    against,
-                  })
-                }
-              >
-                Receipt
-              </button>
-              {p.status === "IN_HAND" ? (
+              {approved && p.number ? (
+                <button
+                  className="btn sm"
+                  onClick={() =>
+                    setReceipt({
+                      paymentId: p.id,
+                      number: p.number!,
+                      shareToken: p.shareToken,
+                      amount: p.amount,
+                      against,
+                    })
+                  }
+                >
+                  Receipt
+                </button>
+              ) : null}
+              {approved && p.status === "IN_HAND" ? (
                 <button
                   className="btn sm"
                   disabled={pending}
@@ -1744,7 +1759,7 @@ export function PaymentsPanel({
                   </button>
                 </>
               ) : null}
-              {canFinance ? (
+              {canDelete ? (
                 <button
                   className="btn sm ghost"
                   disabled={pending}
@@ -1823,7 +1838,7 @@ export function PaymentsPanel({
   );
 }
 
-type ReceiptInfo = {
+export type ReceiptInfo = {
   paymentId: string;
   number: string;
   shareToken: string;
@@ -1834,7 +1849,7 @@ type ReceiptInfo = {
 };
 
 /** Preview / download / WhatsApp / email for one payment receipt. */
-function SendReceipt({
+export function SendReceipt({
   r,
   contact,
   emailReady,

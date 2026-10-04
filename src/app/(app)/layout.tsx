@@ -1,7 +1,7 @@
 import { db } from "@/lib/db";
 import { toDbDate, todayIST } from "@/lib/dates";
 import { ROLE_LABEL } from "@/lib/constants";
-import { canManageFinance, canManageProducts, canManageSettings, canViewUsers, seesAllSales } from "@/lib/permissions";
+import { canApprovePayments, canManageFinance, canManageProducts, canManageSettings, canViewUsers, seesAllSales } from "@/lib/permissions";
 import { AppProvider } from "@/components/app-context";
 import { getFeatures } from "@/server/features";
 import { ToastProvider } from "@/components/client";
@@ -12,7 +12,7 @@ import { fyLabel } from "@/lib/fy";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const user = await requireUser();
-  const [due, features, year] = await Promise.all([
+  const [due, features, year, approvals] = await Promise.all([
     db.task.count({
       where: {
         assigneeId: user.id,
@@ -22,6 +22,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     }),
     getFeatures(),
     selectedYear(),
+    canApprovePayments(user.role) ? db.payment.count({ where: { approval: "PENDING" } }) : 0,
   ]);
 
   const nav: NavGroup[] = [
@@ -45,6 +46,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       ],
     },
   ];
+  // Accounts (R36): under the Admin login for now; who owns it will be decided later.
+  if (canApprovePayments(user.role))
+    nav.push({ group: "Accounts", items: [{ href: "/accounts", label: "Payment approvals", icon: "rupee", badge: approvals }] });
   const admin = [
     ...(canViewUsers(user.role) ? [{ href: "/admin/users", label: "Users", icon: "users" as const }] : []),
     ...(canManageProducts(user.role) ? [{ href: "/admin/products", label: "Products", icon: "box" as const }] : []),

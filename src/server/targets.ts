@@ -4,7 +4,7 @@ import { db } from "@/lib/db";
 import { todayIST, toDbDate } from "@/lib/dates";
 import { SALES_ROLES, seesAllSales, type SessionUser } from "@/lib/permissions";
 import { DomainError } from "./errors";
-import { COUNTED_STATUSES, r2 } from "./finance/money";
+import { COUNTED_WHERE, r2 } from "./finance/money";
 import { parse } from "./validation";
 
 export const thisMonth = () => todayIST().slice(0, 7);
@@ -64,7 +64,7 @@ export async function targetProgress(user: SessionUser, month: string = thisMont
     }),
     db.payment.findMany({
       where: {
-        status: { in: [...COUNTED_STATUSES] },
+        ...COUNTED_WHERE,
         date: range,
         client: { ownerId: { in: ids } },
       },

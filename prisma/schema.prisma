@@ -56,7 +56,7 @@ model User {
   quotationsPrepared Quotation[]
   salesOrdersCreated SalesOrder[]
   invoicesCreated    Invoice[]
-  paymentsRecorded   Payment[]
+  paymentsRecorded   Payment[]                @relation("PaymentRecordedBy")
   poFilesUploaded    PurchaseOrderFile[]
   creditNotesCreated CreditNote[]
   activities         Activity[]
@@ -64,6 +64,7 @@ model User {
   dispatchesCreated  Dispatch[]
   filesUploaded      ClientFile[]
   targets            Target[]
+  paymentsApproved   Payment[]                @relation("PaymentApprovedBy")
 }
 
 // ───────────────────────── Masters ─────────────────────────
@@ -740,10 +741,11 @@ model InvoiceItem {
 model Payment {
   id           String        @id @default(cuid())
   /// Receipt number like 117/26-27: running per financial year (April–March), as on the client's receipt book.
-  number       String        @unique
-  year         Int
-  month        Int
-  seq          Int
+  /// Given when the payment is approved by Accounts (R36), so rejected entries leave no gaps in the book.
+  number       String?       @unique
+  year         Int?
+  month        Int?
+  seq          Int?
   /// Secret for the shareable receipt link /r/<token>.
   shareToken   String        @unique
   /// Set once invoiced. An advance taken on a sales order has no invoice until the order is invoiced.
@@ -767,14 +769,27 @@ model Payment {
   statusAt     DateTime?
   tasks        Task[]
 
+  /// Accounts approval (R36): only APPROVED payments count as received and get a receipt.
+  approval     PaymentApproval @default(APPROVED)
+  approvedById String?
+  approvedBy   User?           @relation("PaymentApprovedBy", fields: [approvedById], references: [id])
+  approvedAt   DateTime?
+  rejectReason String?
+
   recordedById String
-  recordedBy   User     @relation(fields: [recordedById], references: [id])
+  recordedBy   User     @relation("PaymentRecordedBy", fields: [recordedById], references: [id])
   createdAt    DateTime @default(now())
 
   @@unique([year, month, seq])
   @@index([invoiceId])
   @@index([salesOrderId])
   @@index([clientId, date])
+}
+
+enum PaymentApproval {
+  PENDING
+  APPROVED
+  REJECTED
 }
 
 enum PaymentStatus {

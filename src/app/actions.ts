@@ -95,6 +95,14 @@ export async function resetPassword(token: string, password: string): Promise<Ac
   }
 }
 
+/** Accounts (R36): approve or reject a payment recorded by the team. */
+export async function approvePayment(id: string) {
+  return run((u) => fin.approvePayment(u, id));
+}
+export async function rejectPayment(id: string, data: unknown) {
+  return run((u) => fin.rejectPayment(u, id, data));
+}
+
 /** Correct a school's details from a lead or opportunity; saved on every record of the school (R35). */
 export async function editSchool(ref: { leadId: string } | { opportunityId: string }, data: unknown) {
   return run((u) => school.editSchool(u, ref, data));

@@ -1,5 +1,6 @@
 import ExcelJS from "exceljs";
 import { beforeEach, describe, expect, it } from "vitest";
+import { db } from "@/lib/db";
 import { addDays, todayIST } from "@/lib/dates";
 import type { SessionUser } from "@/lib/permissions";
 import { convertToClient } from "@/server/clients";
@@ -16,6 +17,8 @@ let exA: SessionUser, exB: SessionUser, head: SessionUser, clientId: string;
 
 beforeEach(async () => {
   await resetData();
+  // Ledger and export rules count payments straight away; Accounts approval (R36) is tested in finance.test.ts.
+  await db.appSetting.upsert({ where: { key: "features" }, create: { key: "features", value: { paymentApproval: false } }, update: { value: { paymentApproval: false } } });
   exA = await makeUser("SALES_EXECUTIVE");
   exB = await makeUser("SALES_EXECUTIVE");
   head = await makeUser("SALES_HEAD");
@@ -100,7 +103,8 @@ describe("exports", () => {
     await recordPayment(exA, a, pay(10000));
     for (const name of Object.keys(REPORTS)) {
       const params = name === "ledger" ? { client: clientId } : {};
-      const r = await buildReport(head, name, params);
+      // The approvals report belongs to Accounts (Director / Admin).
+      const r = await buildReport(name === "approvals" ? await makeUser("ADMIN") : head, name, params);
       expect(r.sections.length).toBeGreaterThan(0);
       const pdf = await reportPdf(r);
       expect(pdf.subarray(0, 4).toString()).toBe("%PDF");
