@@ -7,7 +7,7 @@ commit id, what changed in plain words, and the requirement it answers (R… in 
 
 ## 3 Oct 2026
 
-- `PENDING` **Renewals by financial year.** Renewal opportunities are for the next FY (April – March), valued at
+- `5ed4c06` **Renewals by financial year.** Renewal opportunities are for the next FY (April – March), valued at
   this FY's orders; "AY" → "FY" on screens. (R32)
 - `e4ae6e7` **Financial year.** After login, choose the year (2026-27 …) or All years; it shows in the top bar and
   can be changed any time. Lists, dashboard, ledger and exports follow it; open items carry over. Clients stay
