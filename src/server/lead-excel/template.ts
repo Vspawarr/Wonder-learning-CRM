@@ -154,7 +154,7 @@ export async function buildLeadTemplate(live: LiveLists): Promise<Buffer> {
     ["2. Columns with * are required: School Name, Owner/Contact Person Name, Mobile Number, State, City, Lead Source, Assigned To, Next Follow-up Date."],
     ["3. Columns with a dropdown only accept values from their list. Choose the State before the City — the City list follows the State on that row."],
     ["4. Dates must be DD/MM/YYYY (for example 25/12/2026)."],
-    ["5. Lead Status blank = New. Choosing Qualified turns the lead into an opportunity straight away, so a Qualified row also needs its Opportunity Category (Hot, Warm or Cold). Leave the category blank for New or Contacted leads."],
+    ["5. Lead Status blank = New. Choosing Qualified turns the lead into an opportunity straight away, so a Qualified row also needs its Opportunity Category (Hot or Warm). Leave the category blank for New or Contacted leads."],
     ["6. Assigned To is the salesperson who will work the lead (not the school's owner). Sales Executives and Managers can only assign leads to themselves."],
     ["7. Don't rename, move or add columns, and don't change the header row — the upload checks it exactly."],
     [`8. Up to ${MAX_ROWS} leads per file. Save as .xlsx, then use "Upload leads" on the Leads screen.`],

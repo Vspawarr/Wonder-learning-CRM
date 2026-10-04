@@ -15,7 +15,7 @@ button on the way. It is written for everyone at Wonder Learning: salespeople, m
 | 1 | **Lead** | Leads | Add the school (or upload many from Excel) | Gives it a number (L-1001…), books the first follow-up call |
 | 2 | **Talk** | Lead page | Call / WhatsApp, then **Log interaction** | Status moves New → Contacted; books the next follow-up if you give a date |
 | 3 | **Quotation** (optional at this stage) | Lead page → Quotations | **Create quotation**, then **Send quotation** | Numbers it (QUO/2026/10/001), marks the lead Contacted |
-| 4 | **Opportunity** | Lead page | **Convert to opportunity**, pick Hot / Warm / Cold | Creates the deal (O-2001…); the lead's quotations and follow-ups move with it |
+| 4 | **Opportunity** | Lead page | **Convert to opportunity**, pick Hot or Warm | Creates the deal (O-2001…); the lead's quotations and follow-ups move with it |
 | 5 | **Work the deal** | Opportunities / Pipeline | Move it through the stages; send / revise quotations | Sets the chance % per stage; books follow-ups |
 | 6 | **PO template** | Quotation → **Send PO template** | Type the kits per class and order details, **Save**, send on WhatsApp | Gives a PO number (PO/2627/1), attaches the kit checklist, fills the deal value |
 | 7 | **Won** | Opportunity → Stage: Won | Mark Won, then **Convert to client** | Creates the client (C-101…) in Onboarding with an onboarding follow-up |
@@ -77,7 +77,7 @@ Director, Admin and Sales Head.
   reference sources.
 - If the same mobile, or the same school name in the same city, already exists, a **possible duplicate** warning
   shows who has it. You can still save if it really is a different school.
-- Choosing status **Qualified** turns it straight into an opportunity (you'll be asked Hot / Warm / Cold).
+- Choosing status **Qualified** turns it straight into an opportunity (you'll be asked Hot or Warm).
 - **After saving:** the first follow-up call is booked in To-do on the follow-up date.
 
 ### Many leads at once (Excel)
@@ -95,7 +95,7 @@ Filters: **All · Active · Converted · Disqualified**, source, search, sort, *
 |---|---|
 | **Call** / **WhatsApp** | Calls or opens WhatsApp to the contact's mobile |
 | **Log interaction** | Write what was discussed (call, WhatsApp, meeting, visit…). A follow-up date creates a to-do. A New lead becomes Contacted. You can tick "Convert to opportunity" at the same time |
-| **Convert to opportunity** | Creates the deal; choose **Hot / Warm / Cold** (the category belongs to the deal) |
+| **Convert to opportunity** | Creates the deal; choose **Hot** or **Warm** (the category belongs to the deal; it can be changed to Cold later in the opportunity window if the deal cools down) |
 | **Disqualify** | Not interested / not a fit: choose the reason. Open to-dos are cancelled |
 | **Create quotation** | Quotation before converting (some schools ask straight away). See §6 |
 | **Save changes** / **Discard changes** | Edit any detail; the buttons wake up when you change a field |

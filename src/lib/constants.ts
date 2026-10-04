@@ -101,6 +101,9 @@ export const MANUAL_LEAD_STATUSES = ["NEW", "CONTACTED", "QUALIFIED"] as const;
 
 /** Shown to users as "Category" (stored as temperature). */
 export const TEMPERATURE_LABEL = { HOT: "Hot", WARM: "Warm", COLD: "Cold" } as const;
+/** Categories offered when a lead becomes an opportunity (R34): Hot or Warm. Cold can still be set later on the deal. */
+export const START_CATEGORIES = ["HOT", "WARM"] as const;
+export const START_CATEGORY_LABELS = START_CATEGORIES.map((k) => TEMPERATURE_LABEL[k]);
 
 export const STAGES = [
   "INTERESTED",

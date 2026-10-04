@@ -351,3 +351,10 @@ every button and workflow, dependencies and everything."
 | Fix: client page header squeezed the school name on laptop screens | ✅ | |
 | Fix: "sent by downloaded" → "sent by download" | ✅ | |
 | **Workflow guide** for the client: `docs/WORKFLOW.md`, also a **How it works** menu item for everyone (with Print / save as PDF) and a tab in Settings → Project documents | ✅ | Switch off in Settings → Features → "How it works guide" when no longer needed |
+
+## R34. Only Hot and Warm when a lead becomes an opportunity (4 Oct)
+
+"After client converted to opportunity at start there should only 2 category Hot and Warm, remove Cold." ✅
+Convert to opportunity, the "convert" tick on Log interaction, saving a lead as Qualified and the lead Excel
+template / upload now offer only **Hot** and **Warm**. **Cold** is still available later in the opportunity window
+(a deal can cool down), and in the category filter, so existing Cold deals stay visible.

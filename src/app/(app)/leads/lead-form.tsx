@@ -10,6 +10,7 @@ import {
   REF_SOURCES,
   SOURCES,
   TEMPERATURE_LABEL,
+  START_CATEGORIES,
 } from "@/lib/constants";
 import type { Option } from "@/server/queries";
 import type { Locations } from "@/server/locations";
@@ -157,7 +158,7 @@ export function LeadForm({
         {value.status === "QUALIFIED" ? (
           <Field label="Opportunity category *" htmlFor={id("temp")}>
             <select className="sel" id={id("temp")} value={value.temperature} onChange={(e) => set("temperature", e.target.value)}>
-              <Options list={Object.entries(TEMPERATURE_LABEL) as [string, string][]} blank="Hot, Warm or Cold?" />
+              <Options list={START_CATEGORIES.map((k) => [k, TEMPERATURE_LABEL[k]] as const)} blank="Hot or Warm?" />
             </select>
           </Field>
         ) : null}

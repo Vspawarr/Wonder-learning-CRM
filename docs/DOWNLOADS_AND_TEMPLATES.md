@@ -23,7 +23,7 @@ the Android APK and the logo.)
   Lead Source* · Reference Name · Lead Status · **Opportunity Category (if Qualified)** · Assigned To* ·
   Next Follow-up Date* · Follow-up Type · Follow-up Remark
 - **Dropdowns (hard, "stop" style):** Designation, State, City (follows the row's State), Lead Source (incl. "Social Media"; Facebook/Instagram are refused), Lead
-  Status (New / Contacted / Qualified), Opportunity Category (Hot / Warm / Cold), Assigned To (active
+  Status (New / Contacted / Qualified), Opportunity Category (Hot / Warm; R34), Assigned To (active
   sales people at download time), Follow-up Type. Dates DD/MM/YYYY. Whole numbers for strength and branches.
 - **Where the lists come from:** `src/lib/constants.ts` (designations, sources, statuses, categories,
   follow-up types) and the database (states and cities from Settings → Locations; people from Settings → Users).

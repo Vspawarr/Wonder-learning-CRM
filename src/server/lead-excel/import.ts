@@ -118,9 +118,12 @@ export async function importLeads(user: SessionUser, file: ArrayBuffer | Buffer)
     }
 
     const problems: string[] = [];
+    const qualified = STATUS_BY_LABEL[text.status] === "QUALIFIED";
     for (const c of COLUMNS) if (c.required && !text[c.key]) problems.push(`"${label(c)}" is required`);
     for (const c of COLUMNS) {
       if (!c.list || c.list === "city" || !text[c.key]) continue;
+      // The category only matters on a Qualified row; elsewhere it is ignored, whatever it says.
+      if (c.list === "category" && !qualified) continue;
       if (!allowed[c.list].includes(text[c.key])) problems.push(`"${label(c)}": "${text[c.key]}" is not an allowed value`);
     }
     if (text.state && text.city && allowed.state.includes(text.state)) {
@@ -133,8 +136,7 @@ export async function importLeads(user: SessionUser, file: ArrayBuffer | Buffer)
         problems.push(`"${label(c)}": "${text[c.key]}" must be a whole number of at least ${c.min ?? 0}`);
     const date = text.nextFollowUpDate ? parseDate(values.nextFollowUpDate) : null;
     if (text.nextFollowUpDate && !date) problems.push(`"Next Follow-up Date": "${text.nextFollowUpDate}" is not a valid date (use DD/MM/YYYY)`);
-    const qualified = STATUS_BY_LABEL[text.status] === "QUALIFIED";
-    if (qualified && !text.category) problems.push(`"Opportunity Category": choose Hot, Warm or Cold for a Qualified lead`);
+    if (qualified && !text.category) problems.push(`"Opportunity Category": choose Hot or Warm for a Qualified lead`);
     const matches = people.filter((p) => p.name === text.assignedTo);
     if (text.assignedTo && matches.length > 1) problems.push(`"Assigned To": more than one active user is called "${text.assignedTo}"`);
 

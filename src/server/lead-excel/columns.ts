@@ -9,6 +9,7 @@ import {
   MANUAL_LEAD_STATUSES,
   SOURCES,
   TEMPERATURE_LABEL,
+  START_CATEGORY_LABELS,
 } from "@/lib/constants";
 
 /** Lists that change with the database rather than with the code. */
@@ -23,7 +24,7 @@ export function allowedValues(live: LiveLists): Record<Exclude<ListKey, "city">,
     state: live.states,
     source: SOURCES,
     status: MANUAL_LEAD_STATUSES.map((s) => LEAD_STATUS_LABEL[s]),
-    category: Object.values(TEMPERATURE_LABEL),
+    category: START_CATEGORY_LABELS,
     assignee: live.assignees,
     followUpType: FOLLOWUP_TYPES,
   };
@@ -90,7 +91,7 @@ export const COLUMNS: Column[] = [
   { key: "source", header: "Lead Source*", required: true, width: 22, list: "source" },
   { key: "referenceName", header: "Reference Name", required: false, width: 20, note: "Only kept for Reference / Existing School Reference" },
   { key: "status", header: "Lead Status", required: false, width: 13, list: "status", note: "Blank = New. Qualified creates an opportunity" },
-  { key: "category", header: "Opportunity Category (if Qualified)", required: false, width: 16, list: "category", note: "Required when Lead Status = Qualified (the lead becomes an opportunity): Hot, Warm or Cold. Leave blank otherwise." },
+  { key: "category", header: "Opportunity Category (if Qualified)", required: false, width: 16, list: "category", note: "Required when Lead Status = Qualified (the lead becomes an opportunity): Hot or Warm. Leave blank otherwise." },
   { key: "assignedTo", header: "Assigned To*", required: true, width: 20, list: "assignee" },
   { key: "nextFollowUpDate", header: "Next Follow-up Date*", required: true, width: 14, kind: "date", note: "DD/MM/YYYY" },
   { key: "followUpType", header: "Follow-up Type", required: false, width: 18, list: "followUpType" },

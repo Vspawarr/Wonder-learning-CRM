@@ -113,7 +113,7 @@ describe("template", () => {
     expect(column("source")).toEqual([...SOURCES]);
     expect(column("followUpType")).toEqual([...FOLLOWUP_TYPES]);
     expect(column("status")).toEqual(["New", "Contacted", "Qualified"]);
-    expect(column("category")).toEqual(["Hot", "Warm", "Cold"]);
+    expect(column("category")).toEqual(["Hot", "Warm"]);
     expect(column("state")).toEqual((await getLocations()).states);
     expect(column("Maharashtra")).toEqual(["Mumbai", "Pune"]);
     expect(column("Madhya Pradesh")).toEqual(["Indore"]);
@@ -184,7 +184,7 @@ describe("upload", () => {
         good({ schoolName: "New with cat", mobile: "98765 00003", category: "Cold" }),
       ]),
     );
-    expect(r.skipped).toEqual([{ row: 2, school: "Q no cat", reason: expect.stringMatching(/"Opportunity Category": choose Hot, Warm or Cold/) }]);
+    expect(r.skipped).toEqual([{ row: 2, school: "Q no cat", reason: expect.stringMatching(/"Opportunity Category": choose Hot or Warm/) }]);
     expect(r.created.map((c) => c.school)).toEqual(["Q hot", "New with cat"]);
     const opp = await db.opportunity.findFirstOrThrow({ where: { schoolName: "Q hot" } });
     expect(opp.temperature).toBe("HOT");

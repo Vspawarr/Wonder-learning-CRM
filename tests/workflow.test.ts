@@ -409,16 +409,20 @@ describe("user management", () => {
 describe("opportunity category", () => {
   it("is chosen when converting, not on the lead", async () => {
     const id = await createLead(exA, leadData(exA.id));
-    await expect(convertLead(exA, id, {})).rejects.toThrow(/Hot, Warm or Cold/);
+    await expect(convertLead(exA, id, {})).rejects.toThrow(/Hot or Warm/);
     const oppId = await convertLead(exA, id, { temperature: "HOT" });
     expect((await db.opportunity.findUniqueOrThrow({ where: { id: oppId } })).temperature).toBe("HOT");
   });
 
   it("a lead saved as Qualified needs the category for its opportunity", async () => {
     await expect(createLead(exA, leadData(exA.id, { status: "QUALIFIED" }))).rejects.toThrow(/category/);
-    const id = await createLead(exA, leadData(exA.id, { status: "QUALIFIED", temperature: "COLD" }));
+    const id = await createLead(exA, leadData(exA.id, { status: "QUALIFIED", temperature: "WARM" }));
     const opp = await db.opportunity.findFirstOrThrow({ where: { leadId: id } });
-    expect(opp.temperature).toBe("COLD");
+    expect(opp.temperature).toBe("WARM");
+    // Cold is not offered when a lead becomes an opportunity (R34), but can be set later on the deal.
+    await expect(convertLead(exA, await createLead(exA, leadData(exA.id, { schoolName: "Cold Start", mobile: "98000 11122" })), { temperature: "COLD" })).rejects.toThrow(/Hot or Warm/);
+    await updateOpportunity(exA, opp.id, { ownerId: exA.id, temperature: "COLD" });
+    expect((await db.opportunity.findUniqueOrThrow({ where: { id: opp.id } })).temperature).toBe("COLD");
   });
 
   it("can be changed on the opportunity", async () => {

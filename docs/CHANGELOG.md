@@ -7,6 +7,8 @@ commit id, what changed in plain words, and the requirement it answers (R… in 
 
 ## 4 Oct 2026
 
+- `PENDING` **Hot or Warm at conversion.** Converting a lead (button, Log interaction tick, Qualified status, Excel
+  upload) offers only Hot and Warm; Cold stays available later on the opportunity. Lead template updated. (R34)
 - `9fdb37b` **PO exclusions + checklist, owner/salesperson walk-through, workflow guide.** The PO's Material Exclude
   lists items taken out of kits and the kit checklist is attached from page 2. Fixes from the walk-through: quoted
   leads convert at Proposal Sent; deal value from the PO template; client header layout; wording. New

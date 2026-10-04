@@ -1,15 +1,15 @@
 "use client";
 
-import { TEMPERATURE_LABEL } from "@/lib/constants";
+import { START_CATEGORIES, TEMPERATURE_LABEL } from "@/lib/constants";
 
 const HINT: Record<string, string> = { HOT: "Ready to buy soon", WARM: "Interested, needs follow-up", COLD: "Early or unsure" };
 const TONE: Record<string, string> = { HOT: "border-coral text-coral", WARM: "border-sun text-sun", COLD: "border-sky text-sky" };
 
-/** Hot / Warm / Cold as three big buttons (opportunity category). */
+/** Hot / Warm as big buttons: the category chosen when a lead becomes an opportunity (R34). */
 export function CategoryPicker({ value, onChange }: { value: string; onChange: (v: string) => void }) {
   return (
-    <div className="grid grid-cols-3 gap-2" role="radiogroup" aria-label="Category">
-      {(Object.entries(TEMPERATURE_LABEL) as [string, string][]).map(([k, label]) => (
+    <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label="Category">
+      {START_CATEGORIES.map((k) => [k, TEMPERATURE_LABEL[k]] as const).map(([k, label]) => (
         <button
           key={k}
           type="button"

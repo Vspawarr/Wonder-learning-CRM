@@ -26,7 +26,8 @@ change it here in the same commit as the code. Requirement numbers (R…) point 
    the Lost list). Saving a lead creates its first follow-up task. Logging an interaction moves New → Contacted.
 2. **Convert to opportunity** (a lead that was already sent a quotation starts at **Proposal Sent**, R33): button on the lead, in the leads list, or tick it after logging an interaction.
    Saving a lead as **Qualified** converts it automatically. The person must choose the **Category
-   (Hot / Warm / Cold)**, which belongs to the opportunity, not the lead (R16.1).
+   (Hot / Warm)**, which belongs to the opportunity, not the lead (R16.1). Only **Hot or Warm** is offered at
+   conversion (R34); **Cold** can still be set later on the opportunity if the deal cools down.
 3. **Opportunity stages and probability:** Interested 20% → Demo Scheduled 35% → Proposal Sent 55% →
    Negotiation 75% → Won 100% / Lost 0%. Won and Lost are final. Lost needs a reason + remarks.
    Proposal Sent and Negotiation create a follow-up in 2 days. Sending a quotation moves the deal to

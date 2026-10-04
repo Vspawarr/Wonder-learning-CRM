@@ -5,7 +5,7 @@ Sales CRM for Wonder Learning India: users & roles, leads (with Excel upload), o
 payments & receipts, outstanding, ledger, To-do, dashboard with sections, PDF/Excel exports and an
 Android app.
 
-Flow: Lead → Opportunity (Category Hot/Warm/Cold) → Quotation → Won → Client → PO → Sales order →
+Flow: Lead → Opportunity (Category Hot/Warm at the start; Cold possible later) → Quotation → Won → Client → PO → Sales order →
 Dispatch → Invoice → Payments.
 
 **Project documents (requirements, rules, status, change log, templates): see [`docs/`](docs/README.md).**

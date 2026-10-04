@@ -8,8 +8,7 @@ import {
   LOST_REASONS,
   MANUAL_LEAD_STATUSES,
   SOURCES,
-  STAGES,
-} from "@/lib/constants";
+  STAGES, START_CATEGORIES } from "@/lib/constants";
 import { isDateStr } from "@/lib/dates";
 import { DomainError } from "./errors";
 
@@ -69,7 +68,7 @@ const leadDetails = {
   interests: z.array(z.string()).max(50).default([]),
   remarks: optText(),
   /** The opportunity's category; only used (and required) when the lead is saved as Qualified. */
-  temperature: z.preprocess((v) => (v === "" ? null : v), z.enum(["HOT", "WARM", "COLD"]).nullish()),
+  temperature: z.preprocess((v) => (v === "" ? null : v), z.enum(START_CATEGORIES, { error: "Choose the category: Hot or Warm." }).nullish()),
   assignedToId: z.string({ error: "Assigned to is required." }).min(1, "Assigned to is required."),
   nextFollowUpDate: reqDate("Next follow-up date"),
   followUpType: optOneOf(FOLLOWUP_TYPES, "follow-up type"),
@@ -96,12 +95,12 @@ export const clientInput = z.object({
 export const leadInput = z
   .object({ ...leadDetails, status: z.enum(MANUAL_LEAD_STATUSES).default("NEW") })
   .refine((d) => d.status !== "QUALIFIED" || !!d.temperature, {
-    message: "A Qualified lead becomes an opportunity: choose its category (Hot, Warm or Cold).",
+    message: "A Qualified lead becomes an opportunity: choose its category (Hot or Warm).",
     path: ["temperature"],
   });
 
 export const convertInput = z.object({
-  temperature: z.enum(["HOT", "WARM", "COLD"], { error: "Choose the category: Hot, Warm or Cold." }),
+  temperature: z.enum(START_CATEGORIES, { error: "Choose the category: Hot or Warm." }),
 });
 export type LeadInput = z.input<typeof leadInput>;
 
