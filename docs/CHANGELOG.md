@@ -7,7 +7,7 @@ commit id, what changed in plain words, and the requirement it answers (R… in 
 
 ## 4 Oct 2026
 
-- `PENDING` **Correct school details anywhere.** Edit school details on converted / disqualified leads and in the
+- `abe44e0` **Correct school details anywhere.** Edit school details on converted / disqualified leads and in the
   opportunity window; client Edit details too. One correction updates the lead, opportunity, client and draft
   quotations. (R35)
 - `316ce95` **Hot or Warm at conversion.** Converting a lead (button, Log interaction tick, Qualified status, Excel
