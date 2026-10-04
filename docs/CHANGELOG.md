@@ -7,7 +7,7 @@ commit id, what changed in plain words, and the requirement it answers (R… in 
 
 ## 4 Oct 2026
 
-- `PENDING` **PO exclusions + checklist, owner/salesperson walk-through, workflow guide.** The PO's Material Exclude
+- `9fdb37b` **PO exclusions + checklist, owner/salesperson walk-through, workflow guide.** The PO's Material Exclude
   lists items taken out of kits and the kit checklist is attached from page 2. Fixes from the walk-through: quoted
   leads convert at Proposal Sent; deal value from the PO template; client header layout; wording. New
   `docs/WORKFLOW.md` and a switchable **How it works** page. (R33)
