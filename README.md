@@ -63,6 +63,7 @@ action goes through it.
 - `src/server/reports/`: PDF and Excel exports. `index.ts` defines each screen's report with the same filters and access as the screen; `render.ts`/`pdf.tsx` draw them. Route: `/api/export/<report>?format=pdf|xlsx`.
 - `android/`: the Android app (APK), which opens the live site and works online only. See `android/README.md`. The public `/download-app` page serves `public/downloads/wonder-crm.apk`.
 - `src/components/date-input.tsx` — every date field; always DD/MM/YYYY regardless of browser language. `src/components/date-range.tsx` — the From – to filter (?from=&to=).
+- `src/app/(app)/guide/` + `docs/WORKFLOW.md`: the "How it works" page (feature `guide`); `src/components/markdown-doc.tsx` renders docs inside the CRM.
 - `src/server/year.ts` + `src/app/year/`: the financial year chosen after login (cookie `wl_fy`, "2026" or "all"); pages pass `selectedRange()` into the list queries (`leadsInYear`, `oppsInYear`, `clientsList` year standing, `outstandingList`), exports get it as `?fy=`.
 - `src/lib/kit-custom.ts` — a kit changed per quotation (items out, optional items in) and its price/label/checklist; `src/lib/quotation-text.ts` reads kit contents with item prices. Quotation lines keep a hidden `transport` inside the price.
 - `src/app/(app)/tasks/calendar.tsx` + `src/lib/calendar.ts` — the To-do calendar (month / week).

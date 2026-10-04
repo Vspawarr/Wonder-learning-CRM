@@ -70,7 +70,7 @@ and PO numbers run per financial year with starting-number settings.
 |---|---|---|---|---|
 | Quotation (3 pages, client's format) | QUO/YYYY/MM/NNN | Lead, opportunity or client (price per kit includes the hidden transport; transport is never printed) | `/api/quotations/<id>/pdf`; public link `/q/<token>` | `src/server/quotation/pdf.tsx`, text in Settings → Quotation (`content.ts`) |
 | Sample quotation (to check Settings text) | QUO/…/000 | Settings → Quotation | `/api/quotations/sample` (Admin) | same |
-| PO template (client's PO format; school signs and stamps) | PO/2627/N, given on first save | Sent quotation + details saved in "Send PO template" (`Quotation.poDetails`) | `/api/quotations/<id>/po-template`; public `/q/<token>/po` | `src/server/finance/po-pdf.tsx`, `po.ts`; texts in Settings → Documents |
+| PO template (client's PO format; school signs and stamps; Material Exclude lists removed kit items; kit checklist attached from page 2) | PO/2627/N, given on first save | Sent quotation + details saved in "Send PO template" (`Quotation.poDetails`) | `/api/quotations/<id>/po-template`; public `/q/<token>/po` | `src/server/finance/po-pdf.tsx`, `po.ts`; texts in Settings → Documents |
 | Kit checklist (client's checklist layout, one coloured page per class) | — | Products with contents (no prices printed); for a quotation, the kits as changed for that school | `/api/products/checklist[?ids=]`; public `/q/<token>/checklist` (the quotation's kits) | `src/server/products/checklist-pdf.tsx`, `checklist.ts` |
 | Signed PO (uploaded file) | school's PO No. | Upload signed PO | `/api/sales-orders/<id>/po` | `src/server/finance/po.ts` (PDF or photo, max 4 MB) |
 | Proforma invoice | PI/YYYY/MM/NNN | Sales order | `/api/sales-orders/<id>/proforma` | `invoice-pdf.tsx` (proforma title) |
@@ -117,5 +117,6 @@ When a field, label, list or rule changes, check each of these and fix what's af
 - [ ] Report exports for every screen showing the field (`src/server/reports/index.ts`)
 - [ ] PDFs that print it (quotation, PO template, kit checklist, proforma, invoice, receipt, credit note, challan)
 - [ ] WhatsApp / email message texts that mention it
+- [ ] `docs/WORKFLOW.md` (the How it works guide) if a screen, button or step changed
 - [ ] `docs/REQUIREMENTS.md` (status) and `docs/CHANGELOG.md` (what changed)
 - [ ] Download each changed file once and open it to look (dev: `npm run build && npm start`, log in, download)

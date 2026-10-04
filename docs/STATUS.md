@@ -33,6 +33,9 @@ _Last updated: 3 Oct 2026. Update this page whenever the situation changes._
 
 ## Known limits / not done
 
+- The **How it works** menu page (workflow guide) is temporary: switch it off in Settings → Features when the
+  team no longer needs it (R33).
+
 - Invoice PDF layout is provisional (see above).
 - Email is off on the live site until SMTP is set up; WhatsApp and Download work.
 - Optional "manager approval for low prices" was not built (not requested).
@@ -43,7 +46,7 @@ _Last updated: 3 Oct 2026. Update this page whenever the situation changes._
 
 - Start with `CLAUDE.md`, then this folder. You should not need old chat history.
 - Local: see `README.md` (Postgres via docker compose, `npm run dev`). Tests: `npm test` (integration tests
-  against `TEST_DATABASE_URL`, 134 passing on 3 Oct), `npm run lint`, `npm run typecheck`.
+  against `TEST_DATABASE_URL`, 136 passing on 4 Oct), `npm run lint`, `npm run typecheck`.
 - Database changes: add a migration in `prisma/migrations/` (Vercel runs `prisma migrate deploy` on each deploy).
 - Before every push: tests, lint, typecheck, a build, a look at desktop and phone width, the downloads
   checklist in `DOWNLOADS_AND_TEMPLATES.md`, then update `CHANGELOG.md`, `REQUIREMENTS.md` and this page.

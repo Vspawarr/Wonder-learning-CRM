@@ -24,7 +24,7 @@ change it here in the same commit as the code. Requirement numbers (R…) point 
 
 1. **Lead** (school not yet a customer). Status: New → Contacted → Qualified, or Disqualified (reason from
    the Lost list). Saving a lead creates its first follow-up task. Logging an interaction moves New → Contacted.
-2. **Convert to opportunity:** button on the lead, in the leads list, or tick it after logging an interaction.
+2. **Convert to opportunity** (a lead that was already sent a quotation starts at **Proposal Sent**, R33): button on the lead, in the leads list, or tick it after logging an interaction.
    Saving a lead as **Qualified** converts it automatically. The person must choose the **Category
    (Hot / Warm / Cold)**, which belongs to the opportunity, not the lead (R16.1).
 3. **Opportunity stages and probability:** Interested 20% → Demo Scheduled 35% → Proposal Sent 55% →
@@ -70,7 +70,9 @@ client shows a warning (the user may still save). The Excel upload skips same sc
 - Drafts can be edited; **sent quotations are locked**: use **Revise** to make a new version.
 - **PO flow:** send the school a **PO template** in the client's PO format, made from the sent quotation and
   the details typed in "Send PO template" (kits, requisitioner, expected delivery, ship via, shipping terms,
-  remarks, customisation YES/NO, advance cheque/DD plan) → the school signs, stamps and sends it back → **Upload signed PO** with its PO number → this creates the **sales order**. The PO number
+  remarks, customisation YES/NO, advance cheque/DD plan). "Material Exclude" lists items taken out of the kits and
+  the kit checklist (as changed for the school) is attached from page 2; saving fills the deal's expected value
+  (kits × rate) when it's empty (R33) → the school signs, stamps and sends it back → **Upload signed PO** with its PO number → this creates the **sales order**. The PO number
   shows on the sales order, proforma and invoice. The sales order shows the quotation's creation time
   (date + H:M:S AM/PM) (R16.10, R17).
 - **Dispatch** in one or more lots with transporter/docket, a challan PDF, and **Mark received** with proof.

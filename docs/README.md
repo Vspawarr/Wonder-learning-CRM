@@ -7,6 +7,7 @@ Everything about this CRM's development, so nobody (person or Claude) has to rea
 | [STATUS.md](STATUS.md) | Where things stand, what we're waiting for, known limits | anything changes |
 | [REQUIREMENTS.md](REQUIREMENTS.md) | Every client request in order (R1, R2…), with status and where it's built | a new request comes in, or one is finished |
 | [BUSINESS_RULES.md](BUSINESS_RULES.md) | How the CRM behaves: roles, lead → client flow, money rules, numbering, features | a rule changes |
+| [WORKFLOW.md](WORKFLOW.md) | The client's step-by-step guide: every screen, button and dependency (also the "How it works" page) | a screen, button or rule changes |
 | [PRICING.md](PRICING.md) | The client's price list as loaded, and the conflicts to confirm with them | prices or kit contents change |
 | [DOWNLOADS_AND_TEMPLATES.md](DOWNLOADS_AND_TEMPLATES.md) | Every download, upload and template, with a checklist to keep them current | a field, label or list changes |
 | [CHANGELOG.md](CHANGELOG.md) | Every push, in plain words, newest first | every push |

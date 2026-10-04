@@ -2,7 +2,8 @@
 
 **Start here, every session:** read `docs/STATUS.md` (where things stand, what we're waiting for) and
 `docs/REQUIREMENTS.md` (every client request R1…, with status). `docs/BUSINESS_RULES.md` explains how the CRM
-behaves; `docs/DOWNLOADS_AND_TEMPLATES.md` lists every download/upload/template. README.md has setup,
+behaves; `docs/DOWNLOADS_AND_TEMPLATES.md` lists every download/upload/template; `docs/WORKFLOW.md` is the client's
+how-it-works guide (keep it in step with screens and buttons). README.md has setup,
 roles and the code map. You should not need old chat history.
 
 ## Keeping the documents current (owner's standing request, R25)
