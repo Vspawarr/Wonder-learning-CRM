@@ -266,6 +266,9 @@ describe("quotation on a lead (before it becomes an opportunity)", () => {
     const opp = await convertLead(exA, leadId, { temperature: "HOT" });
     row = await db.quotation.findUniqueOrThrow({ where: { id: q } });
     expect(row.opportunityId).toBe(opp);
+    // It was already quoted, so the deal starts at Proposal Sent with a follow-up, not "Schedule demo".
+    expect(await db.opportunity.findUniqueOrThrow({ where: { id: opp } })).toMatchObject({ stage: "PROPOSAL_SENT", probability: 55 });
+    expect(await db.task.count({ where: { opportunityId: opp, title: { startsWith: "Follow up on the quotation" } } })).toBe(1);
     // After conversion, a new quotation "on the lead" goes on its opportunity.
     const q2 = await createQuotation(exA, { leadId }, quote());
     expect((await db.quotation.findUniqueOrThrow({ where: { id: q2 } })).opportunityId).toBe(opp);
@@ -351,5 +354,18 @@ describe("kits changed per school and hidden transport (R29)", () => {
       expect(items.reduce((t, i) => t + i.mrp, 0)).toBe(k.mrp);
     }
     expect(NURSERY_KIT_TYPES.map((k) => k.sp)).toEqual([2112, 2854, 3144]);
+  });
+});
+
+describe("deal value from the PO template (R33)", () => {
+  it("fills an empty expected value with kits × rate, and never overwrites a typed one", async () => {
+    const { savePoTemplate } = await import("@/server/finance/po");
+    const q = await createQuotation(exA, oppId, quote());
+    await markQuotationSent(exA, q, "download");
+    await savePoTemplate(exA, q, { kits: [10, 5], customise: [], cheques: [], remarks: [] });
+    expect(Number((await db.opportunity.findUniqueOrThrow({ where: { id: oppId } })).expectedValue)).toBe(10 * 2800 + 5 * 3400);
+    await db.opportunity.update({ where: { id: oppId }, data: { expectedValue: 99999 } });
+    await savePoTemplate(exA, q, { kits: [20, 5], customise: [], cheques: [], remarks: [] });
+    expect(Number((await db.opportunity.findUniqueOrThrow({ where: { id: oppId } })).expectedValue)).toBe(99999);
   });
 });

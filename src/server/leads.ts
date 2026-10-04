@@ -1,5 +1,6 @@
 import { db, type Tx } from "@/lib/db";
 import { LEAD_STATUS_LABEL, REF_SOURCES, TEMPERATURE_LABEL, clientCode, leadCode, oppCode } from "@/lib/constants";
+import { STAGE_PROBABILITY } from "@/lib/constants";
 import { addDays, todayIST, toDbDate } from "@/lib/dates";
 import { seesAllSales, type SessionUser } from "@/lib/permissions";
 import { assertAssignable, leadScope } from "./access";
@@ -204,21 +205,24 @@ async function convertInTx(tx: Tx, user: SessionUser, lead: LeadRow, temperature
 
   const interests = await tx.leadInterest.findMany({ where: { leadId: id }, include: { product: true } });
   const today = todayIST();
+  // A school that already received a quotation as a lead starts at Proposal Sent (R33), not Interested.
+  const quoted = (await tx.quotation.count({ where: { leadId: id, opportunityId: null, clientId: null, status: "SENT" } })) > 0;
+  const stage = quoted ? "PROPOSAL_SENT" : "INTERESTED";
   const opp = await tx.opportunity.create({
     data: {
       leadId: id,
       schoolName: lead.schoolName,
-      stage: "INTERESTED",
-      probability: 20,
+      stage,
+      probability: STAGE_PROBABILITY[stage],
       temperature,
       expectedCloseDate: toDbDate(addDays(today, 30)),
       decisionMaker: lead.contactName,
-      nextAction: "Schedule demo",
+      nextAction: quoted ? "Follow up on the quotation" : "Schedule demo",
       nextActionDate: toDbDate(addDays(today, 2)),
       ownerId: lead.assignedToId,
       createdById: user.id,
       items: { create: interests.map((i) => ({ productId: i.productId, qty: 1, unitPrice: i.product.price })) },
-      stageChanges: { create: { toStage: "INTERESTED", changedById: user.id } },
+      stageChanges: { create: { toStage: stage, changedById: user.id } },
     },
   });
   await tx.lead.update({
@@ -230,8 +234,8 @@ async function convertInTx(tx: Tx, user: SessionUser, lead: LeadRow, temperature
   await tx.quotation.updateMany({ where: { leadId: id, opportunityId: null, clientId: null }, data: { opportunityId: opp.id } });
   await tx.task.create({
     data: {
-      type: "Online Demo",
-      title: `Schedule demo: ${lead.schoolName}`,
+      type: quoted ? "Call" : "Online Demo",
+      title: quoted ? `Follow up on the quotation: ${lead.schoolName}` : `Schedule demo: ${lead.schoolName}`,
       dueDate: toDbDate(addDays(today, 2)),
       priority: "MEDIUM",
       isAuto: true,

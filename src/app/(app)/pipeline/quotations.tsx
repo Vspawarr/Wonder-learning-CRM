@@ -56,7 +56,7 @@ type Draft = {
 };
 
 const VIA: Record<string, string> = {
-  download: "downloaded",
+  download: "download",
   whatsapp: "WhatsApp",
   email: "email",
 };
@@ -683,7 +683,7 @@ export function PoTemplateModal({ q, target, me, onClose }: { q: Q; target: Quot
   const mobile = (target.mobile ?? "").replace(/\D/g, "").replace(/^(\d{10})$/, "91$1");
   const whatsapp = () => {
     const base = `${window.location.origin}/q/${q.shareToken}`;
-    const text = `Dear Sir/Madam,\nAs discussed, here is purchase order ${poNumber ?? ""} for ${target.schoolName} against our quotation ${q.number}. Please check the quantities, sign, put the school stamp and send it back to us:\n${base}/po\n\nKit checklist (what each kit contains):\n${base}/checklist\n\nRegards,\n${me.name}\nWonder Learning`;
+    const text = `Dear Sir/Madam,\nAs discussed, here is purchase order ${poNumber ?? ""} for ${target.schoolName} against our quotation ${q.number}. Please check the quantities, sign, put the school stamp and send it back to us. The kit checklist (every item in each kit) is attached from page 2:\n${base}/po\n\nKit checklist on its own:\n${base}/checklist\n\nRegards,\n${me.name}\nWonder Learning`;
     window.open(`https://wa.me/${mobile}?text=${encodeURIComponent(text)}`, "_blank", "noopener");
   };
   const setCheque = (i: number, patch: Partial<(typeof v.cheques)[number]>) => edit({ cheques: v.cheques.map((c, j) => (j === i ? { ...c, ...patch } : c)) });
@@ -800,7 +800,7 @@ export function PoTemplateModal({ q, target, me, onClose }: { q: Q; target: Quot
       </div>
       <p className="small muted mt-3">
         {saved ? "Saved. " : "Save first, then preview or send. "}
-        The kit checklist goes with the WhatsApp message. When the signed PO comes back, use Upload signed PO: the PO number is filled in for you.
+        The PO lists any items taken out of a kit under &quot;Material Exclude&quot;, and the kit checklist is attached from page 2. When the signed PO comes back, use Upload signed PO: the PO number is filled in for you.
       </p>
     </Modal>
   );

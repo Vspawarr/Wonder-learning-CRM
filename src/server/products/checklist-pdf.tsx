@@ -35,7 +35,7 @@ function tint(hex: string, amount = 0.72) {
   return `#${((1 << 24) | (r << 16) | (g << 8) | b).toString(16).slice(1)}`;
 }
 
-function KitPage({ kit }: { kit: ChecklistKit }) {
+export function KitPage({ kit }: { kit: ChecklistKit }) {
   const color = kit.color ?? "#3D3BA8";
   let sr = 0;
   return (

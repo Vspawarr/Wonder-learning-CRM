@@ -3,6 +3,7 @@
 // signs, stamps and sends it back. Layout follows the original, section by section.
 import { Document, Font, Page, StyleSheet, Text, View, renderToBuffer } from "@react-pdf/renderer";
 import "../quotation/pdf"; // registers the Rupee font
+import { KitPage, type ChecklistKit } from "../products/checklist-pdf";
 
 // Keep words whole ("clearance", not "clear-ance").
 Font.registerHyphenationCallback((word) => [word]);
@@ -24,6 +25,10 @@ export type PoTemplateData = {
   customise: { label: string; yes: boolean }[];
   bankLines: string[];
   executive: { name: string; mobile: string | null; email: string | null };
+  /** Items taken out of the quoted kits ("Nursery Focus Kit: Shape Kit, Kit Box"); empty = nothing excluded. */
+  exclude: string[];
+  /** The quoted kits' checklist pages, printed after the PO so the school sees every item (R33). */
+  checklist: ChecklistKit[];
 };
 
 const NAVY = "#3B4A87";
@@ -200,7 +205,22 @@ export function PoTemplateDocument({ d }: { d: PoTemplateData }) {
         <View style={[s.boxed, { marginTop: 12 }]} wrap={false}>
           <View style={{ flexDirection: "row", borderBottomWidth: 0.8, borderColor: LINE }}>
             <Text style={{ backgroundColor: "#E5141B", color: "#FFFFFF", fontFamily: "Helvetica-Bold", fontSize: 10, padding: 9, width: 112 }}>Material Exclude</Text>
-            <Text style={{ color: "#E5141B", padding: 9 }}>Refer Cheklist</Text>
+            <View style={{ padding: 6, paddingHorizontal: 9, flexGrow: 1, flexBasis: 0, justifyContent: "center" }}>
+              {d.exclude.length ? (
+                d.exclude.map((x, i) => (
+                  <Text key={i} style={{ color: "#E5141B" }}>
+                    {x}
+                  </Text>
+                ))
+              ) : (
+                <Text style={{ color: "#E5141B" }}>Nothing excluded: full kits as per checklist</Text>
+              )}
+              {d.checklist.length ? (
+                <Text style={{ color: "#555555", fontSize: 7.6, marginTop: 2 }}>
+                  Kit checklist (every item in each kit{d.exclude.length ? ", after the exclusions" : ""}) is attached from page 2.
+                </Text>
+              ) : null}
+            </View>
           </View>
           <View style={{ flexDirection: "row" }}>
             <View style={[s.vline, { width: 300 }]}>
@@ -263,6 +283,9 @@ export function PoTemplateDocument({ d }: { d: PoTemplateData }) {
           {d.executive.email ? `, E-mail: ${d.executive.email}` : ""}
         </Text>
       </Page>
+      {d.checklist.map((k, i) => (
+        <KitPage key={i} kit={k} />
+      ))}
     </Document>
   );
 }

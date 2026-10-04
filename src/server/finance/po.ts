@@ -1,6 +1,7 @@
 // Purchase orders: the PO template we hand to schools (pre-filled from a sent
 // quotation, to sign, seal and send back), and the signed PO they return,
 // stored on the sales order with its PO number.
+import { quotationChecklistKits, quotationExclusions } from "../products/checklist";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { fromDbDate, isDateStr, toDbDate, todayIST } from "@/lib/dates";
@@ -135,6 +136,9 @@ export async function savePoTemplate(user: SessionUser, quotationId: string, raw
     const poNumber = q.poNumber ?? (await nextPoNumber());
     try {
       await db.quotation.update({ where: { id: q.id }, data: { poNumber, poDetails: d } });
+      // The deal's value (pipeline, dashboard) from kits × rate, unless someone has typed one (R33).
+      const value = q.items.reduce((t, it, i) => t + (d.kits[i] ?? 0) * Number(it.price), 0);
+      if (q.opportunityId && value > 0) await db.opportunity.updateMany({ where: { id: q.opportunityId, expectedValue: null }, data: { expectedValue: Math.round(value) } });
       return poNumber;
     } catch (e) {
       if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002" && !q.poNumber) continue;
@@ -202,6 +206,8 @@ async function templateFor(q: QuoteForPo) {
     customise: docs.poCustomise.map((label, i) => ({ label, yes: d.customise[i] ?? true })),
     bankLines: docs.bankLines,
     executive: { name: q.preparedBy.name, mobile: q.preparedBy.mobile, email: q.preparedBy.email },
+    exclude: await quotationExclusions(q.id),
+    checklist: await quotationChecklistKits(q.id),
   });
 }
 

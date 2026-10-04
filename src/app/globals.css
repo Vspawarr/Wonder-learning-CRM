@@ -514,14 +514,16 @@
   .md-table td { vertical-align: top; }
 
   /* profile hero: score ring + name + actions */
-  .hero { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 18px; align-items: center; }
+  .hero { display: grid; grid-template-columns: auto minmax(300px, 1fr) minmax(0, max-content); gap: 18px; align-items: center; }
+  /* The name keeps at least 300px; the buttons wrap onto more lines instead of squeezing it. */
+  .hero > :last-child { justify-content: flex-end; }
   .sring { position: relative; width: 92px; height: 92px; flex: none; }
   .sring svg { width: 100%; height: 100%; transform: rotate(-90deg); }
   .sring b { position: absolute; inset: 0; display: grid; place-items: center; font-family: var(--font-head); font-size: 22px; line-height: 1; text-align: center; }
   .sring b small { display: block; font-family: var(--font-body); font-size: 10.5px; font-weight: 600; color: var(--ink3); margin-top: 3px; }
   @media (max-width: 900px) {
     .hero { grid-template-columns: auto minmax(0, 1fr); gap: 14px; }
-    .hero > :last-child { grid-column: 1 / -1; }
+    .hero > :last-child { grid-column: 1 / -1; justify-content: flex-start; }
     .sring { width: 72px; height: 72px; }
     .sring b { font-size: 18px; }
   }
@@ -563,3 +565,11 @@
   .fychip:hover { border-color: var(--brand); text-decoration: none; }
 }
 @media (max-width: 480px) { .fychip { padding: 0 10px; height: 34px; } .fychip > span:first-child { display: none; } }
+
+/* Printing a page (e.g. How it works → Print / save as PDF): only the content. */
+@media print {
+  aside.side, header.sticky, .no-print, main .btn { display: none !important; }
+  body, main { background: #fff !important; }
+  main { padding: 0 !important; max-width: none !important; }
+  .card { box-shadow: none !important; border: 0 !important; }
+}

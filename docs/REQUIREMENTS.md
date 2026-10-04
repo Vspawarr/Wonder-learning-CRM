@@ -333,3 +333,21 @@ Renewal opportunities are now for the **next financial year** (e.g. **FY 2027-28
 client's orders in the current financial year (or their latest order), to close by 31 March. Existing renewals
 labelled 2027-28 already match. Screens say "FY" instead of "AY". (The client's PO form keeps its own "Academic
 Year" heading.)
+
+## R33. PO "Refer checklist", full check as owner and salesperson, workflow guide (4 Oct)
+
+"In PO template if material excluded then written refer checklist but where is checklist. How we are school know
+what is excluded. Now check everything as business owner and sales person view … also give me one document of
+workflow for client (if needed add workflow tab for now, we will remove it later) but client should understand
+every button and workflow, dependencies and everything."
+
+| Change | Status | Notes |
+|---|---|---|
+| PO template **Material Exclude** now lists the items taken out of each kit ("Nursery Focus Kit: Shape Kit"), or "Nothing excluded" | ✅ | From the quotation's "Change kit items" |
+| The **kit checklist is attached to the PO PDF from page 2** (removed items left out, added items under "Added for this school") | ✅ | WhatsApp message says so; separate checklist link kept |
+| Full walk-through in the browser as a salesperson (lead → call → quotation with kit changes and transport → opportunity → PO template → Won → client → signed PO → sales order → invoice → part payment → receipt → dispatch → To-do) and as the owner (every page, every PDF/Excel export, year filters, access rules, phone width) | ✅ | Fixes below |
+| Fix: a lead that was **already sent a quotation converts at Proposal Sent** (55%) with a "Follow up on the quotation" call, not Interested / "Schedule demo" | ✅ | |
+| Fix: **deal value fills in from the PO template** (kits × rate) when nobody typed one, so the pipeline and dashboard aren't ₹0 | ✅ | A typed value is never overwritten |
+| Fix: client page header squeezed the school name on laptop screens | ✅ | |
+| Fix: "sent by downloaded" → "sent by download" | ✅ | |
+| **Workflow guide** for the client: `docs/WORKFLOW.md`, also a **How it works** menu item for everyone (with Print / save as PDF) and a tab in Settings → Project documents | ✅ | Switch off in Settings → Features → "How it works guide" when no longer needed |

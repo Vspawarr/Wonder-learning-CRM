@@ -826,3 +826,26 @@ describe("financial year chosen after login (R31)", () => {
     expect((await pipelineCards(head, { year: fyRange(now) })).map((o) => o.id)).toContain(oppId);
   });
 });
+
+describe("PO template shows what is excluded and carries the checklist (R33)", () => {
+  it("lists removed kit items under Material Exclude and appends the kit's checklist page", async () => {
+    const { poTemplatePdf } = await import("@/server/finance/po");
+    const kit = await db.product.create({
+      data: { code: "KPO", name: "PO Test Kit", type: "MATERIAL", price: 300, contents: [{ title: "Group", items: ["Shape Kit", "Book"], prices: [{ sp: 20, mrp: 35 }, { sp: 280, mrp: 400 }] }] },
+    });
+    const q = await createQuotation(exA, { clientId }, {
+      date: today,
+      validityDays: 7,
+      toLine: "The Director",
+      schoolName: "Little Stars",
+      items: [{ productId: kit.id, description: "PO Test Kit (without Shape Kit)", mrp: 365, price: 280, kit: { removed: ["Shape Kit"], added: [] } }],
+    });
+    await markQuotationSent(exA, q, "download");
+    const { pdf } = await poTemplatePdf(exA, q);
+    const raw = pdf.toString("latin1");
+    // Two pages: the PO, then the kit checklist.
+    expect((raw.match(/\/Type\s*\/Page[^s]/g) ?? []).length).toBe(2);
+    await db.quotation.deleteMany({ where: { id: q } });
+    await db.product.delete({ where: { id: kit.id } });
+  });
+});

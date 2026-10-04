@@ -1,8 +1,7 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import Link from "next/link";
-import Markdown from "react-markdown";
-import remarkGfm from "remark-gfm";
+import { MarkdownDoc } from "@/components/markdown-doc";
 import { PageHeader } from "@/components/ui";
 import { requireSettingsAdmin } from "@/server/session";
 
@@ -11,6 +10,7 @@ export const metadata = { title: "Project documents" };
 // The project documents kept in the repository (docs/ and DEPLOY.md), readable inside the CRM.
 const DOCS = [
   { id: "status", file: "docs/STATUS.md", label: "Status" },
+  { id: "workflow", file: "docs/WORKFLOW.md", label: "Workflow guide" },
   { id: "requirements", file: "docs/REQUIREMENTS.md", label: "Requirements" },
   { id: "rules", file: "docs/BUSINESS_RULES.md", label: "Business rules" },
   { id: "pricing", file: "docs/PRICING.md", label: "Pricing & conflicts" },
@@ -42,24 +42,7 @@ export default async function DocsPage({ searchParams }: { searchParams: Promise
           </Link>
         ))}
       </div>
-      <article className="card md">
-        <Markdown
-          remarkPlugins={[remarkGfm]}
-          components={{
-            a: ({ href, children }) => {
-              const to = docHref(href);
-              return to?.startsWith("/") ? <Link href={to}>{children}</Link> : <a href={to} target="_blank" rel="noreferrer">{children}</a>;
-            },
-            table: ({ children }) => (
-              <div className="md-table">
-                <table>{children}</table>
-              </div>
-            ),
-          }}
-        >
-          {text}
-        </Markdown>
-      </article>
+      <MarkdownDoc text={text} linkFor={docHref} />
     </>
   );
 }
