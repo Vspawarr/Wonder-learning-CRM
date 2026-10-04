@@ -7,7 +7,7 @@ commit id, what changed in plain words, and the requirement it answers (R… in 
 
 ## 4 Oct 2026
 
-- `PENDING` **Expenses: no-bill option, company card, Director approval.** "Is the bill available?" Yes → upload,
+- `6c572e5` **Expenses: no-bill option, company card, Director approval.** "Is the bill available?" Yes → upload,
   No → description. New "Company credit card" in Who paid. Expenses approved by the Director (Admin until a
   Director login exists). (R38)
 - `7cbba77` **Expenses & advances.** My expenses for everyone (bill photo from the phone, own money / advance);
