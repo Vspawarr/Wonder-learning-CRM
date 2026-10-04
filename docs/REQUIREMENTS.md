@@ -414,3 +414,43 @@ credit card in who paid."
 | **Is the bill available?** Yes → upload bill; No → description of the expense and why there is no bill | ✅ | Shown on the card and in the export |
 | **Company credit card** in Who paid | ✅ | Not paid back; not counted against an advance |
 | **Director approves expenses**, including Admin / Accounts' own | ✅ | Until a Director login exists, Admin approves; ⏳ create the Director's login (STATUS.md) |
+
+## R39. Company accounts: complete view of the company's money (4 Oct) — PLAN, waiting for go-ahead
+
+"One more addition we will do tomorrow: company's complete account — money received, money spent, outstanding etc.,
+whatever is required to see the company's finance. First give plan, then we will proceed tomorrow."
+
+**Status: ⏳ plan shared; build after the owner confirms the plan and answers the questions below.**
+
+Plan (management view of the company's money; the CA keeps the statutory books, the CRM gives them exports):
+
+1. **Money accounts**: where money sits: each bank account, Cash, Company credit card. Opening balance as on the start
+   date (1 Apr 2026 or go-live). Settings → Money accounts (Accounts only).
+2. **Every rupee tagged to an account**:
+   - School payments: on approval Accounts confirms the account (bank for UPI / NEFT / cleared cheque, Cash for cash).
+   - Expenses: company account / company card / cash; pay-backs and advances paid from an account.
+   - **Transfers** between accounts (cash deposited in bank, card bill paid from bank).
+3. **Other money in / out** not linked to a school: salaries, rent, printing-press / supplier bills, GST / TDS paid,
+   bank charges, loans, capital, interest, refunds. Entry: date, in or out, category, amount, account, party,
+   reference, bill photo, note. Director approves outgoing entries (same rule as expenses, R38).
+4. **Company finance overview** (Accounts → Company finance), for the chosen financial year / month / custom dates:
+   - Money in (school collections, other income) vs money out (by category); net; month-by-month in vs out.
+   - **Balances today** per account (bank, cash, card).
+   - **To receive**: schools' outstanding + ageing, cheques in hand, payments waiting approval.
+   - **To pay**: owed to employees (pay-backs), card bill, supplier bills due (if payables are included).
+   - Simple income vs expense view (invoiced sales vs approved spending).
+5. **Account book** per money account: date, particulars, in, out, running balance (like the client ledger), with a
+   "matched with bank statement" tick per entry for monthly checking.
+6. **Reports** (PDF / Excel): income & expense, cash flow, expenses by category / person, collections by school /
+   salesperson, account books; all follow the financial-year choice.
+7. **Access**: Accounts (Director / Admin) only; feature switch in Settings → Features.
+
+Later (phase B, if wanted): supplier bills and payables, bank-statement Excel import and auto-matching, monthly
+budgets vs actual.
+
+Questions for the owner (answers needed before building):
+- Bank account names (and the company card) and their **opening balances**, and from which date.
+- Should salaries, rent and **printing-press / supplier bills** be entered here? Include "bills to pay" (payables)?
+- Is this the company's management view (CA keeps Tally / statutory books), or should it replace the accountant's books?
+- Do salespeople collect **cash** from schools?
+- Any sales with GST other than 0% that need a GST summary?
