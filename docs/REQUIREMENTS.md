@@ -325,3 +325,11 @@ financial year first, like Apr26-Mar27 (it will display as 2026-27)."
 | Leads, opportunities, pipeline, outstanding, ledger, dashboard and their PDF/Excel follow the chosen year | ✅ | Items still open carry into the next year (see Business rules) |
 | **Clients are never removed by year.** Clients list shows **In 2026-27: Renewed / New / Ordered again / Not renewed / No order**, with the year's order value, and filter chips for each | ✅ | Schools that didn't continue stay listed with "last ordered 2025-26", so they can be contacted again |
 | A school's own page always shows its full history, whatever year is chosen | ✅ | |
+
+## R32. Renewals follow the financial year (3 Oct)
+
+"Follow the financial year (April – March)." (answer to the question in R31) ✅
+Renewal opportunities are now for the **next financial year** (e.g. **FY 2027-28** while in 2026-27), valued at the
+client's orders in the current financial year (or their latest order), to close by 31 March. Existing renewals
+labelled 2027-28 already match. Screens say "FY" instead of "AY". (The client's PO form keeps its own "Academic
+Year" heading.)

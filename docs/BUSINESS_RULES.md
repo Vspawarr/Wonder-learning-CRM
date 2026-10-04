@@ -32,8 +32,8 @@ change it here in the same commit as the code. Requirement numbers (R…) point 
    Proposal Sent and Negotiation create a follow-up in 2 days. Sending a quotation moves the deal to
    Proposal Sent. Pipeline value = the typed **Expected deal value** (deals without one show "no value yet").
 4. **Convert to client** on a Won deal → client in **Onboarding**, then **Active** when onboarding is marked complete.
-5. **Renewals:** each academic year (June–May), clients who ordered get a "Renewal: AY …" opportunity valued
-   at last year's orders (switchable feature).
+5. **Renewals:** each financial year (April – March), clients who ordered get a "Renewal: FY …" opportunity for the
+   next financial year, valued at this year's orders, to close by 31 March (switchable feature) (R32).
 
 Duplicates: a new lead with the same mobile, or the same school name in the same city, as an existing lead or
 client shows a warning (the user may still save). The Excel upload skips same school name + mobile.
@@ -155,8 +155,7 @@ grey = done/cancelled (R28).
   with this year's order value (sales orders, not cancelled). Filter chips: Ordered · Renewed · New · Not renewed
   · No order. With All years, the column shows the last year the school ordered.
 - A record's own page (lead, opportunity, client) always shows its whole history.
-- Renewal opportunities still follow the **academic year (June – May)**; receipt and PO numbers follow the
-  financial year.
+- Renewals, receipt numbers and PO numbers all follow the financial year (R32).
 
 ## Dashboard
 

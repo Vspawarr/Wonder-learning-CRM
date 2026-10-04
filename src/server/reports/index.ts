@@ -556,7 +556,7 @@ async function dashboard(user: SessionUser, p: Params): Promise<Report> {
       { k: "Orders to deliver", v: svc.orders.length },
       ...(features.dispatch ? [{ k: "Kits in transit", v: svc.inTransit }] : []),
       { k: "Clients onboarding", v: svc.onboarding },
-      ...(renewals ? [{ k: `Renewals due (${renewals.ay.label})`, v: renewals.clients.length }] : []),
+      ...(renewals ? [{ k: `Renewals due (FY ${renewals.ay.label})`, v: renewals.clients.length }] : []),
     ]);
     sections.push({
       heading: "Follow-ups due",

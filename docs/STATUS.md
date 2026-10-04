@@ -20,7 +20,6 @@ _Last updated: 3 Oct 2026. Update this page whenever the situation changes._
 |---|---|---|
 | Feedback from the client's testing | Final changes before go-live | — |
 | Prices (and item prices) for Play Group, Nursery (checklist kit), LKG and UKG kits: now unpriced, as prices come only from the Excel; answers to the open points in `docs/PRICING.md` | Settings → Products | R28, R29 |
-| Should renewals follow the financial year (Apr–Mar) instead of the academic year (Jun–May)? | Renewal opportunities are named "AY 2027-28" today | R31, R19 B5 |
 | Current receipt-book and PO numbers to continue from | Settings → Documents → Numbering | R27 |
 | Whether receipts should carry a scanned signature image (now: name only) | Printing someone's signature automatically needs their OK | R27 |
 | Invoice sample | Invoice PDF layout is provisional; add GSTIN, HSN/SAC, place of supply, bank details | R12, R19 C |

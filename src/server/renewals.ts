@@ -1,5 +1,6 @@
-// Academic-year renewals: each client that ordered this year gets a renewal
-// opportunity for the next academic year (June to May), worth last year's order.
+// Renewals by financial year (April – March, R32): each client that ordered gets a renewal
+// opportunity for the next financial year, worth this year's orders.
+// (Opportunity.academicYear holds the year label, e.g. "2027-28".)
 import { db } from "@/lib/db";
 import { addDays, todayIST, toDbDate, type DateStr } from "@/lib/dates";
 import { seesAllSales, type SessionUser } from "@/lib/permissions";
@@ -7,20 +8,20 @@ import { clientScope } from "./access";
 import { DomainError } from "./errors";
 import { getFeatures } from "./features";
 import { totals } from "./finance/money";
+import { financialYear, fyLabel, fyRange } from "@/lib/fy";
 
-/** The academic year whose season we sell for now: the one starting next June ("2027-28"). */
-export function nextAcademicYear(today: DateStr = todayIST()) {
-  const [y, m] = today.split("-").map(Number);
-  const start = m < 6 ? y : y + 1;
+/** The financial year renewals are sold for: the one after the current year ("2027-28" from Apr 2026 – Mar 2027). */
+export function nextRenewalYear(today: DateStr = todayIST()) {
+  const start = financialYear(today).start + 1;
   return {
-    label: `${start}-${String(start + 1).slice(2)}`,
-    startsOn: `${start}-06-01` as DateStr,
+    label: fyLabel(start),
+    startsOn: `${start}-04-01` as DateStr,
   };
 }
 
 /** Clients with orders who don't yet have a renewal for the coming academic year. */
 export async function renewalCandidates(user: SessionUser, onlyClientId?: string) {
-  const ay = nextAcademicYear();
+  const ay = nextRenewalYear();
   const clients = await db.client.findMany({
     where: {
       ...clientScope(user),
@@ -36,12 +37,12 @@ export async function renewalCandidates(user: SessionUser, onlyClientId?: string
       },
     },
   });
-  const yearAgo = toDbDate(addDays(todayIST(), -365));
+  const thisYear = toDbDate(fyRange(financialYear(todayIST()).start).from);
   return {
     ay,
     clients: clients.map((c) => {
-      // Last year's business: orders in the past 12 months (or the latest order).
-      const recent = c.salesOrders.filter((o) => o.date >= yearAgo);
+      // This financial year's business (or, if none, the latest order).
+      const recent = c.salesOrders.filter((o) => o.date >= thisYear);
       const basis = recent.length ? recent : c.salesOrders.slice(0, 1);
       const value = basis.reduce(
         (t, o) =>
@@ -67,10 +68,11 @@ export async function createRenewals(user: SessionUser, clientId?: string) {
   const { ay, clients } = await renewalCandidates(user, clientId);
   if (!clients.length)
     throw new DomainError(
-      clientId ? `This client already has a renewal for AY ${ay.label}, or no orders yet.` : `Every client already has a renewal for AY ${ay.label}.`,
+      clientId ? `This client already has a renewal for FY ${ay.label}, or no orders yet.` : `Every client already has a renewal for FY ${ay.label}.`,
     );
   const today = todayIST();
-  const closeBy = `${ay.startsOn.slice(0, 4)}-03-31`;
+  // Close before the new year starts (31 March).
+  const closeBy = addDays(ay.startsOn, -1);
   await db.$transaction(async (tx) => {
     for (const c of clients) {
       const opp = await tx.opportunity.create({
@@ -81,7 +83,7 @@ export async function createRenewals(user: SessionUser, clientId?: string) {
           temperature: "WARM",
           expectedValue: c.value || null,
           expectedCloseDate: toDbDate(closeBy > today ? closeBy : addDays(today, 30)),
-          nextAction: `Renewal for AY ${ay.label}`,
+          nextAction: `Renewal for FY ${ay.label}`,
           nextActionDate: toDbDate(addDays(today, 7)),
           ownerId: c.ownerId,
           createdById: user.id,
@@ -99,7 +101,7 @@ export async function createRenewals(user: SessionUser, clientId?: string) {
       await tx.task.create({
         data: {
           type: "Call",
-          title: `Renewal AY ${ay.label}: ${c.schoolName}`,
+          title: `Renewal FY ${ay.label}: ${c.schoolName}`,
           remark: "Confirm next year's kits and student numbers.",
           dueDate: toDbDate(addDays(today, 7)),
           priority: "HIGH",
@@ -112,7 +114,7 @@ export async function createRenewals(user: SessionUser, clientId?: string) {
       await tx.activity.create({
         data: {
           type: "SYSTEM",
-          subject: `Renewal opportunity for AY ${ay.label} created`,
+          subject: `Renewal opportunity for FY ${ay.label} created`,
           byId: user.id,
           clientId: c.id,
           opportunityId: opp.id,

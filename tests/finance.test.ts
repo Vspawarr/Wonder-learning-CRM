@@ -681,11 +681,11 @@ describe("client documents and contacts", () => {
 });
 
 describe("renewals", () => {
-  it("next academic year starts in June", async () => {
-    const { nextAcademicYear } = await import("@/server/renewals");
-    expect(nextAcademicYear("2026-10-01").label).toBe("2027-28");
-    expect(nextAcademicYear("2027-02-10").label).toBe("2027-28");
-    expect(nextAcademicYear("2027-06-02").label).toBe("2028-29");
+  it("renewals are for the next financial year (April – March)", async () => {
+    const { nextRenewalYear } = await import("@/server/renewals");
+    expect(nextRenewalYear("2026-10-01")).toEqual({ label: "2027-28", startsOn: "2027-04-01" });
+    expect(nextRenewalYear("2027-03-31").label).toBe("2027-28");
+    expect(nextRenewalYear("2027-04-01").label).toBe("2028-29");
   });
 
   it("creates one renewal per ordering client, worth last year's order", async () => {

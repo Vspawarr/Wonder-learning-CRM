@@ -122,7 +122,7 @@ export function OppDrawer({
       ) : null}
       {opp.renewalOf ? (
         <div className="note">
-          Renewal for AY {opp.academicYear} of client <Link href={`/clients/${opp.renewalOf.id}`}>{opp.renewalOf.schoolName}</Link>.
+          Renewal for FY {opp.academicYear} of client <Link href={`/clients/${opp.renewalOf.id}`}>{opp.renewalOf.schoolName}</Link>.
           {opp.stage === "WON" ? " Won: create the sales order on the client page." : ""}
         </div>
       ) : null}

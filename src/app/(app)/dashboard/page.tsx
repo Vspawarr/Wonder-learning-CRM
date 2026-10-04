@@ -314,7 +314,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
             {features.dispatch ? <Kpi label="Kits in transit" value={svc.inTransit} sub="Dispatched, not yet received" color="#7A48B8" /> : null}
             <Kpi label="Onboarding" value={svc.onboarding} sub="New clients being set up" color="#1C86C4" href="/clients" />
             {renewals ? (
-              <Kpi label="Renewals due" value={renewals.clients.length} sub={`For ${renewals.ay.label}`} color="#0E8F79" href="/clients" />
+              <Kpi label="Renewals due" value={renewals.clients.length} sub={`For FY ${renewals.ay.label}`} color="#0E8F79" href="/clients" />
             ) : null}
           </div>
           <div className="grid grid-cols-1 gap-4 min-[901px]:grid-cols-2">
