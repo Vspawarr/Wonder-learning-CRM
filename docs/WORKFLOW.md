@@ -280,16 +280,19 @@ bounced cheque · renewal (call in 7 days).
 ## 11a. Expenses and advances
 
 **Everyone: My expenses** (menu). For hotel, travel, meals and other work spends:
-1. **Add expense** → **Take photo / choose file** (the phone camera opens; big photos are shrunk automatically; up
-   to 4 bills, photo or PDF) → date, amount, kind (Travel, Local travel / fuel, Hotel / stay, Meals, Courier,
+1. **Add expense** → **Is the bill available?** **Yes** → **Take photo / choose file** (the phone camera opens; big
+   photos are shrunk automatically; up to 4 bills, photo or PDF). **No bill** → describe the expense and why there is
+   no bill. Then date, amount, kind (Travel, Local travel / fuel, Hotel / stay, Meals, Courier,
    Printing, Phone, School meeting, Services, Software / licences, Marketing, Office, Other), **who paid**
-   (**Own money** = pay me back, or **From my advance**), city, what it was for, optionally the school → **Save**.
-2. It goes to **Accounts** for approval. The page shows **Advance with me**, **To be paid back to me**, **Waiting
+   (**Own money** = pay me back, **From my advance**, or **Company credit card**), city, what it was for, optionally the school → **Save**.
+2. It goes for approval to the **Director** (Admin approves until a Director login is created). The page shows **Advance with me**, **To be paid back to me**, **Waiting
    for approval** and **Approved this year**, each expense with its status and bill, and the advances received.
 3. **Delete** your expense while it waits or after a rejection (then add it again correctly).
 
 **Accounts → Expenses** (Director / Admin for now):
-- **Waiting for approval**: open the **Bill**, then **Approve** or **Reject** (reason; the person gets a to-do).
+- The page says who approves. **Waiting for approval**: open the **Bill** (or read the "No bill" description), then
+  **Approve** or **Reject** (reason; the person gets a to-do). Approve / Reject buttons appear only for the
+  Director (or Admin while there is no Director login); Admin's own expenses also go to the Director.
 - **People**: per employee, advance with them (given − returned − spent from advance), what to pay back, what's
   waiting. **Pay back ₹…** marks all their approved own-money spends as paid (date + UTR / voucher). **Advance**
   gives money in advance, or records money returned.

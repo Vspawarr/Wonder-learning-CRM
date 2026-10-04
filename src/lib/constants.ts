@@ -193,6 +193,12 @@ export const EXPENSE_CATEGORIES = [
   "Other",
 ] as const;
 export const EXPENSE_MODES = ["Cash", "UPI", "Card", "NEFT/RTGS", "Cheque", "Other"] as const;
-export const EXPENSE_PAID_BY_LABEL = { OWN: "Own money (reimburse me)", ADVANCE: "From my advance", COMPANY: "Company account" } as const;
+export const EXPENSE_PAID_BY_LABEL = {
+  OWN: "Own money (reimburse me)",
+  ADVANCE: "From my advance",
+  COMPANY_CARD: "Company credit card",
+  COMPANY: "Company account",
+} as const;
+export const EXPENSE_PAID_BY_SHORT = { OWN: "Own money", ADVANCE: "From advance", COMPANY_CARD: "Company card", COMPANY: "Company account" } as const;
 export const EXPENSE_STATUS_LABEL = { SUBMITTED: "Waiting for approval", APPROVED: "Approved", REJECTED: "Rejected" } as const;
 export const expenseCode = (n: number) => `E-${n}`;

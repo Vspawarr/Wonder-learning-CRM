@@ -8,6 +8,7 @@ import { ToastProvider } from "@/components/client";
 import { requireUser } from "@/server/session";
 import { Shell, type NavGroup } from "./shell";
 import { selectedYear } from "@/server/year";
+import { canApproveExpenses } from "@/server/expenses";
 import { fyLabel } from "@/lib/fy";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
@@ -23,7 +24,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     getFeatures(),
     selectedYear(),
     canApprovePayments(user.role) ? db.payment.count({ where: { approval: "PENDING" } }) : 0,
-    canApprovePayments(user.role) ? db.expense.count({ where: { status: "SUBMITTED" } }) : 0,
+    canApproveExpenses(user).then((ok) => (ok ? db.expense.count({ where: { status: "SUBMITTED" } }) : 0)),
   ]);
 
   const nav: NavGroup[] = [

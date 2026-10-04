@@ -1,6 +1,7 @@
 // Expenses (R37): the team's spends on visits (travel, hotel, meals…) and company costs (services,
-// licences…), each with its bill photo. Employees submit; Accounts approves or rejects, pays back own-money
-// spends, and keeps track of advances given to employees. Accounts' own entries count straight away.
+// licences…), each with its bill photo (or, when there is none, a description). Employees submit; the Director
+// approves or rejects (R38; Admin while there is no Director login); Accounts pays back own-money spends and
+// keeps track of advances given to employees.
 import { z } from "zod";
 import type { Prisma } from "@/generated/prisma/client";
 import { db } from "@/lib/db";
@@ -37,7 +38,10 @@ export const expenseInput = z.object({
   description: z.string().trim().min(2, "Write what it was for (e.g. Hotel in Nashik for school visits).").max(300),
   city: text(100),
   paidTo: text(150),
-  paidBy: z.enum(["OWN", "ADVANCE", "COMPANY"], { error: "Choose who paid." }),
+  paidBy: z.enum(["OWN", "ADVANCE", "COMPANY_CARD", "COMPANY"], { error: "Choose who paid." }),
+  /** Is there a bill? "no" needs a description of the spend and why there is no bill (R38). */
+  billAvailable: z.enum(["yes", "no"]).default("yes"),
+  noBillReason: text(500),
   mode: optMode,
   reference: text(100),
   /** Accounts may enter a spend for an employee; empty = their own (or a company expense). */
@@ -70,6 +74,26 @@ function assertAccounts(user: SessionUser) {
   if (!canManageExpenses(user.role)) throw new DomainError("Only Accounts can do this.");
 }
 
+/**
+ * Who approves expenses (R38): the Director. Until a Director login exists, Admin approves so claims don't wait
+ * forever; once a Director is active, Admin's own expenses go to the Director too.
+ */
+export async function canApproveExpenses(user: SessionUser) {
+  if (user.role === "DIRECTOR") return true;
+  if (user.role !== "ADMIN") return false;
+  return (await db.user.count({ where: { role: "DIRECTOR", active: true } })) === 0;
+}
+
+/** For the screens: who expense claims go to. */
+export async function expenseApprover() {
+  const d = await db.user.findFirst({ where: { role: "DIRECTOR", active: true }, select: { name: true }, orderBy: { createdAt: "asc" } });
+  return d ? `Director (${d.name})` : "Admin (until a Director login is created)";
+}
+
+async function assertApprover(user: SessionUser) {
+  if (!(await canApproveExpenses(user))) throw new DomainError("Expenses are approved by the Director.");
+}
+
 /** Saves an expense with its bill(s). Employees: own spends only (own money or advance). Accounts: also company or for someone. */
 export async function createExpense(user: SessionUser, raw: unknown, files: BillFile[]) {
   await assertOn();
@@ -80,7 +104,11 @@ export async function createExpense(user: SessionUser, raw: unknown, files: Bill
   if (d.date < addDays(todayIST(), -400)) throw new DomainError("That date is more than a year ago.");
   const userId = d.paidBy === "COMPANY" ? (d.userId ?? null) : accounts && d.userId ? d.userId : user.id;
   if (userId && userId !== user.id && !(await db.user.count({ where: { id: userId, active: true } }))) throw new NotFoundError("Employee");
-  if (!files.length && d.paidBy !== "COMPANY") throw new DomainError("Attach the bill: a photo or PDF.");
+  const noBill = d.billAvailable === "no";
+  if (noBill) {
+    if (!d.noBillReason || d.noBillReason.length < 10) throw new DomainError("No bill: describe the expense and why there is no bill (at least a few words).");
+    files = [];
+  } else if (!files.length) throw new DomainError("Attach the bill (photo or PDF), or choose “No bill” and describe the expense.");
   if (files.length > 4) throw new DomainError("Attach up to 4 bills per expense.");
   for (const f of files) {
     if (!PO_TYPES[f.type]) throw new DomainError("Bills must be photos (JPG / PNG) or PDFs.");
@@ -100,8 +128,8 @@ export async function createExpense(user: SessionUser, raw: unknown, files: Bill
       leadId = clientId ? null : (o?.leadId ?? null);
     }
   }
-  // Accounts' own entries need no approval (R36 rule, applied to expenses too).
-  const approved = accounts;
+  // The approver's own entries need no approval (R38: the Director; Admin while there is no Director).
+  const approved = await canApproveExpenses(user);
   const e = await db.expense.create({
     data: {
       date: toDbDate(d.date),
@@ -113,6 +141,7 @@ export async function createExpense(user: SessionUser, raw: unknown, files: Bill
       paidBy: d.paidBy,
       mode: d.mode,
       reference: d.reference,
+      noBillReason: noBill ? d.noBillReason : null,
       userId,
       leadId,
       clientId,
@@ -147,7 +176,7 @@ export async function deleteExpense(user: SessionUser, id: string) {
 }
 
 export async function approveExpense(user: SessionUser, id: string) {
-  assertAccounts(user);
+  await assertApprover(user);
   const e = await db.expense.findUnique({ where: { id } });
   if (!e) throw new NotFoundError("Expense");
   if (e.status !== "SUBMITTED") throw new DomainError(`This expense is already ${e.status === "APPROVED" ? "approved" : "rejected"}.`);
@@ -157,7 +186,7 @@ export async function approveExpense(user: SessionUser, id: string) {
 export const rejectExpenseInput = z.object({ reason: z.string().trim().min(3, "Write why it is rejected (e.g. bill not clear).").max(300) });
 
 export async function rejectExpense(user: SessionUser, id: string, raw: unknown) {
-  assertAccounts(user);
+  await assertApprover(user);
   const { reason } = parse(rejectExpenseInput, raw);
   const e = await db.expense.findUnique({ where: { id } });
   if (!e) throw new NotFoundError("Expense");
@@ -231,6 +260,7 @@ const row = (e: Prisma.ExpenseGetPayload<{ include: typeof listInclude }>) => ({
   paidBy: e.paidBy,
   mode: e.mode,
   reference: e.reference,
+  noBillReason: e.noBillReason,
   status: e.status,
   rejectReason: e.rejectReason,
   decidedBy: e.decidedBy?.name ?? null,

@@ -848,6 +848,7 @@ enum ExpensePaidBy {
   OWN
   ADVANCE
   COMPANY
+  COMPANY_CARD
 }
 
 enum ExpenseStatus {
@@ -858,17 +859,19 @@ enum ExpenseStatus {
 
 /// A spend with its bill: travel, hotel, meals on visits, or company costs (services, licences…).
 model Expense {
-  id          String        @id @default(cuid())
-  number      Int           @unique @default(autoincrement()) // shown as E-<number>
-  date        DateTime      @db.Date
-  category    String // EXPENSE_CATEGORIES
-  amount      Decimal       @db.Decimal(12, 2)
-  description String
-  city        String?
-  paidTo      String? // hotel, vendor…
-  paidBy      ExpensePaidBy
-  mode        String? // EXPENSE_MODES
-  reference   String?
+  id           String        @id @default(cuid())
+  number       Int           @unique @default(autoincrement()) // shown as E-<number>
+  date         DateTime      @db.Date
+  category     String // EXPENSE_CATEGORIES
+  amount       Decimal       @db.Decimal(12, 2)
+  description  String
+  city         String?
+  paidTo       String? // hotel, vendor…
+  paidBy       ExpensePaidBy
+  mode         String? // EXPENSE_MODES
+  reference    String?
+  /// No bill: what the spend was and why there is no bill (R38). Required when no bill is attached.
+  noBillReason String?
 
   /// The employee whose spend it is; empty for a company expense.
   userId   String?

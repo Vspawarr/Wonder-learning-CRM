@@ -56,7 +56,7 @@ Code: `src/server/reports/index.ts` (one builder per report, using the screen's 
 | `ledger` | Ledger | One client: Date, Ref. No., Particulars, Debit, Credit, Balance. All clients: Client, School, City, Assigned to, Opening, Invoiced, Received, Closing |
 | `todo` | To-do | When, Date, Time, Type, Task, Related to, Priority, Postponed, Assigned to |
 | `approvals` | Accounts → Payment approvals (Director / Admin) | Waiting for approval, then decided in the last 30 days: School, Against, Amount, Paid on, Mode / ref., Recorded by, Decision, Receipt / reason, By |
-| `expenses` | My expenses (own) / Accounts → Expenses (everyone, with filters) | No., Date, Person, Kind, What for, City, Paid by, Amount, Status, Paid back; total |
+| `expenses` | My expenses (own) / Accounts → Expenses (everyone, with filters) | No., Date, Person, Kind, What for, City, Paid by (incl. Company card), Bill (Yes / No: description), Amount, Status, Paid back; total |
 | `dashboard` | Dashboard | Follows the **Show** buttons: Sales (key numbers, pipeline by stage, lead sources, biggest deals) · Finance (collected/outstanding/overdue/cheques, ageing, expected collections) · Team & management (win rate, lost, interactions, team table, targets, lost reasons, competitors) · Service & delivery (follow-ups, orders to deliver, kits in transit, onboarding, renewals, lists) |
 
 Wording rule: the salesperson is always **"Assigned to"**; "Owner" only means the school's owner.

@@ -1,5 +1,5 @@
 // Every exportable report, built with the same filters and access rules as its screen.
-import { CLIENT_STATUS_LABEL, LEAD_STATUS_LABEL, STAGE_LABEL, TEMPERATURE_LABEL, clientCode, leadCode, oppCode } from "@/lib/constants";
+import { CLIENT_STATUS_LABEL, EXPENSE_PAID_BY_SHORT, LEAD_STATUS_LABEL, STAGE_LABEL, TEMPERATURE_LABEL, clientCode, leadCode, oppCode } from "@/lib/constants";
 import { daysFrom, istDate, todayIST } from "@/lib/dates";
 import { seesAllSales, type SessionUser } from "@/lib/permissions";
 import { salesDashboard, serviceSummary } from "../dashboard";
@@ -615,6 +615,7 @@ async function expenses(user: SessionUser, p: Params): Promise<Report> {
           { key: "desc", header: "What for", width: 2 },
           { key: "city", header: "City", width: 0.7 },
           { key: "paidBy", header: "Paid by", width: 0.8 },
+          { key: "bill", header: "Bill", width: 1 },
           { key: "amount", header: "Amount", width: 0.8, kind: "money" },
           { key: "status", header: "Status", width: 0.8 },
           { key: "back", header: "Paid back", width: 0.8 },
@@ -626,7 +627,8 @@ async function expenses(user: SessionUser, p: Params): Promise<Report> {
           category: e.category,
           desc: e.description,
           city: e.city ?? "",
-          paidBy: e.paidBy === "OWN" ? "Own money" : e.paidBy === "ADVANCE" ? "Advance" : "Company",
+          paidBy: EXPENSE_PAID_BY_SHORT[e.paidBy],
+          bill: e.files.length ? `Yes (${e.files.length})` : e.noBillReason ? `No: ${e.noBillReason}` : "No",
           amount: e.amount,
           status: e.status === "SUBMITTED" ? "Waiting" : e.status === "APPROVED" ? "Approved" : `Rejected: ${e.rejectReason ?? ""}`,
           back: e.paidBy === "OWN" && e.status === "APPROVED" ? (e.reimbursedOn ? dmy(e.reimbursedOn) : "To pay") : "",

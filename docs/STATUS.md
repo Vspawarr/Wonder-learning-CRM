@@ -20,6 +20,7 @@ _Last updated: 3 Oct 2026. Update this page whenever the situation changes._
 |---|---|---|
 | Feedback from the client's testing | Final changes before go-live | — |
 | Prices (and item prices) for Play Group, Nursery (checklist kit), LKG and UKG kits: now unpriced, as prices come only from the Excel; answers to the open points in `docs/PRICING.md` | Settings → Products | R28, R29 |
+| **Create the Director's login** (Settings → Users → Add user, role Director). From then on **expense approvals go to the Director**, including Admin's own expenses; until then Admin approves | Owner said: "expense approval should be to Director, keep in memory once we give credential to Director" | R38 |
 | Who owns the **Accounts** section (payment approvals): today the Director / Admin logins; a separate Accounts login/role can be added | Decide the person and their access | R36 |
 | Current receipt-book and PO numbers to continue from | Settings → Documents → Numbering | R27 |
 | Whether receipts should carry a scanned signature image (now: name only) | Printing someone's signature automatically needs their OK | R27 |
@@ -47,7 +48,7 @@ _Last updated: 3 Oct 2026. Update this page whenever the situation changes._
 
 - Start with `CLAUDE.md`, then this folder. You should not need old chat history.
 - Local: see `README.md` (Postgres via docker compose, `npm run dev`). Tests: `npm test` (integration tests
-  against `TEST_DATABASE_URL`, 143 passing on 4 Oct), `npm run lint`, `npm run typecheck`.
+  against `TEST_DATABASE_URL`, 146 passing on 4 Oct), `npm run lint`, `npm run typecheck`.
 - Database changes: add a migration in `prisma/migrations/` (Vercel runs `prisma migrate deploy` on each deploy).
 - Before every push: tests, lint, typecheck, a build, a look at desktop and phone width, the downloads
   checklist in `DOWNLOADS_AND_TEMPLATES.md`, then update `CHANGELOG.md`, `REQUIREMENTS.md` and this page.

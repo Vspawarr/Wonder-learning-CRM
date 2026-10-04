@@ -53,7 +53,7 @@ describe("expenses (R37)", () => {
     expect((await expenseList(admin)).map((e) => e.id)).toContain(r.id);
     await expect(expenseFile(exB, row.files[0].id)).rejects.toThrow(/not found/);
     expect((await expenseFile(exA, row.files[0].id)).contentType).toBe("image/jpeg");
-    await expect(approveExpense(exA, r.id)).rejects.toThrow(/Only Accounts/);
+    await expect(approveExpense(exA, r.id)).rejects.toThrow(/Director/);
   });
 
   it("approved own-money spends are paid back; rejected ones go back with a reason", async () => {
@@ -89,9 +89,43 @@ describe("expenses (R37)", () => {
     [bal] = await expenseBalances(exA);
     expect(bal.advanceBalance).toBe(2000);
     // A company-account expense by Accounts: no bill needed, approved straight away, no employee.
-    const c = await createExpense(admin, spend({ paidBy: "COMPANY", category: "Software / licences", description: "CRM hosting, October", userId: "" }), []);
+    const c = await createExpense(admin, spend({ paidBy: "COMPANY", category: "Software / licences", description: "CRM hosting, October", userId: "", billAvailable: "no", noBillReason: "Online invoice to come by email next week" }), []);
     expect(c.approved).toBe(true);
     expect((await db.expense.findUniqueOrThrow({ where: { id: c.id } })).userId).toBeNull();
     expect((await expenseList(admin, { person: "company" })).map((e) => e.id)).toEqual([c.id]);
+  });
+});
+
+describe("no bill, company card, Director approval (R38)", () => {
+  it("an expense without a bill needs a description instead", async () => {
+    await expect(createExpense(exA, spend({ billAvailable: "no", noBillReason: "auto" }), [])).rejects.toThrow(/describe/);
+    await expect(createExpense(exA, spend({ billAvailable: "yes" }), [])).rejects.toThrow(/Attach the bill/);
+    const r = await createExpense(exA, spend({ billAvailable: "no", noBillReason: "Auto rickshaw station to 3 schools, no receipt", amount: 150 }), [bill]);
+    const e = await db.expense.findUniqueOrThrow({ where: { id: r.id }, include: { files: true } });
+    expect(e.noBillReason).toMatch(/Auto rickshaw/);
+    expect(e.files).toHaveLength(0); // "No bill" ignores any file picked earlier
+  });
+
+  it("company credit card: anyone may use it; never paid back or counted against an advance", async () => {
+    const r = await createExpense(exA, spend({ paidBy: "COMPANY_CARD", amount: 900 }), [bill]);
+    await approveExpense(admin, r.id);
+    const [bal] = await expenseBalances(exA);
+    expect(bal).toMatchObject({ toReimburse: 0, spentFromAdvance: 0 });
+  });
+
+  it("the Director approves; Admin only until a Director login exists, then Admin's own expenses wait too", async () => {
+    const { canApproveExpenses } = await import("@/server/expenses");
+    expect(await canApproveExpenses(admin)).toBe(true);
+    const director = await makeUser("DIRECTOR");
+    expect(await canApproveExpenses(admin)).toBe(false);
+    expect(await canApproveExpenses(director)).toBe(true);
+    const mine = await createExpense(admin, spend({ paidBy: "COMPANY_CARD" }), [bill]);
+    expect(mine.approved).toBe(false);
+    await expect(approveExpense(admin, mine.id)).rejects.toThrow(/Director/);
+    await approveExpense(director, mine.id);
+    const own = await createExpense(director, spend({ paidBy: "COMPANY", billAvailable: "no", noBillReason: "Bank charges for the month" }), []);
+    expect(own.approved).toBe(true);
+    // Admin still pays people back and gives advances.
+    await recordAdvance(admin, { userId: exA.id, amount: 1000, date: today });
   });
 });

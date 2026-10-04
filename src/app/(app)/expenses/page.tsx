@@ -4,7 +4,7 @@ import { ExportButtons } from "@/components/export-buttons";
 import { Card, Empty, Kpi, PageHeader } from "@/components/ui";
 import { inr } from "@/lib/format";
 import { canManageExpenses } from "@/lib/permissions";
-import { advanceList, expenseBalances, expenseList } from "@/server/expenses";
+import { advanceList, expenseApprover, expenseBalances, expenseList } from "@/server/expenses";
 import { getFeatures } from "@/server/features";
 import { taskTargets } from "@/server/queries";
 import { requireUser } from "@/server/session";
@@ -21,18 +21,19 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Pro
   if (!(await getFeatures()).expenses) notFound();
   const sp = await searchParams;
   const accounts = canManageExpenses(user.role);
-  const [rows, [bal], advances, targets] = await Promise.all([
+  const [rows, [bal], advances, targets, approver] = await Promise.all([
     expenseList(user, { ...sp, person: accounts ? user.id : undefined, year: await selectedRange() }),
     expenseBalances(user, user.id),
     advanceList(user, user.id),
     taskTargets(user),
+    expenseApprover(),
   ]);
   const spent = rows.filter((r) => r.status === "APPROVED").reduce((t, r) => t + r.amount, 0);
   return (
     <>
       <PageHeader
         title="My expenses"
-        sub="Travel, hotel, meals and other spends for work, each with its bill. Accounts approves them; spends from your own money are paid back."
+        sub={`Travel, hotel, meals and other spends for work, each with its bill (or a description if there is none). Approved by ${approver}; spends from your own money are then paid back.`}
       >
         <ExportButtons report="expenses" extra={{ person: user.id }} />
         <AddExpenseButton accounts={accounts} people={[{ id: user.id, name: user.name }]} targets={targets} me={user.id} />

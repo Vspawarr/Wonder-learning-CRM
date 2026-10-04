@@ -110,10 +110,15 @@ client shows a warning (the user may still save). The Excel upload skips same sc
 
 ## Expenses and advances (R37)
 
-- Anyone can add their own work expenses with bills (photo / PDF, up to 4, 4 MB each; phone photos are shrunk).
-  Who paid: **own money** (paid back after approval), **from advance**, or **company account** (Accounts only).
-- Expenses wait for **Accounts** (Director / Admin, `canManageExpenses`) to approve or reject (reason → to-do for
-  the person). Accounts' own entries are approved at once. Employees see only their own expenses.
+- Anyone can add their own work expenses. First question: **is the bill available?** Yes → bill photo / PDF (up to
+  4, 4 MB each; phone photos are shrunk). No → a description of the expense and why there is no bill (R38).
+  Who paid: **own money** (paid back after approval), **from advance**, **company credit card** (never paid back or
+  counted against an advance), or **company account** (entered by Accounts).
+- **Approval is by the Director (R38)**, for everyone's expenses including Admin / Accounts. **While no Director
+  login exists, Admin approves** (`canApproveExpenses`); once a Director is active, Admin's own expenses wait for the
+  Director too. The approver's own entries count at once. Rejection needs a reason (→ to-do for the person).
+  Accounts (Director / Admin, `canManageExpenses`) see everything, pay back and manage advances. Employees see only
+  their own expenses.
 - **Pay back**: Accounts marks a person's approved own-money expenses as paid (date, reference). Paid-back
   expenses can't be deleted; approved ones only by Accounts.
 - **Advances**: Accounts records money given (or returned). Advance with the employee = given − returned − approved

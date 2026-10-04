@@ -5,7 +5,7 @@ import { Card, Empty, Kpi, PageHeader } from "@/components/ui";
 import { db } from "@/lib/db";
 import { inr } from "@/lib/format";
 import { canManageExpenses } from "@/lib/permissions";
-import { advanceList, expenseBalances, expenseList } from "@/server/expenses";
+import { advanceList, canApproveExpenses, expenseApprover, expenseBalances, expenseList } from "@/server/expenses";
 import { getFeatures } from "@/server/features";
 import { taskTargets } from "@/server/queries";
 import { requireUser } from "@/server/session";
@@ -23,13 +23,15 @@ export default async function AccountsExpensesPage({ searchParams }: { searchPar
   if (!canManageExpenses(user.role) || !(await getFeatures()).expenses) notFound();
   const sp = await searchParams;
   const year = await selectedRange();
-  const [waiting, rows, balances, advances, people, targets] = await Promise.all([
+  const [waiting, rows, balances, advances, people, targets, canApprove, approver] = await Promise.all([
     expenseList(user, { status: "waiting" }),
     expenseList(user, { ...sp, year }),
     expenseBalances(user),
     advanceList(user),
     db.user.findMany({ where: { active: true }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
     taskTargets(user),
+    canApproveExpenses(user),
+    expenseApprover(),
   ]);
   const toPay = balances.reduce((t, b) => t + b.toReimburse, 0);
   const out = balances.reduce((t, b) => t + Math.max(0, b.advanceBalance), 0);
@@ -48,11 +50,14 @@ export default async function AccountsExpensesPage({ searchParams }: { searchPar
         <Kpi label="Approved (list below)" value={inr(approved)} sub="Chosen year and filters" color="#1C86C4" />
       </div>
 
+      <div className="note mb-3">
+        Expenses are approved by <b>{approver}</b>.{canApprove ? "" : " You can see them here; the Approve buttons are on the Director's login."}
+      </div>
       <Card title={`Waiting for approval (${waiting.length})`}>
         {waiting.length ? (
           <div className="grid grid-cols-1 gap-2.5 min-[1101px]:grid-cols-2">
             {waiting.map((e) => (
-              <ExpenseCard key={e.id} e={e} me={user.id} accounts showPerson />
+              <ExpenseCard key={e.id} e={e} me={user.id} accounts showPerson canApprove={canApprove} />
             ))}
           </div>
         ) : (
@@ -105,7 +110,7 @@ export default async function AccountsExpensesPage({ searchParams }: { searchPar
           {rows.length ? (
             <div className="grid grid-cols-1 gap-2.5 min-[1101px]:grid-cols-2">
               {rows.map((e) => (
-                <ExpenseCard key={e.id} e={e} me={user.id} accounts showPerson />
+                <ExpenseCard key={e.id} e={e} me={user.id} accounts showPerson canApprove={canApprove} />
               ))}
             </div>
           ) : (

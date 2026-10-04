@@ -401,3 +401,16 @@ so every money gets counted."
 | **Advances** to employees (given / returned); balance = given − returned − spent from advance | ✅ | Shown to the employee too |
 | **Company-account expenses** (services, licences…) entered by Accounts | ✅ | |
 | PDF / Excel, dashboard Finance tile "Expenses", bell alert, menu badge, financial-year filter, feature switch | ✅ | |
+
+## R38. Expenses without bills, company credit card, Director approval (4 Oct)
+
+"Some expense will not have bill so first question is: is bill available? If yes then upload option, if not then
+description of bill. Even Director and account person will have expenses from company account, so expense approval
+should be to Director; keep in memory once we give credential to Director. Also add one more option of company's
+credit card in who paid."
+
+| Change | Status | Notes |
+|---|---|---|
+| **Is the bill available?** Yes → upload bill; No → description of the expense and why there is no bill | ✅ | Shown on the card and in the export |
+| **Company credit card** in Who paid | ✅ | Not paid back; not counted against an advance |
+| **Director approves expenses**, including Admin / Accounts' own | ✅ | Until a Director login exists, Admin approves; ⏳ create the Director's login (STATUS.md) |

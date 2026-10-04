@@ -7,6 +7,7 @@ import { clientScope, leadScope, oppScope, taskScope } from "./access";
 import { invoiceRows } from "./finance/service";
 import { renewalCandidates } from "./renewals";
 import { getFeatures } from "./features";
+import { canApproveExpenses } from "./expenses";
 
 // Read-only helpers for the top bar: search everything, and "needs attention" alerts.
 // Both go through the same scope rules as the screens they link to.
@@ -87,7 +88,7 @@ export async function attentionAlerts(user: SessionUser): Promise<Alert[]> {
     db.payment.count({ where: { status: "IN_HAND", approval: "APPROVED", OR: [{ invoice: { client: clientScope(user) } }, { salesOrder: { client: clientScope(user) } }] } }),
     getFeatures().then((f) => (f.renewals ? renewalCandidates(user).then((r) => r.clients.length) : 0)),
     canApprovePayments(user.role) ? db.payment.count({ where: { approval: "PENDING" } }) : 0,
-    canApprovePayments(user.role) ? getFeatures().then((f) => (f.expenses ? db.expense.count({ where: { status: "SUBMITTED" } }) : 0)) : 0,
+    canApproveExpenses(user).then(async (ok) => (ok && (await getFeatures()).expenses ? db.expense.count({ where: { status: "SUBMITTED" } }) : 0)),
   ]);
   const overdue = invoices.filter((i) => i.state === "OVERDUE");
   const a: Alert[] = [];
