@@ -849,3 +849,43 @@ describe("PO template shows what is excluded and carries the checklist (R33)", (
     await db.product.delete({ where: { id: kit.id } });
   });
 });
+
+describe("correct a school's details once, everywhere (R35)", () => {
+  const fix = (over: Record<string, unknown> = {}) => ({
+    schoolName: "Little Stars International",
+    contactName: "Mrs. Correct Name",
+    mobile: "98111 00099",
+    email: "office@littlestars.in",
+    state: "Maharashtra",
+    city: "Pune",
+    address: "New address, Pune",
+    ...over,
+  });
+
+  it("from the converted lead: updates the lead, opportunity, client and draft quotations (not sent ones)", async () => {
+    const { editSchool } = await import("@/server/school");
+    const lead = await db.lead.findUniqueOrThrow({ where: { id: (await db.opportunity.findUniqueOrThrow({ where: { id: oppId } })).leadId! } });
+    const draft = await createQuotation(exA, { clientId }, { date: today, validityDays: 7, toLine: "The Director", schoolName: "Little Stars", items: [{ description: "Kit", mrp: 1, price: 1 }] });
+    const sent = await createQuotation(exA, { clientId }, { date: today, validityDays: 7, toLine: "The Director", schoolName: "Little Stars", items: [{ description: "Kit", mrp: 1, price: 1 }] });
+    await markQuotationSent(exA, sent, "download");
+    await expect(editSchool(exB, { leadId: lead.id }, fix())).rejects.toThrow(/not found/);
+    const changed = await editSchool(exA, { leadId: lead.id }, fix());
+    expect(changed).toEqual(expect.arrayContaining(["school name", "contact person", "mobile"]));
+    expect(await db.lead.findUniqueOrThrow({ where: { id: lead.id } })).toMatchObject({ schoolName: "Little Stars International", mobile: "98111 00099" });
+    expect((await db.opportunity.findUniqueOrThrow({ where: { id: oppId } })).schoolName).toBe("Little Stars International");
+    expect(await db.client.findUniqueOrThrow({ where: { id: clientId } })).toMatchObject({ schoolName: "Little Stars International", contactName: "Mrs. Correct Name", address: "New address, Pune" });
+    expect((await db.quotation.findUniqueOrThrow({ where: { id: draft } })).schoolName).toBe("Little Stars International");
+    expect((await db.quotation.findUniqueOrThrow({ where: { id: sent } })).schoolName).toBe("Little Stars");
+  });
+
+  it("from the opportunity window and from the client's Edit details", async () => {
+    const { editSchool } = await import("@/server/school");
+    const { updateClient } = await import("@/server/clients");
+    await editSchool(exA, { opportunityId: oppId }, fix({ contactName: "Via Opportunity" }));
+    expect((await db.client.findUniqueOrThrow({ where: { id: clientId } })).contactName).toBe("Via Opportunity");
+    await updateClient(exA, clientId, { ...fix({ schoolName: "Little Stars Pre-school", mobile: "98111 00777" }), ownerId: exA.id });
+    const lead = await db.lead.findUniqueOrThrow({ where: { id: (await db.opportunity.findUniqueOrThrow({ where: { id: oppId } })).leadId! } });
+    expect(lead).toMatchObject({ schoolName: "Little Stars Pre-school", mobile: "98111 00777" });
+    expect((await db.opportunity.findUniqueOrThrow({ where: { id: oppId } })).schoolName).toBe("Little Stars Pre-school");
+  });
+});

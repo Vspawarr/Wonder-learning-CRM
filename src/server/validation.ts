@@ -92,6 +92,10 @@ export const clientInput = z.object({
   ownerId: z.string().min(1, "Choose the assigned salesperson."),
 });
 
+/** A school's own details, the same on its lead, opportunity and client (R35). */
+export const schoolInput = clientInput.omit({ ownerId: true });
+export type SchoolDetails = z.infer<typeof schoolInput>;
+
 export const leadInput = z
   .object({ ...leadDetails, status: z.enum(MANUAL_LEAD_STATUSES).default("NEW") })
   .refine((d) => d.status !== "QUALIFIED" || !!d.temperature, {

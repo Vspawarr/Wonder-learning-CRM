@@ -191,5 +191,11 @@ read the same lists, so they can't drift apart (R9, R10).
 
 ## Data rules
 
+- **One school, one set of details (R35).** School name, contact person, designation, mobile, email, state, city,
+  area, address, curriculum, strength and branches can be corrected from the lead (any status), the opportunity
+  window (Edit school details) or the client (Edit details). The change is saved on the lead, its opportunities
+  (and renewals), the client and draft quotations. Sent quotations keep what was sent; orders, invoices and
+  receipts always read the client's current details. A timeline note records what was corrected.
+
 - No fictional sample data is ever seeded. No passwords or secrets in code or docs.
 - Test data was cleared on 1 Oct before client testing (R23); the "Clear test data" page was then removed.

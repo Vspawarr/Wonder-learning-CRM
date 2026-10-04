@@ -358,3 +358,15 @@ every button and workflow, dependencies and everything."
 Convert to opportunity, the "convert" tick on Log interaction, saving a lead as Qualified and the lead Excel
 template / upload now offer only **Hot** and **Warm**. **Cold** is still available later in the opportunity window
 (a deal can cool down), and in the category filter, so existing Cold deals stay visible.
+
+## R35. Edit wrong details; one change shows everywhere (4 Oct)
+
+"We should be able to change lead details or edit it cause there is always chances of wrong data entry. Change at
+one place should reflect everywhere." ✅
+
+| Change | Status | Notes |
+|---|---|---|
+| **Edit school details** on a converted or disqualified lead (before: read-only after conversion) | ✅ | Active leads are edited on the page as before |
+| **Edit school details** in the opportunity window (school name, contact, designation, mobile, email, state, city, area, address, curriculum, strength, branches) | ✅ | For renewal deals it corrects the client |
+| One correction (lead, opportunity or client **Edit details**) updates the lead, its opportunities, the client and draft quotations | ✅ | Sent quotations keep what the school received; orders, invoices and receipts read the client's current details |
+| Timeline note "School details corrected: mobile, …" | ✅ | |

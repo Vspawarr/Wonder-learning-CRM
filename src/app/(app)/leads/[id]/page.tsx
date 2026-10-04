@@ -11,6 +11,9 @@ import { QuotationsPanel } from "../../pipeline/quotations";
 import { getLocations } from "@/server/locations";
 import { isActiveLead } from "@/server/rules";
 import { LeadActions, LeadEditor } from "./lead-client";
+import { SchoolDetailsButton } from "@/components/school-details";
+import { schoolValues } from "@/lib/school-values";
+import type { Locations } from "@/server/locations";
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
   const user = await requireUser();
@@ -86,7 +89,7 @@ export default async function LeadPage({ params }: { params: Promise<{ id: strin
           {active ? (
             <LeadEditor key={lead.updatedAt} lead={lead} team={teamWithOwner} locations={locations} />
           ) : (
-            <ReadOnlyLead lead={lead} />
+            <ReadOnlyLead lead={lead} locations={locations} />
           )}
         </div>
         <div className="flex flex-col gap-4">
@@ -147,7 +150,7 @@ export default async function LeadPage({ params }: { params: Promise<{ id: strin
   );
 }
 
-function ReadOnlyLead({ lead }: { lead: Awaited<ReturnType<typeof leadDetail>> & object }) {
+function ReadOnlyLead({ lead, locations }: { lead: Awaited<ReturnType<typeof leadDetail>> & object; locations: Locations }) {
   const facts: [string, React.ReactNode][] = [
     ["Owner / contact", lead.contactName],
     ["Designation", lead.designation],
@@ -167,7 +170,11 @@ function ReadOnlyLead({ lead }: { lead: Awaited<ReturnType<typeof leadDetail>> &
   ];
   return (
     <>
-      <h2 className="mb-3">About this lead</h2>
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+        <h2>About this lead</h2>
+        {/* Converted or disqualified, the school's details can still be corrected (R35). */}
+        <SchoolDetailsButton target={{ leadId: lead.id }} initial={schoolValues(lead)} locations={locations} small />
+      </div>
       <dl className="facts">
         {facts
           .filter(([, v]) => v !== null && v !== "" && v !== undefined)

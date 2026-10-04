@@ -7,6 +7,7 @@ import { inrS } from "@/lib/format";
 import { seesAllSales } from "@/lib/permissions";
 import { AvatarName, DueTag, Empty, PageHeader, Pill, Table } from "@/components/ui";
 import { requireUser } from "@/server/session";
+import { getLocations } from "@/server/locations";
 import { selectedRange } from "@/server/year";
 import { isEmailConfigured } from "@/server/mailer";
 import { assignees, oppDetail, pipelineCards, productOptions, type PipelineCard } from "@/server/queries";
@@ -140,6 +141,7 @@ export default async function OpportunitiesPage({ searchParams }: { searchParams
           team={team}
           emailReady={isEmailConfigured()}
           me={{ name: user.name }}
+          locations={await getLocations()}
         />
       ) : null}
     </>

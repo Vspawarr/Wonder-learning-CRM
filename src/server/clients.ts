@@ -5,6 +5,7 @@ import { seesAllSales, type SessionUser } from "@/lib/permissions";
 import { assertAssignable, clientScope, oppScope } from "./access";
 import { assertLocation } from "./locations";
 import { clientInput, parse } from "./validation";
+import { syncSchool } from "./school";
 import { DomainError, NotFoundError } from "./errors";
 
 /** Turns a won opportunity into a client and starts onboarding. Returns the client id. */
@@ -120,7 +121,9 @@ export async function updateClient(user: SessionUser, id: string, raw: unknown) 
       await assertAssignable(tx, user, ownerId);
     }
     const changed = Object.keys(FIELD_LABEL).filter((k) => (details as Record<string, unknown>)[k] !== (c as Record<string, unknown>)[k]);
-    await tx.client.update({ where: { id }, data: { ...details, ownerId } });
+    await tx.client.update({ where: { id }, data: { ownerId } });
+    // The school's details are corrected on its lead, opportunities and draft quotations too (R35).
+    await syncSchool(tx, { clientId: id }, details);
     const notes = changed.length ? [`Details updated: ${changed.map((k) => FIELD_LABEL[k]).join(", ")}`] : [];
     if (ownerChanged) {
       const to = await tx.user.findUniqueOrThrow({

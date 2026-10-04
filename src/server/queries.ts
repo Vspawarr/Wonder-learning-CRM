@@ -309,17 +309,7 @@ export async function oppDetail(user: SessionUser, id: string) {
     include: {
       items: { include: { product: { select: { name: true } } } },
       owner: { select: { id: true, name: true } },
-      lead: {
-        select: {
-          id: true,
-          number: true,
-          contactName: true,
-          mobile: true,
-          email: true,
-          city: true,
-          state: true,
-        },
-      },
+      lead: { select: { id: true, number: true, schoolName: true, contactName: true, designation: true, mobile: true, email: true, state: true, city: true, area: true, address: true, currentCurriculum: true, studentStrength: true, branches: true } },
       quotations: { include: quoteInclude, orderBy: { createdAt: "desc" } },
       stageChanges: {
         include: { changedBy: { select: { name: true } } },
@@ -332,7 +322,7 @@ export async function oppDetail(user: SessionUser, id: string) {
       },
       tasks: { where: { status: "OPEN" }, orderBy: { dueDate: "asc" } },
       client: { select: { id: true, number: true } },
-      renewalOf: { select: { id: true, number: true, schoolName: true } },
+      renewalOf: { select: { id: true, number: true, schoolName: true, contactName: true, designation: true, mobile: true, email: true, state: true, city: true, area: true, address: true, currentCurriculum: true, studentStrength: true, branches: true } },
     },
   });
   if (!o) return null;
@@ -356,6 +346,8 @@ export async function oppDetail(user: SessionUser, id: string) {
     lead: o.lead,
     client: o.client,
     renewalOf: o.renewalOf,
+    /** The school's own details (from its lead, or the client for a renewal), for "Edit school details". */
+    school: o.lead ?? o.renewalOf ?? null,
     academicYear: o.academicYear,
     quotations: o.quotations.map(quoteSummary),
     items: o.items.map((i) => ({

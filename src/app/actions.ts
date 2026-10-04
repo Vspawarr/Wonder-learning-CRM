@@ -25,6 +25,7 @@ import * as renewals from "@/server/renewals";
 import * as targets from "@/server/targets";
 import * as search from "@/server/search";
 import * as documents from "@/server/documents";
+import * as school from "@/server/school";
 import { contentSchema, resetQuotationContent, saveQuotationContent } from "@/server/quotation/content";
 import { canManageSettings } from "@/lib/permissions";
 import { parse } from "@/server/validation";
@@ -92,6 +93,11 @@ export async function resetPassword(token: string, password: string): Promise<Ac
     console.error(e);
     return { ok: false, error: "Something went wrong. Please try again." };
   }
+}
+
+/** Correct a school's details from a lead or opportunity; saved on every record of the school (R35). */
+export async function editSchool(ref: { leadId: string } | { opportunityId: string }, data: unknown) {
+  return run((u) => school.editSchool(u, ref, data));
 }
 
 /** Remembers the chosen financial year ("2026" or "all") on this device and opens the CRM. */

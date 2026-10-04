@@ -7,6 +7,9 @@ commit id, what changed in plain words, and the requirement it answers (R… in 
 
 ## 4 Oct 2026
 
+- `PENDING` **Correct school details anywhere.** Edit school details on converted / disqualified leads and in the
+  opportunity window; client Edit details too. One correction updates the lead, opportunity, client and draft
+  quotations. (R35)
 - `316ce95` **Hot or Warm at conversion.** Converting a lead (button, Log interaction tick, Qualified status, Excel
   upload) offers only Hot and Warm; Cold stays available later on the opportunity. Lead template updated. (R34)
 - `9fdb37b` **PO exclusions + checklist, owner/salesperson walk-through, workflow guide.** The PO's Material Exclude

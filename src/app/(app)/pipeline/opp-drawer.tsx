@@ -13,6 +13,9 @@ import { fmtDate, istDate, todayIST } from "@/lib/dates";
 import { inr } from "@/lib/format";
 import type { OppDetail, Option, ProductOption } from "@/server/queries";
 import { LostModal, WonModal } from "./close-modals";
+import { SchoolDetailsButton } from "@/components/school-details";
+import { schoolValues } from "@/lib/school-values";
+import type { Locations } from "@/server/locations";
 import { QuotationsPanel } from "./quotations";
 
 export function OppDrawer({
@@ -21,12 +24,14 @@ export function OppDrawer({
   team,
   emailReady,
   me,
+  locations,
 }: {
   opp: OppDetail;
   products: ProductOption[];
   team: Option[];
   emailReady: boolean;
   me: { name: string };
+  locations: Locations;
 }) {
   const router = useRouter();
   const path = usePathname();
@@ -160,8 +165,9 @@ export function OppDrawer({
             ))}
           </select>
         </Field>
-        <div className="mb-3">
+        <div className="mb-3 flex flex-wrap gap-2">
           <LogInteractionButton opportunityId={opp.id} />
+          {opp.school ? <SchoolDetailsButton target={{ opportunityId: opp.id }} initial={schoolValues(opp.school)} locations={locations} /> : null}
         </div>
       </div>
 

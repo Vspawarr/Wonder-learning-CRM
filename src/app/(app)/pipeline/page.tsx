@@ -2,6 +2,7 @@ import { seesAllSales } from "@/lib/permissions";
 import { inrS } from "@/lib/format";
 import { PageHeader } from "@/components/ui";
 import { requireUser } from "@/server/session";
+import { getLocations } from "@/server/locations";
 import { selectedRange } from "@/server/year";
 import { isEmailConfigured } from "@/server/mailer";
 import { assignees, oppDetail, pipelineCards, productOptions } from "@/server/queries";
@@ -58,6 +59,7 @@ export default async function PipelinePage({ searchParams }: { searchParams: Pro
           team={team}
           emailReady={isEmailConfigured()}
           me={{ name: user.name }}
+          locations={await getLocations()}
         /> : null}
     </>
   );

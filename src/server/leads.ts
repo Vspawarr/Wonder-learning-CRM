@@ -8,6 +8,7 @@ import { DomainError, NotFoundError } from "./errors";
 import { isActiveLead } from "./rules";
 import { assertLocation } from "./locations";
 import { convertInput, disqualifyInput, leadInput, parse } from "./validation";
+import { pick, syncSchool } from "./school";
 import type { Temperature } from "@/generated/prisma/enums";
 
 async function loadLead(tx: Tx, user: SessionUser, id: string) {
@@ -116,6 +117,8 @@ export async function updateLead(user: SessionUser, id: string, raw: unknown) {
         followUpRemark: d.followUpRemark,
       },
     });
+    // Same school details on its draft quotations (and anything else that copies them).
+    await syncSchool(tx, { leadId: id }, pick(d));
 
     const notes: string[] = [];
     if (d.status !== lead.status) notes.push(`Status: ${LEAD_STATUS_LABEL[lead.status]} → ${LEAD_STATUS_LABEL[d.status]}`);

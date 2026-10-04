@@ -100,6 +100,11 @@ Filters: **All · Active · Converted · Disqualified**, source, search, sort, *
 | **Create quotation** | Quotation before converting (some schools ask straight away). See §6 |
 | **Save changes** / **Discard changes** | Edit any detail; the buttons wake up when you change a field |
 | **Open opportunity** | (after converting) jumps to the deal |
+| **Edit school details** | (after converting or disqualifying) correct a wrong name, contact, mobile, email or address |
+
+**One school, one set of details.** A correction made on the lead, in the opportunity window (**Edit school
+details**) or on the client (**Edit details**) is saved on all three, and on draft quotations, so every screen,
+list, invoice and receipt shows the same details. Quotations already sent keep what the school received.
 
 Lead statuses: **New → Contacted → Qualified**, or **Disqualified**; **Converted** once it's an opportunity.
 
@@ -153,7 +158,8 @@ After its validity date a sent quotation shows **Expired** (feature switch "Quot
   date, **Decision maker**, **Assigned to**. Change any, then **Save changes**.
 - **Expected deal value** fills in by itself from the PO template (kits × rate) if nobody has typed one. Pipeline
   totals and the dashboard use it.
-- **Log interaction**, the **Quotations** card, open follow-ups and **Stage history** are in the same window.
+- **Log interaction**, **Edit school details** (correct name, contact, mobile, address: saved on the lead and
+  client too), the **Quotations** card, open follow-ups and **Stage history** are in the same window.
 - Moving to **Proposal Sent** or **Negotiation** books a follow-up in 2 days.
 - **Lost** asks for the reason and remarks (and competitor). Open follow-ups are cancelled. Won and Lost are final.
 - **Won** → the window shows **Convert to client**.
@@ -189,7 +195,7 @@ When set-up is finished, press **Onboarding complete** → **Active**.
 
 ### The client page
 **Header:** % collected ring, status, client number, salesperson. Buttons: **Edit details** (address, contact,
-salesperson), **Renewal FY 2027-28** (this client only), **Call**, **WhatsApp**, **Log interaction**,
+salesperson; corrections also update the lead and opportunity), **Renewal FY 2027-28** (this client only), **Call**, **WhatsApp**, **Log interaction**,
 **Onboarding complete**.
 **Strip:** Quotations → Sales orders → Invoiced → Received → Outstanding → Overdue.
 **Left:** About this school, open follow-ups, **Contacts** (**Add contact**: Owner, Principal, Accounts…; mark
@@ -316,6 +322,8 @@ bounced cheque · renewal (call in 7 days).
 
 - **Where did my lead go?** Check the year at the top, and the status filter (it starts on **All**). A converted
   lead lives on as an opportunity.
+- **I typed the mobile / name wrong.** Fix it anywhere: the lead page, **Edit school details** in the opportunity,
+  or **Edit details** on the client. All of them update together.
 - **Why can't I see a colleague's school?** Salespeople see only their own. Ask an Admin to reassign it.
 - **The school wants fewer items / extra items.** Quotation → **Change kit items**. The PO lists what's excluded
   and the checklist shows the final kit.
