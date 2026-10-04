@@ -26,7 +26,12 @@ export function Shell({
 }) {
   const path = usePathname();
   const [open, setOpen] = useState(false);
-  const title = nav.flatMap((g) => g.items).find((i) => path.startsWith(i.href))?.label ?? "";
+  // The most specific menu item for this page (/accounts/expenses → "Expenses", not "Payment approvals").
+  const current = nav
+    .flatMap((g) => g.items)
+    .filter((i) => path === i.href || path.startsWith(`${i.href}/`))
+    .sort((a, b) => b.href.length - a.href.length)[0];
+  const title = current?.label ?? "";
 
   return (
     <div className="grid grid-cols-1 min-[901px]:h-full min-[901px]:grid-cols-[250px_minmax(0,1fr)]">
@@ -47,7 +52,7 @@ export function Shell({
               <Link
                 key={i.href}
                 href={i.href}
-                className={`nav ${path.startsWith(i.href) ? "on" : ""}`}
+                className={`nav ${current?.href === i.href ? "on" : ""}`}
                 onClick={() => setOpen(false)}
               >
                 <Icon name={i.icon} />

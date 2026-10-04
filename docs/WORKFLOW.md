@@ -277,6 +277,27 @@ bounced cheque · renewal (call in 7 days).
 - **Ledger:** invoices (debit) and payments / credit notes (credit) with opening and closing balance. **This
   financial year · Last financial year · This month · Custom dates**; all clients or pick one for its statement.
 
+## 11a. Expenses and advances
+
+**Everyone: My expenses** (menu). For hotel, travel, meals and other work spends:
+1. **Add expense** → **Take photo / choose file** (the phone camera opens; big photos are shrunk automatically; up
+   to 4 bills, photo or PDF) → date, amount, kind (Travel, Local travel / fuel, Hotel / stay, Meals, Courier,
+   Printing, Phone, School meeting, Services, Software / licences, Marketing, Office, Other), **who paid**
+   (**Own money** = pay me back, or **From my advance**), city, what it was for, optionally the school → **Save**.
+2. It goes to **Accounts** for approval. The page shows **Advance with me**, **To be paid back to me**, **Waiting
+   for approval** and **Approved this year**, each expense with its status and bill, and the advances received.
+3. **Delete** your expense while it waits or after a rejection (then add it again correctly).
+
+**Accounts → Expenses** (Director / Admin for now):
+- **Waiting for approval**: open the **Bill**, then **Approve** or **Reject** (reason; the person gets a to-do).
+- **People**: per employee, advance with them (given − returned − spent from advance), what to pay back, what's
+  waiting. **Pay back ₹…** marks all their approved own-money spends as paid (date + UTR / voucher). **Advance**
+  gives money in advance, or records money returned.
+- **Give advance**, and **Add expense** for company-account costs (services, licences…; no employee, bill optional)
+  or on behalf of someone. Accounts' own entries count straight away.
+- **All expenses** with filters (person / company, status, dates) and **PDF / Excel**. The dashboard's Finance
+  section shows approved **Expenses** for the period.
+
 ## 12. Dashboard
 
 - **Top strip** (today's position): active leads → opportunities → open quotations → open sales orders → clients →
@@ -320,6 +341,7 @@ bounced cheque · renewal (call in 7 days).
 | Raise an invoice | A sales order |
 | Record a payment | An invoice (or a sales order for an advance) |
 | Send a payment receipt | The payment **approved by Accounts** |
+| Get an expense paid back | The expense (with its bill) **approved by Accounts**, paid from own money |
 | Take items out of a kit on a quotation | Item prices in the kit's contents (Settings → Products) |
 | Send anything by email | Email set up by the Admin (until then use Download or WhatsApp) |
 | Create renewals | A client with at least one order; Admin / Sales Head for everyone at once |

@@ -80,17 +80,19 @@ export type Alert = { tone: "bad" | "warn" | "info"; icon: "check" | "rupee" | "
 
 export async function attentionAlerts(user: SessionUser): Promise<Alert[]> {
   const today = toDbDate(todayIST());
-  const [overdueTasks, todayTasks, invoices, cheques, renewals, approvals] = await Promise.all([
+  const [overdueTasks, todayTasks, invoices, cheques, renewals, approvals, expenses] = await Promise.all([
     db.task.count({ where: { ...taskScope(user), assigneeId: user.id, status: "OPEN", dueDate: { lt: today } } }),
     db.task.count({ where: { ...taskScope(user), assigneeId: user.id, status: "OPEN", dueDate: today } }),
     invoiceRows(user, { status: { not: "CANCELLED" } }),
     db.payment.count({ where: { status: "IN_HAND", approval: "APPROVED", OR: [{ invoice: { client: clientScope(user) } }, { salesOrder: { client: clientScope(user) } }] } }),
     getFeatures().then((f) => (f.renewals ? renewalCandidates(user).then((r) => r.clients.length) : 0)),
     canApprovePayments(user.role) ? db.payment.count({ where: { approval: "PENDING" } }) : 0,
+    canApprovePayments(user.role) ? getFeatures().then((f) => (f.expenses ? db.expense.count({ where: { status: "SUBMITTED" } }) : 0)) : 0,
   ]);
   const overdue = invoices.filter((i) => i.state === "OVERDUE");
   const a: Alert[] = [];
   if (approvals) a.push({ tone: "warn", icon: "rupee", text: `${approvals} payment${approvals > 1 ? "s" : ""} waiting for your approval`, href: "/accounts" });
+  if (expenses) a.push({ tone: "warn", icon: "doc", text: `${expenses} expense claim${expenses > 1 ? "s" : ""} waiting for your approval`, href: "/accounts/expenses" });
   if (overdueTasks) a.push({ tone: "bad", icon: "check", text: `${overdueTasks} overdue to-do${overdueTasks > 1 ? "s" : ""}`, href: "/tasks" });
   if (todayTasks) a.push({ tone: "warn", icon: "check", text: `${todayTasks} to-do${todayTasks > 1 ? "s" : ""} due today`, href: "/tasks" });
   for (const i of overdue.slice(0, 6))

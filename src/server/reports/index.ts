@@ -7,6 +7,7 @@ import { NotFoundError } from "../errors";
 import { INVOICE_STATE_LABEL } from "../finance/money";
 import { clientLedger, ledgerSummary, resolvePeriod } from "../finance/ledger";
 import { approvalQueue, collectionsSummary, outstandingList } from "../finance/service";
+import { expenseList, expenseTotal } from "../expenses";
 import { YEAR_FILTERS, YEAR_STANDING_LABEL, clientsList, leadsList, pipelineCards, taskList, type TaskKind } from "../queries";
 import type { Cell, Report } from "./types";
 import { financialYear, fyLabel, fyRange, parseYearCookie } from "@/lib/fy";
@@ -473,6 +474,7 @@ async function dashboard(user: SessionUser, p: Params): Promise<Report> {
       { k: "Overdue", v: cash.overdueCount, m: cash.overdue },
       { k: "Cheques not cleared", m: owed.forecast.chequesPending },
       { k: "Waiting for Accounts approval", m: cash.awaiting },
+      ...(features.expenses ? [await expenseTotal(user, d.range.from, d.range.to).then((x) => ({ k: "Expenses approved", v: x.count, m: x.amount }))] : []),
     ]);
     sections.push({
       heading: "How late is the money owed",
@@ -595,6 +597,47 @@ async function dashboard(user: SessionUser, p: Params): Promise<Report> {
   };
 }
 
+/** Expenses (R37): the person's own list, or everyone's for Accounts, with the screen's filters and the chosen year. */
+async function expenses(user: SessionUser, p: Params): Promise<Report> {
+  const rows = await expenseList(user, { status: p.status, person: p.person, category: p.category, from: p.from, to: p.to, year: yearOf(p) });
+  const statusLabel: Record<string, string> = { waiting: "Waiting", approved: "Approved", topay: "To pay back", rejected: "Rejected" };
+  return {
+    title: "Expenses",
+    subtitle: filtersLine([yearLine(p), p.status && `Status: ${statusLabel[p.status] ?? p.status}`, rangeLine("Spent", p)]),
+    landscape: true,
+    sections: [
+      {
+        columns: [
+          { key: "no", header: "No.", width: 0.5 },
+          { key: "date", header: "Date", width: 0.7 },
+          { key: "person", header: "Person", width: 1 },
+          { key: "category", header: "Kind", width: 1.2 },
+          { key: "desc", header: "What for", width: 2 },
+          { key: "city", header: "City", width: 0.7 },
+          { key: "paidBy", header: "Paid by", width: 0.8 },
+          { key: "amount", header: "Amount", width: 0.8, kind: "money" },
+          { key: "status", header: "Status", width: 0.8 },
+          { key: "back", header: "Paid back", width: 0.8 },
+        ],
+        rows: rows.map((e) => ({
+          no: `E-${e.number}`,
+          date: dmy(e.date),
+          person: e.user?.name ?? "Company",
+          category: e.category,
+          desc: e.description,
+          city: e.city ?? "",
+          paidBy: e.paidBy === "OWN" ? "Own money" : e.paidBy === "ADVANCE" ? "Advance" : "Company",
+          amount: e.amount,
+          status: e.status === "SUBMITTED" ? "Waiting" : e.status === "APPROVED" ? "Approved" : `Rejected: ${e.rejectReason ?? ""}`,
+          back: e.paidBy === "OWN" && e.status === "APPROVED" ? (e.reimbursedOn ? dmy(e.reimbursedOn) : "To pay") : "",
+        })),
+        totals: { no: "Total", amount: rows.filter((e) => e.status !== "REJECTED").reduce((t, e) => t + e.amount, 0) },
+        empty: "No expenses match.",
+      },
+    ],
+  };
+}
+
 /** Accounts → Payment approvals (R36): what waits, and what was decided in the last 30 days. */
 async function approvals(user: SessionUser): Promise<Report> {
   const { waiting, decided } = await approvalQueue(user);
@@ -638,6 +681,7 @@ async function approvals(user: SessionUser): Promise<Report> {
 
 export const REPORTS = {
   approvals,
+  expenses,
   leads,
   opportunities,
   clients,

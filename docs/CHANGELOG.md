@@ -7,6 +7,9 @@ commit id, what changed in plain words, and the requirement it answers (R… in 
 
 ## 4 Oct 2026
 
+- `PENDING` **Expenses & advances.** My expenses for everyone (bill photo from the phone, own money / advance);
+  Accounts → Expenses: approve / reject, pay back, give advances, company expenses, balances per person, PDF/Excel,
+  dashboard tile, bell, feature switch. Menu highlights the most specific item. (R37)
 - `07bc6be` **Accounts: payment approval.** Payments recorded by the team wait in Accounts → Payment approvals
   (Director / Admin for now). Approved: counted, receipt number, receipt can be sent, "Send receipt" to-do.
   Rejected: reason to the recorder. Menu badge, bell alert, dashboard tile, PDF/Excel, feature switch. (R36)

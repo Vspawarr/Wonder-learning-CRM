@@ -13,6 +13,7 @@ export const FEATURES = {
   documents: { label: "Client documents", hint: "Keep agreements, GST certificate and other papers on the client page." },
   quoteExpiry: { label: "Quotation validity", hint: "Mark quotations Expired after their validity and book a follow-up before they expire." },
   paymentApproval: { label: "Payment approval by Accounts", hint: "Payments recorded by the team wait in Accounts; they count as received and get a receipt only after approval." },
+  expenses: { label: "Expenses & advances", hint: "Team expense claims with bill photos, Accounts approval and reimbursement, advances to employees, company expenses." },
   guide: { label: "How it works guide", hint: "A \"How it works\" page in the menu for everyone: the whole workflow and every button, step by step." },
 } as const;
 

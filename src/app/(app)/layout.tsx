@@ -12,7 +12,7 @@ import { fyLabel } from "@/lib/fy";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const user = await requireUser();
-  const [due, features, year, approvals] = await Promise.all([
+  const [due, features, year, approvals, expenseWaiting] = await Promise.all([
     db.task.count({
       where: {
         assigneeId: user.id,
@@ -23,6 +23,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     getFeatures(),
     selectedYear(),
     canApprovePayments(user.role) ? db.payment.count({ where: { approval: "PENDING" } }) : 0,
+    canApprovePayments(user.role) ? db.expense.count({ where: { status: "SUBMITTED" } }) : 0,
   ]);
 
   const nav: NavGroup[] = [
@@ -43,12 +44,19 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         { href: "/clients", label: "Clients", icon: "school" },
         { href: "/outstanding", label: "Outstanding", icon: "rupee" },
         { href: "/ledger", label: "Ledger", icon: "doc" },
+        ...(features.expenses ? [{ href: "/expenses", label: "My expenses", icon: "upload" as const }] : []),
       ],
     },
   ];
   // Accounts (R36): under the Admin login for now; who owns it will be decided later.
   if (canApprovePayments(user.role))
-    nav.push({ group: "Accounts", items: [{ href: "/accounts", label: "Payment approvals", icon: "rupee", badge: approvals }] });
+    nav.push({
+      group: "Accounts",
+      items: [
+        { href: "/accounts", label: "Payment approvals", icon: "rupee", badge: approvals },
+        ...(features.expenses ? [{ href: "/accounts/expenses", label: "Expenses", icon: "doc" as const, badge: expenseWaiting }] : []),
+      ],
+    });
   const admin = [
     ...(canViewUsers(user.role) ? [{ href: "/admin/users", label: "Users", icon: "users" as const }] : []),
     ...(canManageProducts(user.role) ? [{ href: "/admin/products", label: "Products", icon: "box" as const }] : []),

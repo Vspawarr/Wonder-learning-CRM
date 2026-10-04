@@ -65,6 +65,12 @@ model User {
   filesUploaded      ClientFile[]
   targets            Target[]
   paymentsApproved   Payment[]                @relation("PaymentApprovedBy")
+  expensesOwn        Expense[]                @relation("ExpenseOf")
+  expensesCreated    Expense[]                @relation("ExpenseCreatedBy")
+  expensesDecided    Expense[]                @relation("ExpenseDecidedBy")
+  expensesReimbursed Expense[]                @relation("ExpenseReimbursedBy")
+  advancesHeld       EmployeeAdvance[]        @relation("AdvanceTo")
+  advancesEntered    EmployeeAdvance[]        @relation("AdvanceEnteredBy")
 }
 
 // ───────────────────────── Masters ─────────────────────────
@@ -189,6 +195,7 @@ model Lead {
   tasks         Task[]
   activities    Activity[]
   quotations    Quotation[]
+  expenses      Expense[]
 
   @@index([assignedToId, status])
   @@index([nextFollowUpDate])
@@ -432,6 +439,7 @@ model Client {
   creditNotes CreditNote[]
   dispatches  Dispatch[]
   files       ClientFile[]
+  expenses    Expense[]
   contacts    ClientContact[]
   renewals    Opportunity[]   @relation("Renewals")
 
@@ -831,4 +839,98 @@ model PasswordReset {
   expiresAt DateTime
   usedAt    DateTime?
   createdAt DateTime  @default(now())
+}
+
+// ───────────────────────── Expenses (R37) ─────────────────────────
+
+/// Who paid: the employee's own money (reimbursed later), the advance the company gave them, or a company account.
+enum ExpensePaidBy {
+  OWN
+  ADVANCE
+  COMPANY
+}
+
+enum ExpenseStatus {
+  SUBMITTED
+  APPROVED
+  REJECTED
+}
+
+/// A spend with its bill: travel, hotel, meals on visits, or company costs (services, licences…).
+model Expense {
+  id          String        @id @default(cuid())
+  number      Int           @unique @default(autoincrement()) // shown as E-<number>
+  date        DateTime      @db.Date
+  category    String // EXPENSE_CATEGORIES
+  amount      Decimal       @db.Decimal(12, 2)
+  description String
+  city        String?
+  paidTo      String? // hotel, vendor…
+  paidBy      ExpensePaidBy
+  mode        String? // EXPENSE_MODES
+  reference   String?
+
+  /// The employee whose spend it is; empty for a company expense.
+  userId   String?
+  user     User?   @relation("ExpenseOf", fields: [userId], references: [id])
+  /// The school it was for, if any.
+  clientId String?
+  client   Client? @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  leadId   String?
+  lead     Lead?   @relation(fields: [leadId], references: [id], onDelete: SetNull)
+
+  status       ExpenseStatus @default(SUBMITTED)
+  decidedById  String?
+  decidedBy    User?         @relation("ExpenseDecidedBy", fields: [decidedById], references: [id])
+  decidedAt    DateTime?
+  rejectReason String?
+
+  /// Own-money spends: when Accounts paid the employee back.
+  reimbursedAt   DateTime?
+  reimbursedById String?
+  reimbursedBy   User?     @relation("ExpenseReimbursedBy", fields: [reimbursedById], references: [id])
+  reimburseRef   String?
+
+  createdById String
+  createdBy   User          @relation("ExpenseCreatedBy", fields: [createdById], references: [id])
+  createdAt   DateTime      @default(now())
+  files       ExpenseFile[]
+
+  @@index([userId, date])
+  @@index([status])
+}
+
+/// Bill photo or PDF (stored in the database, 4 MB max).
+model ExpenseFile {
+  id          String   @id @default(cuid())
+  expenseId   String
+  expense     Expense  @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+  fileName    String
+  contentType String
+  size        Int
+  data        Bytes
+  uploadedAt  DateTime @default(now())
+}
+
+enum AdvanceKind {
+  GIVEN
+  RETURNED
+}
+
+/// Money the company gives an employee in advance for spends (or that they give back).
+model EmployeeAdvance {
+  id          String      @id @default(cuid())
+  userId      String
+  user        User        @relation("AdvanceTo", fields: [userId], references: [id])
+  kind        AdvanceKind @default(GIVEN)
+  amount      Decimal     @db.Decimal(12, 2)
+  date        DateTime    @db.Date
+  mode        String?
+  reference   String?
+  note        String?
+  createdById String
+  createdBy   User        @relation("AdvanceEnteredBy", fields: [createdById], references: [id])
+  createdAt   DateTime    @default(now())
+
+  @@index([userId, date])
 }

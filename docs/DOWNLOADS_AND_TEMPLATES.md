@@ -56,6 +56,7 @@ Code: `src/server/reports/index.ts` (one builder per report, using the screen's 
 | `ledger` | Ledger | One client: Date, Ref. No., Particulars, Debit, Credit, Balance. All clients: Client, School, City, Assigned to, Opening, Invoiced, Received, Closing |
 | `todo` | To-do | When, Date, Time, Type, Task, Related to, Priority, Postponed, Assigned to |
 | `approvals` | Accounts → Payment approvals (Director / Admin) | Waiting for approval, then decided in the last 30 days: School, Against, Amount, Paid on, Mode / ref., Recorded by, Decision, Receipt / reason, By |
+| `expenses` | My expenses (own) / Accounts → Expenses (everyone, with filters) | No., Date, Person, Kind, What for, City, Paid by, Amount, Status, Paid back; total |
 | `dashboard` | Dashboard | Follows the **Show** buttons: Sales (key numbers, pipeline by stage, lead sources, biggest deals) · Finance (collected/outstanding/overdue/cheques, ageing, expected collections) · Team & management (win rate, lost, interactions, team table, targets, lost reasons, competitors) · Service & delivery (follow-ups, orders to deliver, kits in transit, onboarding, renewals, lists) |
 
 Wording rule: the salesperson is always **"Assigned to"**; "Owner" only means the school's owner.
@@ -87,6 +88,7 @@ Sales orders are SO/YYYY/MM/NNN (on screen; the number prints on proforma and in
 | Upload | Where | Accepts | Code |
 |---|---|---|---|
 | Lead Excel | Leads → Upload leads | the downloaded .xlsx template only | `/api/leads/import`, `src/server/lead-excel/import.ts` |
+| Expense bills | My expenses / Accounts → Expenses → Add expense | Photos (shrunk in the browser) or PDF, up to 4 per expense, 4 MB each | `/api/expenses`, `src/server/expenses.ts`; viewed at `/api/expenses/files/<id>` |
 | Signed PO | Client → Purchase orders → Upload signed PO | PDF or photo, max 4 MB | `src/server/finance/po.ts` |
 | Client documents, proof of delivery | Client → Documents tab; Dispatch → Mark received | PDF or photo, max 4 MB | `/api/clients/<id>/files`, `src/server/files.ts` |
 

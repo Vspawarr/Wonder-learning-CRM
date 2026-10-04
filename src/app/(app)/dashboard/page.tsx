@@ -6,6 +6,7 @@ import { inrS } from "@/lib/format";
 import { canApprovePayments, seesAllSales } from "@/lib/permissions";
 import { AvatarName, Card, DueTag, Empty, HBars, Kpi, PageHeader, Ribbon, Table, VBars } from "@/components/ui";
 import { requireUser } from "@/server/session";
+import { expenseTotal } from "@/server/expenses";
 import { selectedRange } from "@/server/year";
 import { lifecycleCounts, salesDashboard, serviceSummary, type DashFilters } from "@/server/dashboard";
 import { collectionsSummary, outstandingList } from "@/server/finance/service";
@@ -63,6 +64,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   const k = d.kpis;
   const targets = features.targets && has("team") ? await targetProgress(user) : null;
   const cash = await collectionsSummary(user, { exec, state: f.state }, d.range.from, d.range.to);
+  const spend = features.expenses && has("finance") ? await expenseTotal(user, d.range.from, d.range.to) : null;
   const first = user.name.split(" ")[0];
   const period = `${fmtDate(d.range.from, today)} – ${fmtDate(d.range.to, today)}`;
 
@@ -199,6 +201,15 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
               color="#1C86C4"
               href="/outstanding"
             />
+            {spend ? (
+              <Kpi
+                label="Expenses"
+                value={inrS(spend.amount)}
+                sub={`${spend.count} approved in period${canApprovePayments(user.role) ? "" : " (yours)"}`}
+                color="#7A4FD0"
+                href={canApprovePayments(user.role) ? "/accounts/expenses" : "/expenses"}
+              />
+            ) : null}
             {cash.awaiting ? (
               <Kpi label="Waiting for Accounts" value={inrS(cash.awaiting)} sub="Recorded, not yet approved" color="#E8930C" href={canApprovePayments(user.role) ? "/accounts" : "/outstanding"} />
             ) : null}

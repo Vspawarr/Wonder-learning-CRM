@@ -384,3 +384,20 @@ reflect in system and then only user or account can send payment receipt to scho
 | **Approve**: counts as received, gets the receipt number (so rejected entries leave no gaps), receipt window opens; recorder gets a "Send receipt" to-do | ✅ | Receipt can be sent by the user or Accounts only after approval |
 | **Reject** with a reason: never counts; recorder gets a to-do with the reason and may delete the entry | ✅ | |
 | Dashboard Finance tile "Waiting for Accounts", PDF/Excel of the approvals page, switch in Settings → Features | ✅ | Payments recorded by Accounts count at once; existing payments stay approved |
+
+## R37. Expenses, reimbursements and advances (4 Oct)
+
+"Our sales team visits multiple cities so they have to spend money on hotel, travel, meal etc. Also some money is
+spent from the company's accounts for services, licenses etc. Currently they take bill photos and upload them in the
+company WhatsApp group and one person maintains the record and reimburses money at month end or in the meantime.
+Also the company gives some money in advance to employees for such spends … now we want this to happen in this CRM
+so every money gets counted."
+
+| Change | Status | Notes |
+|---|---|---|
+| **My expenses** for everyone: add a spend with the **bill photo** (camera on phones, shrunk automatically; or PDF), kind, amount, city, what for, school; paid from **own money** or **advance** | ✅ | Menu → My expenses |
+| **Accounts → Expenses**: approve / reject (reason → to-do), view bills | ✅ | Director / Admin for now (R36 owner decision pending) |
+| **Pay back** a person's approved own-money spends (date, reference) | ✅ | |
+| **Advances** to employees (given / returned); balance = given − returned − spent from advance | ✅ | Shown to the employee too |
+| **Company-account expenses** (services, licences…) entered by Accounts | ✅ | |
+| PDF / Excel, dashboard Finance tile "Expenses", bell alert, menu badge, financial-year filter, feature switch | ✅ | |

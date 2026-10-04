@@ -175,3 +175,24 @@ export const DEFAULT_PAYMENT_DAYS = 45;
 export const leadCode = (n: number) => `L-${n}`;
 export const clientCode = (n: number) => `C-${n}`;
 export const oppCode = (n: number) => `O-${n}`;
+
+/* ---------- Expenses (R37) ---------- */
+export const EXPENSE_CATEGORIES = [
+  "Travel (bus / train / flight)",
+  "Local travel / fuel",
+  "Hotel / stay",
+  "Meals",
+  "Courier / postage",
+  "Printing / stationery",
+  "Phone / internet",
+  "School meeting / samples",
+  "Services",
+  "Software / licences",
+  "Marketing / ads",
+  "Office",
+  "Other",
+] as const;
+export const EXPENSE_MODES = ["Cash", "UPI", "Card", "NEFT/RTGS", "Cheque", "Other"] as const;
+export const EXPENSE_PAID_BY_LABEL = { OWN: "Own money (reimburse me)", ADVANCE: "From my advance", COMPANY: "Company account" } as const;
+export const EXPENSE_STATUS_LABEL = { SUBMITTED: "Waiting for approval", APPROVED: "Approved", REJECTED: "Rejected" } as const;
+export const expenseCode = (n: number) => `E-${n}`;

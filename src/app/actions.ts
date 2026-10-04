@@ -26,6 +26,7 @@ import * as targets from "@/server/targets";
 import * as search from "@/server/search";
 import * as documents from "@/server/documents";
 import * as school from "@/server/school";
+import * as expenses from "@/server/expenses";
 import { contentSchema, resetQuotationContent, saveQuotationContent } from "@/server/quotation/content";
 import { canManageSettings } from "@/lib/permissions";
 import { parse } from "@/server/validation";
@@ -101,6 +102,26 @@ export async function approvePayment(id: string) {
 }
 export async function rejectPayment(id: string, data: unknown) {
   return run((u) => fin.rejectPayment(u, id, data));
+}
+
+/** Expenses (R37). Adding one (with bills) goes through /api/expenses. */
+export async function deleteExpense(id: string) {
+  return run((u) => expenses.deleteExpense(u, id));
+}
+export async function approveExpense(id: string) {
+  return run((u) => expenses.approveExpense(u, id));
+}
+export async function rejectExpense(id: string, data: unknown) {
+  return run((u) => expenses.rejectExpense(u, id, data));
+}
+export async function reimburseExpenses(userId: string, data: unknown) {
+  return run((u) => expenses.reimburseExpenses(u, userId, data));
+}
+export async function recordEmployeeAdvance(data: unknown) {
+  return run((u) => expenses.recordAdvance(u, data));
+}
+export async function deleteEmployeeAdvance(id: string) {
+  return run((u) => expenses.deleteAdvance(u, id));
 }
 
 /** Correct a school's details from a lead or opportunity; saved on every record of the school (R35). */

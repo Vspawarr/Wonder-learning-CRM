@@ -108,6 +108,19 @@ client shows a warning (the user may still save). The Excel upload skips same sc
   Director, Admin and Sales Head (`canManageFinance`) (R19 A2).
 - GST: education products are usually 0%; the rate is kept per line so other rates work.
 
+## Expenses and advances (R37)
+
+- Anyone can add their own work expenses with bills (photo / PDF, up to 4, 4 MB each; phone photos are shrunk).
+  Who paid: **own money** (paid back after approval), **from advance**, or **company account** (Accounts only).
+- Expenses wait for **Accounts** (Director / Admin, `canManageExpenses`) to approve or reject (reason → to-do for
+  the person). Accounts' own entries are approved at once. Employees see only their own expenses.
+- **Pay back**: Accounts marks a person's approved own-money expenses as paid (date, reference). Paid-back
+  expenses can't be deleted; approved ones only by Accounts.
+- **Advances**: Accounts records money given (or returned). Advance with the employee = given − returned − approved
+  expenses paid "from advance". If negative, they spent more than given; Accounts settles it (e.g. another advance).
+- Lists follow the chosen financial year (by expense date); balances are today's position. Switchable in Settings
+  → Features → "Expenses & advances". Numbers E-1, E-2…
+
 ## Numbering
 
 - **Receipts:** like the client's receipt book, `117/26-27`: a running number through the financial year
