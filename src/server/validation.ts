@@ -1,4 +1,5 @@
 import { textToSections } from "@/lib/quotation-text";
+import { MOBILE_ERROR, MOBILE_RE, normalizeMobile } from "@/lib/phone";
 import { z } from "zod";
 import {
   COMPETITORS,
@@ -43,13 +44,24 @@ const optInt = (label: string, min: number) =>
     .transform((v) => (v === "" || v == null ? null : Number(v)))
     .refine((n) => n === null || (Number.isInteger(n) && n >= min), `${label} must be a whole number of at least ${min}.`);
 
-export const MOBILE_RE = /^[0-9 +\-]{10,15}$/;
+export { MOBILE_RE } from "@/lib/phone";
+
+/** Mobile number, stored as 10 digits (R41). */
+export const mobileField = z
+  .string({ error: "Mobile number is required." })
+  .transform(normalizeMobile)
+  .refine((s) => MOBILE_RE.test(s), MOBILE_ERROR);
+export const optMobileField = z
+  .string()
+  .nullish()
+  .transform((s) => (s ? normalizeMobile(s) : null) || null)
+  .refine((s) => s === null || MOBILE_RE.test(s), MOBILE_ERROR);
 
 const leadDetails = {
   schoolName: reqText("School name"),
   contactName: reqText("Owner / contact person"),
   designation: optOneOf(DESIGNATIONS, "designation"),
-  mobile: z.string({ error: "Mobile number is required." }).trim().regex(MOBILE_RE, "Enter a valid mobile number."),
+  mobile: mobileField,
   email: z
     .string()
     .trim()
@@ -134,6 +146,7 @@ export const oppUpdateInput = z.object({
     .refine((n) => n == null || (Number.isFinite(n) && n >= 0 && n < 1e12), "Enter a valid expected value."),
   expectedCloseDate: optDate,
   competitor: optOneOf(COMPETITORS, "competitor"),
+  competitorNote: optText(150),
   decisionMaker: optText(200),
   nextAction: optText(300),
   nextActionDate: optDate,
@@ -143,7 +156,7 @@ export const oppUpdateInput = z.object({
     .array(z.object({ productId: z.string().min(1), qty: z.coerce.number().int().min(1).max(100000) }))
     .max(50)
     .optional(),
-});
+}).refine((d) => d.competitor !== "Other" || !!d.competitorNote, { message: "Write which competitor (you chose Other).", path: ["competitorNote"] });
 
 export const stageMoveInput = z
   .object({
@@ -151,9 +164,11 @@ export const stageMoveInput = z
     lostReason: z.string().nullish(),
     lostRemarks: optText(),
     competitor: optOneOf(COMPETITORS, "competitor"),
+    competitorNote: optText(150),
   })
   .superRefine((m, ctx) => {
     if (m.stage !== "LOST") return;
+    if (m.competitor === "Other" && !m.competitorNote) ctx.addIssue({ code: "custom", message: "Write which competitor (you chose Other)." });
     if (!m.lostReason || !(LOST_REASONS as readonly string[]).includes(m.lostReason))
       ctx.addIssue({ code: "custom", message: "A reason is required to mark a deal as lost." });
     if (!m.lostRemarks) ctx.addIssue({ code: "custom", message: "Remarks are required to mark a deal as lost." });
@@ -194,12 +209,7 @@ export const cancelTaskInput = z.object({ reason: optText(300) });
 export const userInput = z.object({
   name: reqText("Name", 120),
   email: z.string().trim().toLowerCase().pipe(z.email("Enter a valid email address.")),
-  mobile: z
-    .string()
-    .trim()
-    .nullish()
-    .transform((s) => s || null)
-    .refine((s) => s === null || MOBILE_RE.test(s), "Enter a valid mobile number."),
+  mobile: optMobileField,
   role: z.enum(["DIRECTOR", "ADMIN", "SALES_HEAD", "SALES_MANAGER", "SALES_EXECUTIVE"]),
   active: z.boolean().default(true),
   password: z

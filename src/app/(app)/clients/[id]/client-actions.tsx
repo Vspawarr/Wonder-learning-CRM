@@ -5,20 +5,20 @@ import { Modal, useAction } from "@/components/client";
 import { Icon } from "@/components/icons";
 import { LogInteractionButton } from "@/components/activity";
 import { completeOnboarding } from "@/app/actions";
+import { openWhatsApp } from "@/lib/phone";
 
 export function ClientActions({ id, mobile, onboarding }: { id: string; mobile: string; onboarding: boolean }) {
   const [confirm, setConfirm] = useState(false);
   const { pending, run } = useAction();
   const tel = mobile.replace(/[^\d+]/g, "");
-  const wa = tel.replace(/^\+/, "").replace(/^(\d{10})$/, "91$1");
   return (
     <div className="flex flex-wrap items-center gap-2">
       <a className="btn" href={`tel:${tel}`}>
         <Icon name="phone" size={16} /> Call
       </a>
-      <a className="btn" href={`https://wa.me/${wa}`} target="_blank" rel="noreferrer">
+      <button className="btn" onClick={() => openWhatsApp(mobile)}>
         <Icon name="chat" size={16} /> WhatsApp
-      </a>
+      </button>
       <LogInteractionButton clientId={id} />
       {onboarding ? (
         <button className="btn pri" onClick={() => setConfirm(true)}>

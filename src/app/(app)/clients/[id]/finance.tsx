@@ -43,6 +43,7 @@ import type { InvoiceRow } from "@/server/finance/service";
 import type { ClientDetail, ProductOption } from "@/server/queries";
 import { PoTemplateModal, type QuoteTarget } from "../../pipeline/quotations";
 import { DispatchSection } from "./dispatch";
+import { openWhatsApp } from "@/lib/phone";
 
 const money = inrExact;
 
@@ -1513,11 +1514,7 @@ function SendInvoice({
   const whatsapp = () => {
     const link = `${window.location.origin}/i/${row.shareToken}`;
     const text = `Dear Sir/Madam,\n${body}\nInvoice: ${link}\n\n${sign}`;
-    window.open(
-      `https://wa.me/${mobile}?text=${encodeURIComponent(text)}`,
-      "_blank",
-      "noopener",
-    );
+    openWhatsApp(mobile, text);
     run(() => logInvoiceWhatsApp(row.id, kind), {
       success: reminder
         ? "Reminder logged on the client's activity."
@@ -1889,11 +1886,7 @@ export function SendReceipt({
   const whatsapp = () => {
     const link = `${window.location.origin}/r/${r.shareToken}`;
     const text = `Dear Sir/Madam,\n${body}\nReceipt: ${link}\n\n${sign}`;
-    window.open(
-      `https://wa.me/${mobile}?text=${encodeURIComponent(text)}`,
-      "_blank",
-      "noopener",
-    );
+    openWhatsApp(mobile, text);
     run(() => logReceiptShared(r.paymentId), {
       success: "Receipt shared on WhatsApp.",
       onDone: onClose,

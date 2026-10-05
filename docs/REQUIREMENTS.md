@@ -491,3 +491,20 @@ implement it right now."
 If revived: needs an AI provider account and key (Vercel environment variable only), a monthly spending limit, and a
 switch per feature in Settings → Features.
 
+## R41. Mobile 10 digits, competitor "Other", one WhatsApp tab, client ledger, renewals with dues (5 Oct)
+
+"1. In mobile number field we can type more than 10 digits now, please fix this to 10 digits only. 2. After
+converting to opportunity there is option like competitor, there is fixed option; if we select Other there should be
+type box to fill details. 3. While sending on WhatsApp if WhatsApp Web tab is already open it should go to that tab
+directly in same browser. 4. If we select particular client, that client's ledger should be shown in his window in
+ledger section, where PO number and timeline should also reflect. 5. Tell me how renewal works and how outstanding will
+be handled if client with outstanding renewed."
+
+| Change | Status | Notes |
+|---|---|---|
+| **Mobile: exactly 10 digits** on New lead, lead / school details, client contacts, users; Excel upload checks it | ✅ | Box takes digits only, stops at 10; pasted +91 / 0 removed; existing numbers tidied to 10 digits |
+| **Competitor "Other" → type which** (opportunity window and Lost) | ✅ | Required when Other is chosen; shown on the pipeline card and in the dashboard's Competitors met |
+| **WhatsApp reuses one tab** on a computer | ✅ | WhatsApp Web in one named tab, reused for every send. A WhatsApp Web tab opened by hand can't be reached by any website (browser security); phones open the app |
+| **Ledger tab in the client's window** with **PO No.** per line; PDF / Excel; PO numbers also in the timeline | ✅ | Chosen financial year; "Other periods" opens the Ledger menu. Ledger menu and export also got the PO No. column |
+| How renewals work and dues on renewal | ✅ answered | Old invoices keep their balance; new order gets its own invoice; ledger carries the old balance as opening; renewal not blocked (BUSINESS_RULES.md) |
+

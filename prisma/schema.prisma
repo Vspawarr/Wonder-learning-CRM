@@ -254,6 +254,7 @@ model Opportunity {
   expectedValue     Decimal?         @db.Decimal(14, 2) // ₹, typed by the salesperson; drives pipeline totals
   expectedCloseDate DateTime?        @db.Date
   competitor        String? // COMPETITORS
+  competitorNote    String? // which one, when competitor is "Other" (R41)
   decisionMaker     String?
   nextAction        String?
   nextActionDate    DateTime?        @db.Date

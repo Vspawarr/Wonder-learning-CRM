@@ -17,7 +17,7 @@ import {
 import { useAction } from "@/components/client";
 import { Avatar, DueTag } from "@/components/ui";
 import { moveOpportunity } from "@/app/actions";
-import { CLOSED_STAGES, STAGES, STAGE_COLOR, STAGE_LABEL, STAGE_PROBABILITY, type Stage, TEMPERATURE_LABEL } from "@/lib/constants";
+import { CLOSED_STAGES, STAGES, STAGE_COLOR, STAGE_LABEL, STAGE_PROBABILITY, type Stage, TEMPERATURE_LABEL, competitorLabel } from "@/lib/constants";
 import { fmtDate, todayIST } from "@/lib/dates";
 import { inrS } from "@/lib/format";
 import type { PipelineCard } from "@/server/queries";
@@ -108,7 +108,7 @@ export function Board({ cards: initial }: { cards: PipelineCard[] }) {
         {/* The moving copy lives outside the board so auto-scroll can't stretch it. */}
         <DragOverlay>{dragged ? <CardBody card={dragged} today={today} className="shadow-lg" /> : null}</DragOverlay>
       </DndContext>
-      {lost ? <LostModal oppId={lost.id} school={lost.schoolName} competitor={lost.competitor} onClose={() => setLost(null)} /> : null}
+      {lost ? <LostModal oppId={lost.id} school={lost.schoolName} competitor={lost.competitor} competitorNote={lost.competitorNote} onClose={() => setLost(null)} /> : null}
       {won ? <WonModal oppId={won.id} school={won.schoolName} onClose={() => setWon(null)} /> : null}
     </>
   );
@@ -145,7 +145,7 @@ function CardBody({ card: c, today, className }: { card: PipelineCard; today: st
       <div className="m">
         {c.noValue ? <span className="faint">No value yet</span> : inrS(c.value)} · {c.probability}% · {TEMPERATURE_LABEL[c.temperature]}
       </div>
-      {c.competitor ? <div className="m">vs {c.competitor}</div> : null}
+      {c.competitor ? <div className="m">vs {competitorLabel(c.competitor, c.competitorNote)}</div> : null}
       {c.stage === "LOST" ? (
         <div className="m">{c.lostReason}</div>
       ) : c.stage === "WON" ? null : (

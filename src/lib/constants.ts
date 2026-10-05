@@ -68,6 +68,9 @@ export const COMPETITORS = [
   "Other",
 ] as const;
 
+/** "Kidzee", or what was typed for "Other" (R41). */
+export const competitorLabel = (c: string | null | undefined, note?: string | null) => (c === "Other" && note ? note : (c ?? null));
+
 /** Used for both lead disqualification and opportunity loss. */
 export const LOST_REASONS = [
   "Price Issue",

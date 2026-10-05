@@ -2,7 +2,7 @@
 // own numbers), then the optional executive / state filters.
 import type { Prisma } from "@/generated/prisma/client";
 import { db } from "@/lib/db";
-import { COMPETITORS, LOST_REASONS, SOURCES, STAGES, type Stage } from "@/lib/constants";
+import { COMPETITORS, LOST_REASONS, SOURCES, STAGES, competitorLabel, type Stage } from "@/lib/constants";
 import { addDays, fmtDate, fromDbDate, istDayStart, toDbDate, todayIST, type DateStr } from "@/lib/dates";
 import { SALES_ROLES, seesAllSales, type SessionUser } from "@/lib/permissions";
 import { clientScope, leadScope, oppScope, taskScope } from "./access";
@@ -145,7 +145,14 @@ export async function salesDashboard(user: SessionUser, f: DashFilters) {
     sources,
     team,
     lostReasons: LOST_REASONS.map((r) => ({ label: r, value: lost.filter((o) => o.lostReason === r).length })).filter((x) => x.value),
-    competitors: COMPETITORS.map((c) => ({ label: c, value: lost.filter((o) => o.competitor === c).length })).filter((x) => x.value),
+    // Fixed names first, then each name typed for "Other" (R41).
+    competitors: [
+      ...COMPETITORS.filter((c) => c !== "Other").map((c) => ({ label: c, value: lost.filter((o) => o.competitor === c).length })),
+      ...[...new Set(lost.filter((o) => o.competitor === "Other").map((o) => competitorLabel(o.competitor, o.competitorNote)!))].map((label) => ({
+        label,
+        value: lost.filter((o) => o.competitor === "Other" && competitorLabel(o.competitor, o.competitorNote) === label).length,
+      })),
+    ].filter((x) => x.value),
     biggest: [...openOpps]
       .sort((a, b) => val(b) - val(a))
       .slice(0, 5)

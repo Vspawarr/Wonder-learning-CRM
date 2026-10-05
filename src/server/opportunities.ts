@@ -56,6 +56,7 @@ export async function updateOpportunity(user: SessionUser, id: string, raw: unkn
         ...(d.temperature ? { temperature: d.temperature } : {}),
         expectedCloseDate: d.expectedCloseDate ? toDbDate(d.expectedCloseDate) : null,
         competitor: d.competitor,
+        competitorNote: d.competitor === "Other" ? d.competitorNote : null,
         decisionMaker: d.decisionMaker,
         nextAction: d.nextAction,
         nextActionDate: d.nextActionDate ? toDbDate(d.nextActionDate) : null,
@@ -87,7 +88,11 @@ export async function moveOpportunity(user: SessionUser, id: string, raw: unknow
         probability: plan.probability,
         closedAt: plan.closes ? now : null,
         ...(to === "LOST"
-          ? { lostReason: m.lostReason, lostRemarks: m.lostRemarks, competitor: m.competitor ?? opp.competitor }
+          ? {
+              lostReason: m.lostReason,
+              lostRemarks: m.lostRemarks,
+              ...(m.competitor ? { competitor: m.competitor, competitorNote: m.competitor === "Other" ? m.competitorNote : null } : {}),
+            }
           : {}),
         // Phase 2: WON will create the School and Sales Order here.
       },

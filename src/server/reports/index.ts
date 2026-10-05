@@ -295,7 +295,8 @@ async function ledger(user: SessionUser, p: Params): Promise<Report> {
           columns: [
             { key: "date", header: "Date", width: 0.8 },
             { key: "ref", header: "Ref. No.", width: 1.2 },
-            { key: "part", header: "Particulars", width: 3 },
+            { key: "po", header: "PO No.", width: 1 },
+            { key: "part", header: "Particulars", width: 2.6 },
             { key: "debit", header: "Debit (invoiced)", kind: "money" },
             { key: "credit", header: "Credit (received)", kind: "money" },
             { key: "bal", header: "Balance", kind: "money" },
@@ -305,6 +306,7 @@ async function ledger(user: SessionUser, p: Params): Promise<Report> {
             ...l.entries.map((e) => ({
               date: dmy(e.date),
               ref: e.ref,
+              po: e.po ?? "",
               part: e.particulars,
               debit: e.debit || null,
               credit: e.credit || null,

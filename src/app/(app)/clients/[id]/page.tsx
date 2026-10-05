@@ -5,7 +5,10 @@ import { fmtDate, istDate, todayIST } from "@/lib/dates";
 import { ActivityLog } from "@/components/activity";
 import { BackLink, Card, DueTag, Pill, Ribbon, Ring } from "@/components/ui";
 import { Tabs, type TabDef } from "@/components/tabs";
-import { inr } from "@/lib/format";
+import { dmy as dmyF, inr } from "@/lib/format";
+import { resolvePeriod } from "@/server/finance/ledger";
+import { selectedRange, yearAnchor } from "@/server/year";
+import { ClientStatement } from "../../ledger/statement";
 import { isEmailConfigured } from "@/server/mailer";
 import { requireUser } from "@/server/session";
 import { assignees, clientDetail, productOptions } from "@/server/queries";
@@ -40,6 +43,7 @@ export default async function ClientPage({ params }: { params: Promise<{ id: str
   const c = features.contacts ? c0 : { ...c0, people: [] };
   const renewal = features.renewals ? await renewalCandidates(user, c0.id) : null;
   const today = todayIST();
+  const period = resolvePeriod({}, yearAnchor(await selectedRange()));
   const emailReady = isEmailConfigured();
   const me = { name: user.name };
   const m = c.money;
@@ -155,6 +159,12 @@ export default async function ClientPage({ params }: { params: Promise<{ id: str
           </Card>
         </div>
       ),
+    },
+    // R41: the client's own ledger (chosen financial year), with PO numbers; PDF / Excel and other periods.
+    {
+      id: "ledger",
+      label: "Ledger",
+      panel: <ClientStatement user={user} clientId={c.id} period={period} range={`${period.label} · ${dmyF(period.from)} – ${dmyF(period.to)}`} />,
     },
     ...(features.documents
       ? [{ id: "docs", label: "Documents", panel: <Card title="Documents"><DocumentsCard client={c} /></Card> }]

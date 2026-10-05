@@ -6,6 +6,7 @@ import { Icon } from "@/components/icons";
 import { createUser, updateUser, type ActionResult } from "@/app/actions";
 import { ROLE_LABEL } from "@/lib/constants";
 import type { Role } from "@/generated/prisma/enums";
+import { MobileInput } from "@/components/mobile-input";
 
 type U = { id: string; name: string; email: string; mobile: string | null; role: Role; active: boolean };
 
@@ -84,7 +85,7 @@ export function UserButton({ actorRole, user, isSelf }: { actorRole: Role; user?
               <input className="in" id="u-email" type="email" value={v.email} onChange={(e) => setV({ ...v, email: e.target.value })} />
             </Field>
             <Field label="Mobile" htmlFor="u-mob">
-              <input className="in" id="u-mob" inputMode="tel" value={v.mobile} onChange={(e) => setV({ ...v, mobile: e.target.value })} />
+              <MobileInput id="u-mob" value={v.mobile} onChange={(mobile) => setV({ ...v, mobile })} />
             </Field>
             <Field label={user ? "New password (leave blank to keep)" : "Initial password * (min 8)"} htmlFor="u-pw">
               <input className="in" id="u-pw" type="password" autoComplete="new-password" value={v.password} onChange={(e) => setV({ ...v, password: e.target.value })} />

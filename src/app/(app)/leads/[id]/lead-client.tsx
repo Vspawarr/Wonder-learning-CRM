@@ -11,6 +11,7 @@ import { LOST_REASONS } from "@/lib/constants";
 import type { LeadDetail, Option } from "@/server/queries";
 import { LeadForm, type LeadValues } from "../lead-form";
 import type { Locations } from "@/server/locations";
+import { openWhatsApp } from "@/lib/phone";
 
 const ACTIVE = ["NEW", "CONTACTED", "QUALIFIED"];
 
@@ -76,16 +77,15 @@ export function LeadActions({ lead }: { lead: LeadDetail }) {
   const [remarks, setRemarks] = useState("");
   const { pending, run } = useAction();
   const tel = lead.mobile.replace(/[^\d+]/g, "");
-  const wa = tel.replace(/^\+/, "").replace(/^(\d{10})$/, "91$1");
 
   return (
     <div className="flex flex-wrap items-center gap-2">
       <a className="btn" href={`tel:${tel}`}>
         <Icon name="phone" size={16} /> Call
       </a>
-      <a className="btn" href={`https://wa.me/${wa}`} target="_blank" rel="noreferrer">
+      <button className="btn" onClick={() => openWhatsApp(lead.mobile)}>
         <Icon name="chat" size={16} /> WhatsApp
-      </a>
+      </button>
       <LogInteractionButton leadId={lead.id} canConvert={active && !lead.opportunity} />
       {active && !lead.opportunity ? <ConvertLeadButton leadId={lead.id} schoolName={lead.schoolName} /> : null}
       {active ? (

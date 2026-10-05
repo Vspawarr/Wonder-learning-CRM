@@ -7,6 +7,10 @@ commit id, what changed in plain words, and the requirement it answers (R… in 
 
 ## 5 Oct 2026
 
+- `PENDING` **Mobile 10 digits, competitor Other, one WhatsApp tab, client ledger.** Mobile boxes take 10 digits only
+  (+91 / 0 removed; existing numbers tidied; Excel upload checks it). Competitor "Other" asks which one. WhatsApp on a
+  computer opens WhatsApp Web in one tab and reuses it. Client page has a **Ledger** tab with PO numbers (also in the
+  Ledger menu, its export and the timeline). Renewal-with-dues rule written down. (R41)
 - Docs only: AI ideas (chatbot, bill reading…) recorded as R40, on hold by the owner's choice; no app change.
 - `36b5a48` **Company accounts.** Money accounts (bank, cash, card) with opening balances; every rupee tagged to an
   account (school payments "Received into" on approval, company expenses, pay-backs, advances); transfers; other

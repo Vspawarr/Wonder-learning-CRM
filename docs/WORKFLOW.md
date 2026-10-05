@@ -73,6 +73,7 @@ Director, Admin and Sales Head.
 
 ### Adding a lead
 - **+ Add → New lead**, or Leads → **New lead**.
+- Mobile number: 10 digits only (the box stops at 10; a pasted +91 is removed).
 - Required (*): School name, Owner / contact person, Mobile number, State, City, Lead source, Assigned to, Next
   follow-up date. Lead source includes **Social Media** (Facebook, Instagram etc.); "Reference name" appears for
   reference sources.
@@ -162,7 +163,9 @@ After its validity date a sent quotation shows **Expired** (feature switch "Quot
 - **Log interaction**, **Edit school details** (correct name, contact, mobile, address: saved on the lead and
   client too), the **Quotations** card, open follow-ups and **Stage history** are in the same window.
 - Moving to **Proposal Sent** or **Negotiation** books a follow-up in 2 days.
-- **Lost** asks for the reason and remarks (and competitor). Open follow-ups are cancelled. Won and Lost are final.
+- **Competitor**: choose from the list; **Other** opens a box to type which one (required). The dashboard's
+  "Competitors met" lists each typed name.
+- **Lost** asks for the reason and remarks (and competitor; Other → type which). Open follow-ups are cancelled. Won and Lost are final.
 - **Won** → the window shows **Convert to client**.
 
 ## 8. The PO template (purchase order for the school to sign)
@@ -254,7 +257,11 @@ reference / cheque details and who recorded it.
   or the office cash the money went into (it is pre-filled from the mode: cash → cash box, others → bank). This is
   also how cash collected by a salesperson is checked in.
 
-**Documents:** **Upload document** (agreement, GST certificate…). **Timeline:** everything that happened.
+**Ledger** (R41): this school's statement for the chosen financial year: opening balance, every invoice (debit),
+payment and credit note (credit) with the running balance, closing balance, and the **PO No.** of the order behind
+each line. **PDF / Excel**, and **Other periods** opens it in the Ledger menu (last year, a month, any dates).
+
+**Documents:** **Upload document** (agreement, GST certificate…). **Timeline:** everything that happened (sales orders, invoices, advances and payments show the school's PO number).
 
 ## 10. To-do
 
@@ -371,6 +378,11 @@ month; the Director approves entries made by Admin / Accounts.
   client). Each gets a "Renewal for FY 2027-28" opportunity valued at this year's orders, due to close by 31 March,
   with a call in 7 days.
 - Clients → **In 2026-27: Not renewed** lists who hasn't ordered again.
+- **Renewed with money still owed:** the old invoice keeps its balance; the new year's order gets its own invoice.
+  Both show on the client's **Invoices & payments** tab and in **Outstanding**; the **Ledger** tab starts the new year
+  with the old balance as the opening balance. Record each payment against the invoice it pays (oldest first is
+  usual). The CRM doesn't stop a renewal because of dues, so check the client's Outstanding before confirming the
+  new order.
 
 ## 14. Settings (Admin / Director; some for Sales Head)
 
@@ -400,6 +412,7 @@ month; the Director approves entries made by Admin / Accounts.
 | Take items out of a kit on a quotation | Item prices in the kit's contents (Settings → Products) |
 | Pay a supplier bill, count a salary or other payment | **Approval by the Director** (Admin until a Director login exists) |
 | Correct company balances | The money accounts with their **opening balances** (Account books → Add account) |
+| WhatsApp to reuse one tab on a computer | Keep the WhatsApp Web tab the CRM opened (a tab you open yourself can't be reached by the CRM) |
 | Send anything by email | Email set up by the Admin (until then use Download or WhatsApp) |
 | Create renewals | A client with at least one order; Admin / Sales Head for everyone at once |
 | Cancel an invoice, delete a payment, credit note, clear / bounce a cheque | Director, Admin or Sales Head |

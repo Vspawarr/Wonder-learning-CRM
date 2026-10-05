@@ -14,6 +14,7 @@ import {
 } from "@/lib/constants";
 import type { Option } from "@/server/queries";
 import type { Locations } from "@/server/locations";
+import { MobileInput } from "@/components/mobile-input";
 
 export type LeadValues = {
   schoolName: string;
@@ -76,7 +77,7 @@ export function LeadForm({
           </select>
         </Field>
         <Field label="Mobile number *" htmlFor={id("mob")}>
-          <input className="in" id={id("mob")} inputMode="tel" placeholder="98xxx xxxxx" value={value.mobile} onChange={(e) => set("mobile", e.target.value)} />
+          <MobileInput id={id("mob")} value={value.mobile} onChange={(m) => set("mobile", m)} />
         </Field>
         <Field label="Email ID" htmlFor={id("email")}>
           <input className="in" id={id("email")} type="email" placeholder="owner@example.com" value={value.email} onChange={(e) => set("email", e.target.value)} />

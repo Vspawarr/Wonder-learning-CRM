@@ -313,7 +313,7 @@ export async function createSalesOrder(user: SessionUser, clientId: string, raw:
     await tx.activity.create({
       data: {
         type: "SYSTEM",
-        subject: `Sales order ${so.number} created · ${inr(totals(d.items).total)}`,
+        subject: `Sales order ${so.number} created · ${inr(totals(d.items).total)}${d.poNumber ? ` · PO ${d.poNumber}` : ""}`,
         byId: user.id,
         clientId: c.id,
       },
@@ -473,7 +473,7 @@ export async function createInvoice(user: SessionUser, salesOrderId: string, raw
     await tx.activity.create({
       data: {
         type: "SYSTEM",
-        subject: `Invoice ${inv.number} raised · ${inr(t.total)}${adv.count ? ` · ${adv.count} advance payment(s) adjusted` : ""}`,
+        subject: `Invoice ${inv.number} raised · ${inr(t.total)}${so.poNumber ? ` · PO ${so.poNumber}` : ""}${adv.count ? ` · ${adv.count} advance payment(s) adjusted` : ""}`,
         byId: user.id,
         clientId: so.clientId,
       },
@@ -661,7 +661,7 @@ export async function recordPayment(user: SessionUser, invoiceId: string, raw: u
     await db.activity.create({
       data: {
         type: "SYSTEM",
-        subject: `Payment ${inr(d.amount)} ${cheque ? "by cheque (not yet cleared)" : "received"} for ${inv.number} (${chequeText(d)}) · ${awaiting ? "sent to Accounts for approval" : `receipt ${p.number} · ${s.balance > 0 ? `${inr(s.balance)} still due` : "paid in full"}`}${promised ? ` · next payment promised ${dmy(toDbDate(promised)).replace(/-/g, "/")}` : ""}`,
+        subject: `Payment ${inr(d.amount)} ${cheque ? "by cheque (not yet cleared)" : "received"} for ${inv.number}${inv.salesOrder.poNumber ? ` (PO ${inv.salesOrder.poNumber})` : ""} (${chequeText(d)}) · ${awaiting ? "sent to Accounts for approval" : `receipt ${p.number} · ${s.balance > 0 ? `${inr(s.balance)} still due` : "paid in full"}`}${promised ? ` · next payment promised ${dmy(toDbDate(promised)).replace(/-/g, "/")}` : ""}`,
         byId: user.id,
         clientId: inv.clientId,
       },
@@ -710,7 +710,7 @@ export async function recordAdvance(user: SessionUser, salesOrderId: string, raw
   await db.activity.create({
     data: {
       type: "SYSTEM",
-      subject: `Advance ${inr(d.amount)} ${cheque ? "by cheque (not yet cleared)" : "received"} on order ${so.number} (${chequeText(d)}) · ${awaiting ? "sent to Accounts for approval" : `receipt ${p.number}`}`,
+      subject: `Advance ${inr(d.amount)} ${cheque ? "by cheque (not yet cleared)" : "received"} on order ${so.number}${so.poNumber ? ` (PO ${so.poNumber})` : ""} (${chequeText(d)}) · ${awaiting ? "sent to Accounts for approval" : `receipt ${p.number}`}`,
       byId: user.id,
       clientId: so.clientId,
     },

@@ -8,7 +8,7 @@ import { Field, Modal, Options, useAction } from "@/components/client";
 import { ActivityLog, LogInteractionButton } from "@/components/activity";
 import { Pill, DueTag } from "@/components/ui";
 import { convertToClient, moveOpportunity, updateOpportunity } from "@/app/actions";
-import { COMPETITORS, STAGES, STAGE_LABEL, STAGE_PROBABILITY, TEMPERATURE_LABEL, clientCode, leadCode, oppCode, type Stage } from "@/lib/constants";
+import { COMPETITORS, STAGES, competitorLabel, STAGE_LABEL, STAGE_PROBABILITY, TEMPERATURE_LABEL, clientCode, leadCode, oppCode, type Stage } from "@/lib/constants";
 import { fmtDate, istDate, todayIST } from "@/lib/dates";
 import { inr } from "@/lib/format";
 import type { OppDetail, Option, ProductOption } from "@/server/queries";
@@ -46,6 +46,7 @@ export function OppDrawer({
     expectedValue: opp.expectedValue === null ? "" : String(opp.expectedValue),
     expectedCloseDate: opp.expectedCloseDate ?? "",
     competitor: opp.competitor ?? "",
+    competitorNote: opp.competitorNote ?? "",
     decisionMaker: opp.decisionMaker ?? "",
     nextAction: opp.nextAction ?? "",
     nextActionDate: opp.nextActionDate ?? "",
@@ -122,7 +123,7 @@ export function OppDrawer({
       {opp.stage === "LOST" ? (
         <div className="note bad">
           <b>Lost: {opp.lostReason}.</b> {opp.lostRemarks}
-          {opp.competitor ? ` (went with ${opp.competitor})` : ""}
+          {opp.competitor ? ` (went with ${competitorLabel(opp.competitor, opp.competitorNote)})` : ""}
         </div>
       ) : null}
       {opp.renewalOf ? (
@@ -228,6 +229,18 @@ export function OppDrawer({
             <Options list={COMPETITORS} blank="None known" />
           </select>
         </Field>
+        {v.competitor === "Other" ? (
+          <Field label="Which competitor? *" htmlFor="op-comp-note">
+            <input
+              className="in"
+              id="op-comp-note"
+              disabled={opp.closed}
+              placeholder="Name of the other brand / school chain"
+              value={v.competitorNote}
+              onChange={(e) => setV({ ...v, competitorNote: e.target.value })}
+            />
+          </Field>
+        ) : null}
         <Field label="Next action" htmlFor="op-next">
           <input
             className="in"
@@ -294,7 +307,7 @@ export function OppDrawer({
       <ActivityLog items={opp.activities} />
 
       {won ? <WonModal oppId={opp.id} school={opp.schoolName} onClose={() => setWon(false)} /> : null}
-      {lost ? <LostModal oppId={opp.id} school={opp.schoolName} competitor={v.competitor || null} onClose={() => setLost(false)} /> : null}
+      {lost ? <LostModal oppId={opp.id} school={opp.schoolName} competitor={v.competitor || null} competitorNote={v.competitorNote || null} onClose={() => setLost(false)} /> : null}
     </Modal>
   );
 }

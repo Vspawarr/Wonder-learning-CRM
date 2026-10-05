@@ -79,7 +79,7 @@ export const COLUMNS: Column[] = [
   { key: "schoolName", header: "School Name*", required: true, width: 30 },
   { key: "contactName", header: "Owner/Contact Person Name*", required: true, width: 26 },
   { key: "designation", header: "Designation", required: false, width: 16, list: "designation" },
-  { key: "mobile", header: "Mobile Number*", required: true, width: 16, note: "10–15 digits; spaces, + and - allowed" },
+  { key: "mobile", header: "Mobile Number*", required: true, width: 16, note: "10-digit mobile number (a +91 or 0 in front is removed)" },
   { key: "email", header: "Email ID", required: false, width: 26 },
   { key: "state", header: "State*", required: true, width: 18, list: "state" },
   { key: "city", header: "City*", required: true, width: 18, list: "city", note: "Choose the State first" },

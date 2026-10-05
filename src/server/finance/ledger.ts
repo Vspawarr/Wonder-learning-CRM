@@ -40,6 +40,8 @@ export type LedgerEntry = {
   date: DateStr;
   kind: "INVOICE" | "PAYMENT" | "CREDIT_NOTE";
   ref: string;
+  /** The school's PO number for the order behind this entry. */
+  po: string | null;
   particulars: string;
   debit: number;
   credit: number;
@@ -60,11 +62,11 @@ export async function clientLedger(user: SessionUser, clientId: string, period: 
     }),
     db.payment.findMany({
       where: { clientId, date: { lte: toDbDate(period.to) }, ...COUNTED_WHERE },
-      include: { invoice: { select: { number: true } }, salesOrder: { select: { number: true } } },
+      include: { invoice: { select: { number: true, salesOrder: { select: { poNumber: true } } } }, salesOrder: { select: { number: true, poNumber: true } } },
     }),
     db.creditNote.findMany({
       where: { clientId, date: { lte: toDbDate(period.to) } },
-      include: { invoice: { select: { number: true } } },
+      include: { invoice: { select: { number: true, salesOrder: { select: { poNumber: true } } } } },
     }),
   ]);
   const all = [
@@ -73,7 +75,8 @@ export async function clientLedger(user: SessionUser, clientId: string, period: 
       at: i.createdAt.getTime(),
       kind: "INVOICE" as const,
       ref: i.number,
-      particulars: `Invoice · order ${i.salesOrder.number}${i.salesOrder.poNumber ? ` · PO ${i.salesOrder.poNumber}` : ""}`,
+      po: i.salesOrder.poNumber,
+      particulars: `Invoice · order ${i.salesOrder.number}`,
       debit: Number(i.total),
       credit: 0,
     })),
@@ -82,6 +85,7 @@ export async function clientLedger(user: SessionUser, clientId: string, period: 
       at: p.createdAt.getTime(),
       kind: "PAYMENT" as const,
       ref: p.number ?? "",
+      po: p.invoice?.salesOrder.poNumber ?? p.salesOrder?.poNumber ?? null,
       particulars: `${p.invoice ? "Payment received" : "Advance received"} · ${p.mode}${p.reference ? ` ${p.reference}` : ""} · against ${p.invoice?.number ?? `order ${p.salesOrder?.number}`}`,
       debit: 0,
       credit: Number(p.amount),
@@ -91,6 +95,7 @@ export async function clientLedger(user: SessionUser, clientId: string, period: 
       at: c.createdAt.getTime(),
       kind: "CREDIT_NOTE" as const,
       ref: c.number,
+      po: c.invoice.salesOrder.poNumber,
       particulars: `Credit note on ${c.invoice.number} · ${c.reason}`,
       debit: 0,
       credit: Number(c.amount),
@@ -109,7 +114,7 @@ export async function clientLedger(user: SessionUser, clientId: string, period: 
     .filter((e) => e.date >= period.from)
     .map((e) => {
       balance = r2(balance + e.debit - e.credit);
-      return { date: e.date, kind: e.kind, ref: e.ref, particulars: e.particulars, debit: e.debit, credit: e.credit, balance };
+      return { date: e.date, kind: e.kind, ref: e.ref, po: e.po, particulars: e.particulars, debit: e.debit, credit: e.credit, balance };
     });
   const debit = r2(entries.reduce((s, e) => s + e.debit, 0));
   const credit = r2(entries.reduce((s, e) => s + e.credit, 0));

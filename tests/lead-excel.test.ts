@@ -170,7 +170,7 @@ describe("upload", () => {
     expect(reasons.E).toMatch(/"Next Follow-up Date": "31\/02\/2026" is not a valid date/);
     expect(reasons.F).toMatch(/"Owner\/Contact Person Name" is required.*"Mobile Number" is required/);
     expect(reasons.G).toMatch(/"Designation": "CEO" is not an allowed value/);
-    expect(reasons.H).toMatch(/"Mobile Number": "12345" is not a valid mobile/);
+    expect(reasons.H).toMatch(/"Mobile Number": "12345" is not a 10-digit mobile number/);
     expect(reasons.I).toMatch(/"Current Student Strength": "lots" must be a whole number/);
     expect(r.skipped.map((s) => s.row)).toEqual([2, 3, 4, 5, 6, 7, 8, 9, 10]);
   });

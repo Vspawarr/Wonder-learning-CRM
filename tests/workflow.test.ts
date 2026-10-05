@@ -294,7 +294,7 @@ describe("clients", () => {
     await moveOpportunity(exA, oppId, { stage: "WON" });
     const clientId = await convertToClient(exA, oppId);
     const c = await db.client.findUniqueOrThrow({ where: { id: clientId }, include: { tasks: true } });
-    expect(c).toMatchObject({ schoolName: "Happy Kids", status: "ONBOARDING", ownerId: exA.id, mobile: "98765 43210" });
+    expect(c).toMatchObject({ schoolName: "Happy Kids", status: "ONBOARDING", ownerId: exA.id, mobile: "9876543210" });
     expect(c.number).toBeGreaterThanOrEqual(101);
     expect(c.tasks[0]).toMatchObject({ title: "Start onboarding: Happy Kids", assigneeId: exA.id, isAuto: true });
     await expect(convertToClient(exA, oppId)).rejects.toThrow(/already a client/);
@@ -534,5 +534,24 @@ describe("hand over work", () => {
     const moved = await handOverWork(head, exA.id, exB.id);
     expect(moved).toMatchObject({ leads: 1, clients: 1 });
     expect(await openWorkOf(exA.id)).toEqual({ leads: 0, opportunities: 0, clients: 0, tasks: 0 });
+  });
+});
+
+describe("mobile numbers and competitor (R41)", () => {
+  it("keeps mobiles as 10 digits and asks which competitor for Other", async () => {
+    const { normalizeMobile } = await import("@/lib/phone");
+    expect(normalizeMobile("+91 98220 12345")).toBe("9822012345");
+    expect(normalizeMobile("098220-12345")).toBe("9822012345");
+    const exA = await makeUser("SALES_EXECUTIVE");
+    const id = await createLead(exA, leadData(exA.id, { mobile: "+91 98220 12345" }));
+    expect((await db.lead.findUniqueOrThrow({ where: { id } })).mobile).toBe("9822012345");
+    await expect(createLead(exA, leadData(exA.id, { schoolName: "Other School", mobile: "98220 123456" }))).rejects.toThrow(/10-digit/);
+    const opp = await convertLead(exA, id, { temperature: "WARM" });
+    const base = { ownerId: exA.id };
+    await expect(updateOpportunity(exA, opp, { ...base, competitor: "Other" })).rejects.toThrow(/which competitor/);
+    await updateOpportunity(exA, opp, { ...base, competitor: "Other", competitorNote: "Podar Jumbo Kids" });
+    expect(await db.opportunity.findUniqueOrThrow({ where: { id: opp } })).toMatchObject({ competitor: "Other", competitorNote: "Podar Jumbo Kids" });
+    await updateOpportunity(exA, opp, { ...base, competitor: "Kidzee", competitorNote: "left over" });
+    expect((await db.opportunity.findUniqueOrThrow({ where: { id: opp } })).competitorNote).toBeNull();
   });
 });

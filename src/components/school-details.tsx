@@ -9,6 +9,7 @@ import { editSchool } from "@/app/actions";
 import { DESIGNATIONS } from "@/lib/constants";
 import type { Locations } from "@/server/locations";
 import type { SchoolValues } from "@/lib/school-values";
+import { MobileInput } from "@/components/mobile-input";
 
 
 /** The fields themselves; `original` keeps a state/city that is no longer in Settings → Locations selectable. */
@@ -30,7 +31,7 @@ export function SchoolFields<T extends SchoolValues>({ v, setV, locations, origi
           </select>
         </Field>
         <Field label="Mobile number *" htmlFor={`${idp}-mobile`}>
-          <input className="in" id={`${idp}-mobile`} inputMode="tel" value={v.mobile} onChange={(e) => set("mobile", e.target.value)} />
+          <MobileInput id={`${idp}-mobile`} value={v.mobile} onChange={(m) => set("mobile", m)} />
         </Field>
         <Field label="Email ID" htmlFor={`${idp}-email`}>
           <input className="in" id={`${idp}-email`} type="email" value={v.email} onChange={(e) => set("email", e.target.value)} />

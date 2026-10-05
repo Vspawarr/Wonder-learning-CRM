@@ -123,7 +123,7 @@ export async function buildLeadTemplate(live: LiveLists): Promise<Buffer> {
     schoolName: EXAMPLE_SCHOOL,
     contactName: "Priya Sharma",
     designation: values.designation[0] ?? "",
-    mobile: "98220 12345",
+    mobile: "9822012345",
     email: "owner@example.com",
     state: exampleState,
     city: exampleState ? live.cities[exampleState][0] : "",

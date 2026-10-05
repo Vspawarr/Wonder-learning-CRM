@@ -35,6 +35,14 @@ change it here in the same commit as the code. Requirement numbers (R…) point 
 4. **Convert to client** on a Won deal → client in **Onboarding**, then **Active** when onboarding is marked complete.
 5. **Renewals:** each financial year (April – March), clients who ordered get a "Renewal: FY …" opportunity for the
    next financial year, valued at this year's orders, to close by 31 March (switchable feature) (R32).
+   A renewal is a new deal for the **same client**: when won, its sales order and invoices are made on that client's
+   page. **Money still owed on earlier invoices stays on those invoices** (it is not cleared, moved or added to the
+   new order): it keeps showing in Outstanding, the client's ledger (as the next year's opening balance) and the
+   ageing until paid; a renewal is not blocked by it. Payments are recorded against the invoice they pay.
+
+Mobile numbers are **exactly 10 digits** (R41): the box takes only digits and stops at 10; a pasted +91 or leading 0
+is dropped; leads, clients, contacts, users and the Excel upload all check it. Existing numbers were tidied to 10
+digits where possible.
 
 Duplicates: a new lead with the same mobile, or the same school name in the same city, as an existing lead or
 client shows a warning (the user may still save). The Excel upload skips same school name + mobile.
@@ -178,6 +186,9 @@ client shows a warning (the user may still save). The Excel upload skips same sc
 
 - WhatsApp buttons open WhatsApp with a ready message and a private link to the PDF (`/q/`, `/i/`, `/r/`
   links work without logging in, but only with the secret token).
+- On a computer they open **WhatsApp Web in one tab**: the first message opens it, every later one reuses that same
+  tab (R41). Browsers don't let a website reach a WhatsApp Web tab the user opened themselves, so keep using the tab
+  the CRM opened. Phones and the Android app open the WhatsApp app.
 - Email buttons appear only when email (SMTP) is set up (`DEPLOY.md`). Replies go to the sender.
 - With "several contacts" on, reminders and receipts go to the contact marked **payments contact** by default.
 
@@ -237,7 +248,7 @@ targets · several contacts · client documents · quotation validity. New optio
 ## Lists (single source of truth)
 
 Fixed lists live only in `src/lib/constants.ts`: lead sources (Facebook and Instagram are merged into **Social Media**, R28), designations, follow-up types, own to-do
-types, competitors, lost reasons, stages + probabilities, payment modes, document categories, contact roles.
+types, competitors (choosing **Other** asks which one, R41), lost reasons, stages + probabilities, payment modes, document categories, contact roles.
 States and cities live in the database (Settings → Locations). The form, the Excel template and the upload
 read the same lists, so they can't drift apart (R9, R10).
 

@@ -9,17 +9,20 @@ export function LostModal({
   oppId,
   school,
   competitor,
+  competitorNote,
   onClose,
   onDone,
 }: {
   oppId: string;
   school: string;
   competitor: string | null;
+  competitorNote?: string | null;
   onClose: () => void;
   onDone?: () => void;
 }) {
   const [reason, setReason] = useState("");
   const [comp, setComp] = useState(competitor ?? "");
+  const [compNote, setCompNote] = useState(competitorNote ?? "");
   const [remarks, setRemarks] = useState("");
   const { pending, run } = useAction();
   return (
@@ -34,9 +37,9 @@ export function LostModal({
           </button>
           <button
             className="btn bad"
-            disabled={pending || !reason || !remarks.trim()}
+            disabled={pending || !reason || !remarks.trim() || (comp === "Other" && !compNote.trim())}
             onClick={() =>
-              run(() => moveOpportunity(oppId, { stage: "LOST", lostReason: reason, lostRemarks: remarks, competitor: comp }), {
+              run(() => moveOpportunity(oppId, { stage: "LOST", lostReason: reason, lostRemarks: remarks, competitor: comp, competitorNote: compNote }), {
                 success: `Marked as lost: ${reason}.`,
                 onDone: () => {
                   onClose();
@@ -61,6 +64,11 @@ export function LostModal({
           <Options list={COMPETITORS} blank="None" />
         </select>
       </Field>
+      {comp === "Other" ? (
+        <Field label="Which competitor? *" htmlFor="lost-comp-note">
+          <input className="in" id="lost-comp-note" placeholder="Name of the other brand / school chain" value={compNote} onChange={(e) => setCompNote(e.target.value)} />
+        </Field>
+      ) : null}
       <Field label="Remarks *" htmlFor="lost-rem">
         <textarea className="ta" id="lost-rem" value={remarks} onChange={(e) => setRemarks(e.target.value)} />
       </Field>

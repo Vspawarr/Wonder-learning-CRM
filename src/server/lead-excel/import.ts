@@ -9,7 +9,7 @@ import { SALES_ROLES, type SessionUser } from "@/lib/permissions";
 import { DomainError } from "../errors";
 import { createLead } from "../leads";
 import { getLocations, locationProblem } from "../locations";
-import { MOBILE_RE } from "../validation";
+import { MOBILE_RE, normalizeMobile } from "@/lib/phone";
 import {
   CATEGORY_BY_LABEL,
   COLUMNS,
@@ -130,7 +130,7 @@ export async function importLeads(user: SessionUser, file: ArrayBuffer | Buffer)
       const p = locationProblem(locations, text.state, text.city);
       if (p) problems.push(`"City": ${p.replace(/\.$/, "")}`);
     }
-    if (text.mobile && !MOBILE_RE.test(text.mobile)) problems.push(`"Mobile Number": "${text.mobile}" is not a valid mobile number`);
+    if (text.mobile && !MOBILE_RE.test(normalizeMobile(text.mobile))) problems.push(`"Mobile Number": "${text.mobile}" is not a 10-digit mobile number`);
     for (const c of COLUMNS.filter((c) => c.kind === "int"))
       if (text[c.key] && !(/^\d+$/.test(text[c.key]) && Number(text[c.key]) >= (c.min ?? 0)))
         problems.push(`"${label(c)}": "${text[c.key]}" must be a whole number of at least ${c.min ?? 0}`);

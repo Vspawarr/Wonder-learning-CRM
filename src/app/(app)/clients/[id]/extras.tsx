@@ -11,6 +11,7 @@ import { CONTACT_ROLES, DOCUMENT_CATEGORIES } from "@/lib/constants";
 import { fmtDate, istDate } from "@/lib/dates";
 import type { ClientDetail } from "@/server/queries";
 import { uploadClientFile } from "./dispatch";
+import { MobileInput } from "@/components/mobile-input";
 
 type K = ClientDetail["contacts"][number];
 
@@ -96,7 +97,7 @@ function ContactModal({ clientId, contact, onClose }: { clientId: string; contac
           </select>
         </Field>
         <Field label="Mobile" htmlFor="ct-mob">
-          <input className="in" id="ct-mob" inputMode="tel" value={v.mobile} onChange={(e) => setV({ ...v, mobile: e.target.value })} />
+          <MobileInput id="ct-mob" value={v.mobile} onChange={(mobile) => setV({ ...v, mobile })} />
         </Field>
         <Field label="Email" htmlFor="ct-email">
           <input className="in" id="ct-email" type="email" value={v.email} onChange={(e) => setV({ ...v, email: e.target.value })} />

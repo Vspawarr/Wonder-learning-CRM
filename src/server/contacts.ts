@@ -6,18 +6,13 @@ import { CONTACT_ROLES } from "@/lib/constants";
 import type { SessionUser } from "@/lib/permissions";
 import { clientScope } from "./access";
 import { NotFoundError } from "./errors";
-import { MOBILE_RE, parse } from "./validation";
+import { optMobileField, parse } from "./validation";
 
 const contactInput = z
   .object({
     name: z.string().trim().min(1, "Enter the person's name.").max(120),
     role: z.enum(CONTACT_ROLES, { error: "Choose their role." }),
-    mobile: z
-      .string()
-      .trim()
-      .nullish()
-      .transform((s) => s || null)
-      .refine((s) => s === null || MOBILE_RE.test(s), "Enter a valid mobile number."),
+    mobile: optMobileField,
     email: z
       .string()
       .trim()

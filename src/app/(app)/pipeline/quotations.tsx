@@ -23,6 +23,7 @@ import { fmtDate, istDate, todayIST } from "@/lib/dates";
 import { customDelta, customLabel, isCustomised, type KitCustom } from "@/lib/kit-custom";
 import type { ProductOption, QuoteSummary } from "@/server/queries";
 import type { QuoteParent } from "@/server/quotation/service";
+import { openWhatsApp } from "@/lib/phone";
 
 type Q = QuoteSummary;
 /** What the panel needs to know about the deal or client it quotes for. */
@@ -532,7 +533,7 @@ function SendQuotation({
     const link = `${window.location.origin}/q/${q.shareToken}`;
     const text = `Dear Sir/Madam,\nPlease find our quotation ${q.number} for ${opp.schoolName}:\n${link}\n\nRegards,\n${me.name}\nWonder Learning`;
     // Open straight away (inside the click) so the browser doesn't block it.
-    window.open(`https://wa.me/${mobile}?text=${encodeURIComponent(text)}`, "_blank", "noopener");
+    openWhatsApp(mobile, text);
     run(() => markQuotationSent(q.id, "whatsapp"), {
       success: `${q.number} marked as sent on WhatsApp.`,
       onDone: onClose,
@@ -684,7 +685,7 @@ export function PoTemplateModal({ q, target, me, onClose }: { q: Q; target: Quot
   const whatsapp = () => {
     const base = `${window.location.origin}/q/${q.shareToken}`;
     const text = `Dear Sir/Madam,\nAs discussed, here is purchase order ${poNumber ?? ""} for ${target.schoolName} against our quotation ${q.number}. Please check the quantities, sign, put the school stamp and send it back to us. The kit checklist (every item in each kit) is attached from page 2:\n${base}/po\n\nKit checklist on its own:\n${base}/checklist\n\nRegards,\n${me.name}\nWonder Learning`;
-    window.open(`https://wa.me/${mobile}?text=${encodeURIComponent(text)}`, "_blank", "noopener");
+    openWhatsApp(mobile, text);
   };
   const setCheque = (i: number, patch: Partial<(typeof v.cheques)[number]>) => edit({ cheques: v.cheques.map((c, j) => (j === i ? { ...c, ...patch } : c)) });
 

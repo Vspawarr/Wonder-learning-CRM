@@ -30,7 +30,7 @@ the Android APK and the logo.)
   The form, the template and the upload all read these same lists; never type a second copy.
 - **Rules the upload enforces** (`import.ts`), the same as the New lead form:
   - header row must match exactly (an old template is refused, naming the changed column);
-  - required fields; values must be in the lists; City must belong to State; valid mobile; valid date;
+  - required fields; values must be in the lists; City must belong to State; 10-digit mobile (+91 / 0 in front removed); valid date;
   - **Qualified rows need an Opportunity Category**; the category is ignored on other rows (it belongs to the opportunity);
   - Reference Name kept only for Reference / Existing School Reference;
   - Sales Executives / Managers can only assign leads to themselves;
@@ -53,7 +53,7 @@ Code: `src/server/reports/index.ts` (one builder per report, using the screen's 
 | `opportunities` | Opportunities | Opp., School, Contact, City, Stage, Category, Value, Chance %, Expected close, Next action, Assigned to |
 | `clients` | Clients | Client, School, Contact, Mobile, City, Status, In 2026-27 (standing + order value; "Last order" for All years), Since, Assigned to |
 | `outstanding` | Outstanding | Summary, ageing, expected collections, then each invoice: Invoice, Date, School, PO No., Due, Total, Received, Balance, Status, Assigned to |
-| `ledger` | Ledger | One client: Date, Ref. No., Particulars, Debit, Credit, Balance. All clients: Client, School, City, Assigned to, Opening, Invoiced, Received, Closing |
+| `ledger` | Ledger, and the client page's Ledger tab | One client: Date, Ref. No., PO No., Particulars, Debit, Credit, Balance. All clients: Client, School, City, Assigned to, Opening, Invoiced, Received, Closing |
 | `todo` | To-do | When, Date, Time, Type, Task, Related to, Priority, Postponed, Assigned to |
 | `approvals` | Accounts → Payment approvals (Director / Admin) | Waiting for approval, then decided in the last 30 days: School, Against, Amount, Paid on, Mode / ref., Recorded by, Decision, Receipt / reason, By |
 | `expenses` | My expenses (own) / Accounts → Expenses (everyone, with filters) | No., Date, Person, Kind, What for, City, Paid by (incl. Company card), Bill (Yes / No: description), Amount, Status, Paid back; total |

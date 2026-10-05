@@ -873,7 +873,7 @@ describe("correct a school's details once, everywhere (R35)", () => {
     await expect(editSchool(exB, { leadId: lead.id }, fix())).rejects.toThrow(/not found/);
     const changed = await editSchool(exA, { leadId: lead.id }, fix());
     expect(changed).toEqual(expect.arrayContaining(["school name", "contact person", "mobile"]));
-    expect(await db.lead.findUniqueOrThrow({ where: { id: lead.id } })).toMatchObject({ schoolName: "Little Stars International", mobile: "98111 00099" });
+    expect(await db.lead.findUniqueOrThrow({ where: { id: lead.id } })).toMatchObject({ schoolName: "Little Stars International", mobile: "9811100099" });
     expect((await db.opportunity.findUniqueOrThrow({ where: { id: oppId } })).schoolName).toBe("Little Stars International");
     expect(await db.client.findUniqueOrThrow({ where: { id: clientId } })).toMatchObject({ schoolName: "Little Stars International", contactName: "Mrs. Correct Name", address: "New address, Pune" });
     expect((await db.quotation.findUniqueOrThrow({ where: { id: draft } })).schoolName).toBe("Little Stars International");
@@ -887,7 +887,7 @@ describe("correct a school's details once, everywhere (R35)", () => {
     expect((await db.client.findUniqueOrThrow({ where: { id: clientId } })).contactName).toBe("Via Opportunity");
     await updateClient(exA, clientId, { ...fix({ schoolName: "Little Stars Pre-school", mobile: "98111 00777" }), ownerId: exA.id });
     const lead = await db.lead.findUniqueOrThrow({ where: { id: (await db.opportunity.findUniqueOrThrow({ where: { id: oppId } })).leadId! } });
-    expect(lead).toMatchObject({ schoolName: "Little Stars Pre-school", mobile: "98111 00777" });
+    expect(lead).toMatchObject({ schoolName: "Little Stars Pre-school", mobile: "9811100777" });
     expect((await db.opportunity.findUniqueOrThrow({ where: { id: oppId } })).schoolName).toBe("Little Stars Pre-school");
   });
 });
