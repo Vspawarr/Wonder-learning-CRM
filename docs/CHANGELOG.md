@@ -7,7 +7,7 @@ commit id, what changed in plain words, and the requirement it answers (R… in 
 
 ## 5 Oct 2026
 
-- `PENDING` **Company accounts.** Money accounts (bank, cash, card) with opening balances; every rupee tagged to an
+- `36b5a48` **Company accounts.** Money accounts (bank, cash, card) with opening balances; every rupee tagged to an
   account (school payments "Received into" on approval, company expenses, pay-backs, advances); transfers; other
   money in / out; supplier **bills to pay** with GST %, Director approval and part payments; **salaries** register;
   **account books** with running balance, Matched tick and move-to-account; **Company finance** overview (money in /
