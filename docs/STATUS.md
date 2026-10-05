@@ -42,6 +42,7 @@ _Last updated: 5 Oct 2026. Update this page whenever the situation changes._
 - Invoice PDF layout is provisional (see above).
 - Email is off on the live site until SMTP is set up; WhatsApp and Download work.
 - Optional "manager approval for low prices" was not built (not requested).
+- **AI features (R40)** are on hold by the owner's choice (they cost money per use); the ideas are listed in REQUIREMENTS.md R40.
 - Later ideas not started: morning summary, automatic lead capture (website/Facebook/IndiaMART), WhatsApp
   Business API, "untouched 15+ days" list, change history, Accounts role.
 

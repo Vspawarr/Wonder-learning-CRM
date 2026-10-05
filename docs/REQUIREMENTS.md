@@ -473,3 +473,21 @@ Questions for the owner (answers needed before building):
 - Is this the company's management view (CA keeps Tally / statutory books), or should it replace the accountant's books?
 - Do salespeople collect **cash** from schools?
 - Any sales with GST other than 0% that need a GST summary?
+
+## R40. AI features (chatbot etc.) (5 Oct) — ON HOLD
+
+"Can we implement AI/ML here, chatbot etc.?" → after hearing it has a running cost: "We have to pay cost so let's not
+implement it right now."
+
+**Status: ⏸ not building now** (owner's decision: AI services charge per use). Ideas discussed, for later:
+1. Read expense / supplier bills from a photo (amount, date, supplier, GST filled in).
+2. "Ask the CRM" chat in plain English / Hindi / Marathi, answering from the CRM's data within each person's access.
+3. How-to help chat built on `docs/WORKFLOW.md`.
+4. Draft WhatsApp follow-ups, payment reminders, quotation notes.
+5. Meeting notes → summary, next follow-up date, to-do.
+6. Morning summary per person.
+7. Predictions (win chance, renewal risk, cash forecast): only after about a year of real data.
+
+If revived: needs an AI provider account and key (Vercel environment variable only), a monthly spending limit, and a
+switch per feature in Settings → Features.
+

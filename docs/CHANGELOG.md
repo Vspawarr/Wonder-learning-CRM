@@ -7,6 +7,7 @@ commit id, what changed in plain words, and the requirement it answers (R… in 
 
 ## 5 Oct 2026
 
+- Docs only: AI ideas (chatbot, bill reading…) recorded as R40, on hold by the owner's choice; no app change.
 - `36b5a48` **Company accounts.** Money accounts (bank, cash, card) with opening balances; every rupee tagged to an
   account (school payments "Received into" on approval, company expenses, pay-backs, advances); transfers; other
   money in / out; supplier **bills to pay** with GST %, Director approval and part payments; **salaries** register;
