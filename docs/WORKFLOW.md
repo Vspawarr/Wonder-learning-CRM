@@ -250,6 +250,9 @@ reference / cheque details and who recorded it.
 - **Decided in the last 30 days** lists approvals (with **Send receipt**) and rejections. **PDF / Excel** download.
 - Payments recorded by Accounts themselves count straight away. Switch the approval step off in Settings →
   Features → "Payment approval by Accounts".
+- Once company accounts are set up (section 11b), each waiting payment has **Received into**: pick the bank account
+  or the office cash the money went into (it is pre-filled from the mode: cash → cash box, others → bank). This is
+  also how cash collected by a salesperson is checked in.
 
 **Documents:** **Upload document** (agreement, GST certificate…). **Timeline:** everything that happened.
 
@@ -301,6 +304,55 @@ bounced cheque · renewal (call in 7 days).
 - **All expenses** with filters (person / company, status, dates) and **PDF / Excel**. The dashboard's Finance
   section shows approved **Expenses** for the period.
 
+## 11b. Company accounts (Accounts only)
+
+The company's own money: what came in, what went out, what is in each account and what is still to come in or go
+out. Menu **Accounts → Company finance, Bills to pay, Salaries, Account books** (Director / Admin). It is a
+management view; the CA keeps the official books and gets the PDF / Excel downloads. Switch it off in Settings →
+Features → "Company accounts".
+
+**First, once: Account books → Add account** for each bank account, the office cash and the company credit card,
+with the **opening balance** and its date (for the card, what is owed as a minus, e.g. −4000). **Edit** later to
+correct it or mark an account "not in use".
+
+**Where money comes from automatically:**
+- School payments, when approved in Payment approvals (**Received into**).
+- Company / company-card expenses, **Pay back** to employees and **advances** (each form has **Paid from**).
+- Bill payments and salaries (below).
+
+**Account books:**
+- The account cards show each **balance today** (red = minus; on a card it means what is owed).
+- **Transfer**: money moved between your own accounts (cash deposited in the bank, card bill paid from the bank).
+  It is not money in or out.
+- **Other money in**: interest, capital put in, loan received, refund, other income (counts straight away).
+- **Other payment**: rent, electricity, bank charges, GST / TDS paid, CA fees, loan repayment, owner withdrawal…
+  with an optional voucher photo. It waits for the **Director** (Admin approves until a Director login exists).
+- **Book**: choose an account and dates: opening balance, every entry with a running balance, closing balance.
+  Tick **Matched** when you find the line in the bank statement. The account select on a line **moves** it to
+  another account (e.g. a payment that actually went to the other bank). Entries saved before accounts existed are
+  under **Not assigned to an account**: open them and choose the right account.
+
+**Bills to pay** (printing press, paper, courier, software…):
+1. **Add bill**: supplier, their bill no., bill date, **pay by** date, what for, amount before GST, **GST %** (No
+   GST, 5, 12, 18, 28; the total is shown), description, bill photo / PDF → **Save**.
+2. The Director **Approves** (or **Rejects** with a reason).
+3. **Pay**: amount (part payments allowed), date, mode, **paid from** account, UTR / cheque no. The card shows each
+   payment and what is still to pay. Chips: **All / To pay / Waiting for approval**. The bell warns of bills due
+   within a week or overdue.
+
+**Salaries:** **Add salary** each month per person: month, employee (or a name for someone without a login), gross,
+deductions (PF, TDS, advance recovered), the take-home is worked out, paid on, mode, paid from. Listed month by
+month; the Director approves entries made by Admin / Accounts.
+
+**Company finance** (the chosen financial year, or From–To dates):
+- **Money in / Money out / Net** and **In bank & cash now**; **by month** bars.
+- **Where the money came from** and **where it went** (schools, other income / expenses by kind, bills, salaries…).
+- **Balances today** per account; **Still to come in** (schools' invoices, overdue part, cheques not cleared,
+  payments waiting approval); **Still to pay** (bills, overdue, due this week, pay-backs, card dues).
+- **Income and expense**: sales (invoices before GST, less credit notes) and other income, minus expenses, bills,
+  salaries and other payments = **profit / loss** (GST, loans, capital and withdrawals left out).
+- **GST summary**: GST on invoices vs GST on supplier bills, for the CA.
+
 ## 12. Dashboard
 
 - **Top strip** (today's position): active leads → opportunities → open quotations → open sales orders → clients →
@@ -346,6 +398,8 @@ bounced cheque · renewal (call in 7 days).
 | Send a payment receipt | The payment **approved by Accounts** |
 | Get an expense paid back | The expense (with its bill) **approved by Accounts**, paid from own money |
 | Take items out of a kit on a quotation | Item prices in the kit's contents (Settings → Products) |
+| Pay a supplier bill, count a salary or other payment | **Approval by the Director** (Admin until a Director login exists) |
+| Correct company balances | The money accounts with their **opening balances** (Account books → Add account) |
 | Send anything by email | Email set up by the Admin (until then use Download or WhatsApp) |
 | Create renewals | A client with at least one order; Admin / Sales Head for everyone at once |
 | Cancel an invoice, delete a payment, credit note, clear / bounce a cheque | Director, Admin or Sales Head |
@@ -358,6 +412,7 @@ bounced cheque · renewal (call in 7 days).
 | Quotation, sales order, proforma, invoice, credit note, challan | QUO/2026/10/001, SO/…, PI/…, INV/…, CN/…, DC/… | every month |
 | PO | PO/2627/93 | every financial year |
 | Receipt | 117/26-27 | every financial year |
+| Expense / supplier bill / other money in-out | E-1 / B-1 / M-1 | never |
 
 ## 17. Common questions
 

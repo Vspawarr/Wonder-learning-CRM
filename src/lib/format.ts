@@ -1,8 +1,13 @@
-export const inr = (n: number) => "₹" + Math.round(n || 0).toLocaleString("en-IN");
+/** Whole rupees: ₹1,97,000; a minus goes in front (−₹4,000). */
+export const inr = (n: number) => {
+  const r = Math.round(n || 0);
+  return (r < 0 ? "−₹" : "₹") + Math.abs(r).toLocaleString("en-IN");
+};
 
 /** Short rupee form: ₹1.2 L, ₹3.40 Cr. */
 export function inrS(n: number): string {
   n = n || 0;
+  if (n < 0) return "−" + inrS(-n);
   if (n >= 1e7) return "₹" + (n / 1e7).toFixed(2) + " Cr";
   if (n >= 1e5) return "₹" + (n / 1e5).toFixed(1) + " L";
   return inr(n);
@@ -27,7 +32,7 @@ export function avatarColor(id: string): string {
 }
 
 /** Exact rupees with paise when present: ₹1,97,000 or ₹2,800.50. */
-export const inrExact = (n: number) => `₹${n.toLocaleString("en-IN", { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
+export const inrExact = (n: number) => `${n < 0 ? "−" : ""}₹${Math.abs(n).toLocaleString("en-IN", { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
 
 /** "2026-10-01" → "01/10/2026". */
 export const dmy = (s: string | null | undefined) => (s ? s.split("-").reverse().join("/") : "—");

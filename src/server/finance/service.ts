@@ -7,6 +7,7 @@ import { db, type Tx } from "@/lib/db";
 import { CHEQUE_MODES, DEFAULT_PAYMENT_DAYS, PAYMENT_MODES } from "@/lib/constants";
 import { addDays, fmtDateTimeIST, fromDbDate, isDateStr, todayIST, toDbDate } from "@/lib/dates";
 import { inr } from "@/lib/format";
+import { accountForMode, accountOrDefault } from "../money-accounts";
 import { canApprovePayments, canManageFinance, seesAllSales, type SessionUser } from "@/lib/permissions";
 import { clientScope } from "../access";
 import { DomainError, NotFoundError } from "../errors";
@@ -615,8 +616,9 @@ async function createPayment(
     const p = await db.payment.create({ data: { ...data, approval: "PENDING" } });
     return { p, cheque, awaiting: true };
   }
+  const moneyAccountId = await accountForMode(d.mode);
   return withNextNumber("payment", "RCPT", async (tx, n) => {
-    const p = await tx.payment.create({ data: { ...data, ...n, approval: "APPROVED", approvedById: user.id, approvedAt: new Date() } });
+    const p = await tx.payment.create({ data: { ...data, ...n, moneyAccountId, approval: "APPROVED", approvedById: user.id, approvedAt: new Date() } });
     if (cheque) await depositReminder(tx, user, p, target.school, target.ownerId);
     return { p, cheque, awaiting: false };
   });
@@ -1455,7 +1457,7 @@ async function receiptSent(paymentId: string, how: string) {
 }
 
 /** Accounts approves: the payment counts as received, gets its receipt number, and the receipt can be sent. */
-export async function approvePayment(user: SessionUser, paymentId: string) {
+export async function approvePayment(user: SessionUser, paymentId: string, intoAccountId?: string | null) {
   assertAccounts(user);
   const p = await db.payment.findUnique({
     where: { id: paymentId },
@@ -1464,10 +1466,12 @@ export async function approvePayment(user: SessionUser, paymentId: string) {
   if (!p) throw new NotFoundError("Payment");
   if (p.approval !== "PENDING") throw new DomainError(`This payment is already ${p.approval === "APPROVED" ? "approved" : "rejected"}.`);
   const against = p.invoice ? `invoice ${p.invoice.number}` : `order ${p.salesOrder?.number} (advance)`;
+  // Which company account the money went into (R39): chosen on approval, else by mode (cash → office cash).
+  const moneyAccountId = await accountOrDefault(intoAccountId, p.mode);
   const done = await withNextNumber("payment", "RCPT", async (tx, n) => {
     const upd = await tx.payment.update({
       where: { id: paymentId, approval: "PENDING" },
-      data: { ...n, approval: "APPROVED", approvedById: user.id, approvedAt: new Date(), rejectReason: null },
+      data: { ...n, moneyAccountId, approval: "APPROVED", approvedById: user.id, approvedAt: new Date(), rejectReason: null },
     });
     if (upd.status === "IN_HAND") await depositReminder(tx, user, upd, p.client.schoolName, p.client.ownerId);
     if (upd.invoiceId) await syncCollectionTask(tx, user, upd.invoiceId);

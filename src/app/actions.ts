@@ -27,6 +27,8 @@ import * as search from "@/server/search";
 import * as documents from "@/server/documents";
 import * as school from "@/server/school";
 import * as expenses from "@/server/expenses";
+import * as company from "@/server/company";
+import * as books from "@/server/company-books";
 import { contentSchema, resetQuotationContent, saveQuotationContent } from "@/server/quotation/content";
 import { canManageSettings } from "@/lib/permissions";
 import { parse } from "@/server/validation";
@@ -97,8 +99,8 @@ export async function resetPassword(token: string, password: string): Promise<Ac
 }
 
 /** Accounts (R36): approve or reject a payment recorded by the team. */
-export async function approvePayment(id: string) {
-  return run((u) => fin.approvePayment(u, id));
+export async function approvePayment(id: string, intoAccountId?: string | null) {
+  return run((u) => fin.approvePayment(u, id, intoAccountId));
 }
 export async function rejectPayment(id: string, data: unknown) {
   return run((u) => fin.rejectPayment(u, id, data));
@@ -122,6 +124,44 @@ export async function recordEmployeeAdvance(data: unknown) {
 }
 export async function deleteEmployeeAdvance(id: string) {
   return run((u) => expenses.deleteAdvance(u, id));
+}
+
+/** Company accounts (R39). Bills and money entries with files go through /api/company/…. */
+export async function saveMoneyAccount(id: string | null, data: unknown) {
+  return run((u) => company.saveAccount(u, id, data));
+}
+export async function createTransfer(data: unknown) {
+  return run((u) => company.createTransfer(u, data));
+}
+export async function deleteTransfer(id: string) {
+  return run((u) => company.deleteTransfer(u, id));
+}
+export async function deleteCompanyEntry(id: string) {
+  return run((u) => company.deleteEntry(u, id));
+}
+export async function payBill(id: string, data: unknown) {
+  return run((u) => company.payBill(u, id, data));
+}
+export async function deleteBillPayment(id: string) {
+  return run((u) => company.deleteBillPayment(u, id));
+}
+export async function deleteBill(id: string) {
+  return run((u) => company.deleteBill(u, id));
+}
+export async function createSalary(data: unknown) {
+  return run((u) => company.createSalary(u, data));
+}
+export async function deleteSalary(id: string) {
+  return run((u) => company.deleteSalary(u, id));
+}
+export async function decideSpend(kind: "bill" | "salary" | "entry", id: string, data: unknown) {
+  return run((u) => company.decide(u, kind, id, data));
+}
+export async function reassignMovement(key: string, accountId: string | null) {
+  return run((u) => books.reassign(u, key, accountId));
+}
+export async function toggleBookMatch(key: string) {
+  return run((u) => books.toggleMatch(u, key));
 }
 
 /** Correct a school's details from a lead or opportunity; saved on every record of the school (R35). */

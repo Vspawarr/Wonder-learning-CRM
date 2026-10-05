@@ -13,6 +13,7 @@ import { DomainError, NotFoundError } from "./errors";
 import { getFeatures } from "./features";
 import { PO_MAX_BYTES, PO_TYPES } from "./finance/po";
 import { parse } from "./validation";
+import { accountOrDefault, defaultAccountId } from "./money-accounts";
 
 const r2 = (n: number) => Math.round(n * 100) / 100;
 const inr = (n: number) => `₹${r2(n).toLocaleString("en-IN")}`;
@@ -48,6 +49,8 @@ export const expenseInput = z.object({
   userId: text(50),
   /** "lead:<id>", "opp:<id>" or "client:<id>": the school it was for. */
   related: text(80),
+  /** Company expenses: the account that paid (R39); card spends go to the company card. */
+  moneyAccountId: text(50),
 });
 
 export const advanceInput = z.object({
@@ -58,11 +61,15 @@ export const advanceInput = z.object({
   mode: optMode,
   reference: text(100),
   note: text(300),
+  /** Company account it was paid from / returned into (R39). */
+  moneyAccountId: text(50),
 });
 
 export const reimburseInput = z.object({
   date: z.string().refine(isDateStr, "Enter the date paid."),
   reference: text(100),
+  /** Company account the money was paid from (R39); default: the bank. */
+  moneyAccountId: text(50),
 });
 
 export type BillFile = { name: string; type: string; bytes: Uint8Array };
@@ -130,6 +137,9 @@ export async function createExpense(user: SessionUser, raw: unknown, files: Bill
   }
   // The approver's own entries need no approval (R38: the Director; Admin while there is no Director).
   const approved = await canApproveExpenses(user);
+  // Which company account paid (R39): the card for card spends; for company-account spends the chosen one or the bank.
+  const moneyAccountId =
+    d.paidBy === "COMPANY_CARD" ? await defaultAccountId("CARD") : d.paidBy === "COMPANY" ? await accountOrDefault(accounts ? d.moneyAccountId : null, d.mode) : null;
   const e = await db.expense.create({
     data: {
       date: toDbDate(d.date),
@@ -142,6 +152,7 @@ export async function createExpense(user: SessionUser, raw: unknown, files: Bill
       mode: d.mode,
       reference: d.reference,
       noBillReason: noBill ? d.noBillReason : null,
+      moneyAccountId,
       userId,
       leadId,
       clientId,
@@ -216,7 +227,7 @@ export async function reimburseExpenses(user: SessionUser, userId: string, raw: 
   const d = parse(reimburseInput, raw);
   const r = await db.expense.updateMany({
     where: { userId, paidBy: "OWN", status: "APPROVED", reimbursedAt: null, ...(ids?.length ? { id: { in: ids } } : {}) },
-    data: { reimbursedAt: toDbDate(d.date), reimbursedById: user.id, reimburseRef: d.reference },
+    data: { reimbursedAt: toDbDate(d.date), reimbursedById: user.id, reimburseRef: d.reference, reimburseAccountId: await accountOrDefault(d.moneyAccountId, "Bank") },
   });
   if (!r.count) throw new DomainError("Nothing approved is waiting to be paid back to this person.");
   return r.count;
@@ -228,7 +239,17 @@ export async function recordAdvance(user: SessionUser, raw: unknown) {
   const d = parse(advanceInput, raw);
   if (!(await db.user.count({ where: { id: d.userId } }))) throw new NotFoundError("Employee");
   await db.employeeAdvance.create({
-    data: { userId: d.userId, kind: d.kind, amount: d.amount, date: toDbDate(d.date), mode: d.mode, reference: d.reference, note: d.note, createdById: user.id },
+    data: {
+      userId: d.userId,
+      kind: d.kind,
+      amount: d.amount,
+      date: toDbDate(d.date),
+      mode: d.mode,
+      reference: d.reference,
+      note: d.note,
+      moneyAccountId: await accountOrDefault(d.moneyAccountId, d.mode),
+      createdById: user.id,
+    },
   });
 }
 

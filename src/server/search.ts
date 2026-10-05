@@ -1,4 +1,4 @@
-import { canApprovePayments } from "@/lib/permissions";
+import { canApprovePayments, canManageCompanyAccounts } from "@/lib/permissions";
 import { db } from "@/lib/db";
 import { clientCode, leadCode, oppCode, STAGE_LABEL } from "@/lib/constants";
 import { toDbDate, todayIST } from "@/lib/dates";
@@ -8,6 +8,7 @@ import { invoiceRows } from "./finance/service";
 import { renewalCandidates } from "./renewals";
 import { getFeatures } from "./features";
 import { canApproveExpenses } from "./expenses";
+import { billsDueSoon, pendingSpend } from "./company";
 
 // Read-only helpers for the top bar: search everything, and "needs attention" alerts.
 // Both go through the same scope rules as the screens they link to.
@@ -81,7 +82,7 @@ export type Alert = { tone: "bad" | "warn" | "info"; icon: "check" | "rupee" | "
 
 export async function attentionAlerts(user: SessionUser): Promise<Alert[]> {
   const today = toDbDate(todayIST());
-  const [overdueTasks, todayTasks, invoices, cheques, renewals, approvals, expenses] = await Promise.all([
+  const [overdueTasks, todayTasks, invoices, cheques, renewals, approvals, expenses, spend] = await Promise.all([
     db.task.count({ where: { ...taskScope(user), assigneeId: user.id, status: "OPEN", dueDate: { lt: today } } }),
     db.task.count({ where: { ...taskScope(user), assigneeId: user.id, status: "OPEN", dueDate: today } }),
     invoiceRows(user, { status: { not: "CANCELLED" } }),
@@ -89,11 +90,21 @@ export async function attentionAlerts(user: SessionUser): Promise<Alert[]> {
     getFeatures().then((f) => (f.renewals ? renewalCandidates(user).then((r) => r.clients.length) : 0)),
     canApprovePayments(user.role) ? db.payment.count({ where: { approval: "PENDING" } }) : 0,
     canApproveExpenses(user).then(async (ok) => (ok && (await getFeatures()).expenses ? db.expense.count({ where: { status: "SUBMITTED" } }) : 0)),
+    getFeatures().then(async (f) =>
+      f.companyAccounts && canManageCompanyAccounts(user.role)
+        ? { ...((await canApproveExpenses(user)) ? await pendingSpend() : { bills: 0, salaries: 0, entries: 0 }), due: await billsDueSoon() }
+        : { bills: 0, salaries: 0, entries: 0, due: 0 },
+    ),
   ]);
   const overdue = invoices.filter((i) => i.state === "OVERDUE");
   const a: Alert[] = [];
   if (approvals) a.push({ tone: "warn", icon: "rupee", text: `${approvals} payment${approvals > 1 ? "s" : ""} waiting for your approval`, href: "/accounts" });
   if (expenses) a.push({ tone: "warn", icon: "doc", text: `${expenses} expense claim${expenses > 1 ? "s" : ""} waiting for your approval`, href: "/accounts/expenses" });
+  const plural = (n: number, one: string, many: string) => `${n} ${n > 1 ? many : one}`;
+  if (spend.bills) a.push({ tone: "warn", icon: "doc", text: `${plural(spend.bills, "supplier bill", "supplier bills")} waiting for your approval`, href: "/accounts/bills?show=waiting" });
+  if (spend.salaries) a.push({ tone: "warn", icon: "doc", text: `${plural(spend.salaries, "salary", "salaries")} waiting for your approval`, href: "/accounts/salaries" });
+  if (spend.entries) a.push({ tone: "warn", icon: "doc", text: `${plural(spend.entries, "company payment", "company payments")} waiting for your approval`, href: "/accounts/books" });
+  if (spend.due) a.push({ tone: "bad", icon: "rupee", text: `${spend.due} supplier bill${spend.due > 1 ? "s" : ""} due within a week or overdue`, href: "/accounts/bills?show=topay" });
   if (overdueTasks) a.push({ tone: "bad", icon: "check", text: `${overdueTasks} overdue to-do${overdueTasks > 1 ? "s" : ""}`, href: "/tasks" });
   if (todayTasks) a.push({ tone: "warn", icon: "check", text: `${todayTasks} to-do${todayTasks > 1 ? "s" : ""} due today`, href: "/tasks" });
   for (const i of overdue.slice(0, 6))

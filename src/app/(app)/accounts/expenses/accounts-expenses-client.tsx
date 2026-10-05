@@ -10,10 +10,11 @@ import { deleteEmployeeAdvance, recordEmployeeAdvance, reimburseExpenses } from 
 import { EXPENSE_MODES } from "@/lib/constants";
 import { todayIST } from "@/lib/dates";
 import { inrExact as money } from "@/lib/format";
+import { AccountSelect, guessAccount, type AccountOpt } from "../company-client";
 
-export function PayBackButton({ person, amount }: { person: { id: string; name: string }; amount: number }) {
+export function PayBackButton({ person, amount, accounts = [] }: { person: { id: string; name: string }; amount: number; accounts?: AccountOpt[] }) {
   const [open, setOpen] = useState(false);
-  const [v, setV] = useState({ date: todayIST(), reference: "" });
+  const [v, setV] = useState({ date: todayIST(), reference: "", moneyAccountId: guessAccount(accounts, "NEFT/RTGS") });
   const { pending, run } = useAction();
   return (
     <>
@@ -43,6 +44,11 @@ export function PayBackButton({ person, amount }: { person: { id: string; name: 
             <Field label="Reference" htmlFor="pb-ref">
               <input className="in" id="pb-ref" placeholder="UTR / cash voucher (optional)" value={v.reference} onChange={(e) => setV({ ...v, reference: e.target.value })} />
             </Field>
+            {accounts.length ? (
+              <Field label="Paid from" htmlFor="pb-acc">
+                <AccountSelect id="pb-acc" accounts={accounts} value={v.moneyAccountId} onChange={(moneyAccountId) => setV({ ...v, moneyAccountId })} />
+              </Field>
+            ) : null}
           </div>
         </Modal>
       ) : null}
@@ -51,8 +57,18 @@ export function PayBackButton({ person, amount }: { person: { id: string; name: 
 }
 
 /** Give an advance to an employee, or record money they returned. */
-export function AdvanceButton({ people, person, small }: { people: { id: string; name: string }[]; person?: { id: string; name: string }; small?: boolean }) {
-  const blank = () => ({ userId: person?.id ?? "", kind: "GIVEN", amount: "", date: todayIST(), mode: "", reference: "", note: "" });
+export function AdvanceButton({
+  people,
+  person,
+  small,
+  accounts = [],
+}: {
+  people: { id: string; name: string }[];
+  person?: { id: string; name: string };
+  small?: boolean;
+  accounts?: AccountOpt[];
+}) {
+  const blank = () => ({ userId: person?.id ?? "", kind: "GIVEN", amount: "", date: todayIST(), mode: "", reference: "", note: "", moneyAccountId: guessAccount(accounts, "NEFT/RTGS") });
   const [open, setOpen] = useState(false);
   const [v, setV] = useState(blank);
   const { pending, run } = useAction();
@@ -102,13 +118,18 @@ export function AdvanceButton({ people, person, small }: { people: { id: string;
               <DateInput id="adv-date" value={v.date} onChange={(date) => setV({ ...v, date })} />
             </Field>
             <Field label="Mode" htmlFor="adv-mode">
-              <select className="sel" id="adv-mode" value={v.mode} onChange={(e) => setV({ ...v, mode: e.target.value })}>
+              <select className="sel" id="adv-mode" value={v.mode} onChange={(e) => setV({ ...v, mode: e.target.value, moneyAccountId: guessAccount(accounts, e.target.value || "NEFT/RTGS") })}>
                 <Options list={EXPENSE_MODES} blank="Not specified" />
               </select>
             </Field>
             <Field label="Reference" htmlFor="adv-ref">
               <input className="in" id="adv-ref" value={v.reference} onChange={(e) => setV({ ...v, reference: e.target.value })} />
             </Field>
+            {accounts.length ? (
+              <Field label={v.kind === "GIVEN" ? "Paid from" : "Received into"} htmlFor="adv-acc">
+                <AccountSelect id="adv-acc" accounts={accounts} value={v.moneyAccountId} onChange={(moneyAccountId) => setV({ ...v, moneyAccountId })} />
+              </Field>
+            ) : null}
           </div>
           <Field label="Note" htmlFor="adv-note">
             <input className="in" id="adv-note" placeholder="e.g. Nashik–Pune tour, 10–14 Oct" value={v.note} onChange={(e) => setV({ ...v, note: e.target.value })} />

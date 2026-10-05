@@ -2,7 +2,7 @@
 // and exports follow it; a record's own page always shows its whole history. Null means "All years".
 import { cookies } from "next/headers";
 import { db } from "@/lib/db";
-import { fromDbDate, todayIST } from "@/lib/dates";
+import { fromDbDate, isDateStr, todayIST } from "@/lib/dates";
 import { YEAR_COOKIE, financialYear, fyLabel, fyRange, parseYearCookie, type YearChoice } from "@/lib/fy";
 
 export async function selectedYear(): Promise<YearChoice> {
@@ -39,4 +39,10 @@ export async function yearOptions(): Promise<{ start: number; label: string; cur
   const out = [];
   for (let y = last; y >= first; y--) out.push({ start: y, label: fyLabel(y), current: y === now });
   return out;
+}
+
+/** A period for money screens: the ?from / ?to filter if set, else the chosen year (All years → this year). */
+export async function periodOrYear(from?: string, to?: string) {
+  const y = (await selectedRange()) ?? fyRange(financialYear(todayIST()).start);
+  return { from: from && isDateStr(from) ? from : y.from, to: to && isDateStr(to) ? to : y.to };
 }

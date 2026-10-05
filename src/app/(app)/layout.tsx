@@ -1,7 +1,7 @@
 import { db } from "@/lib/db";
 import { toDbDate, todayIST } from "@/lib/dates";
 import { ROLE_LABEL } from "@/lib/constants";
-import { canApprovePayments, canManageFinance, canManageProducts, canManageSettings, canViewUsers, seesAllSales } from "@/lib/permissions";
+import { canApprovePayments, canManageCompanyAccounts, canManageFinance, canManageProducts, canManageSettings, canViewUsers, seesAllSales } from "@/lib/permissions";
 import { AppProvider } from "@/components/app-context";
 import { getFeatures } from "@/server/features";
 import { ToastProvider } from "@/components/client";
@@ -9,11 +9,12 @@ import { requireUser } from "@/server/session";
 import { Shell, type NavGroup } from "./shell";
 import { selectedYear } from "@/server/year";
 import { canApproveExpenses } from "@/server/expenses";
+import { pendingSpend } from "@/server/company";
 import { fyLabel } from "@/lib/fy";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const user = await requireUser();
-  const [due, features, year, approvals, expenseWaiting] = await Promise.all([
+  const [due, features, year, approvals, expenseWaiting, spendWaiting] = await Promise.all([
     db.task.count({
       where: {
         assigneeId: user.id,
@@ -25,6 +26,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     selectedYear(),
     canApprovePayments(user.role) ? db.payment.count({ where: { approval: "PENDING" } }) : 0,
     canApproveExpenses(user).then((ok) => (ok ? db.expense.count({ where: { status: "SUBMITTED" } }) : 0)),
+    canApproveExpenses(user).then((ok) => (ok ? pendingSpend() : { bills: 0, salaries: 0, entries: 0 })),
   ]);
 
   const nav: NavGroup[] = [
@@ -56,6 +58,15 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       items: [
         { href: "/accounts", label: "Payment approvals", icon: "rupee", badge: approvals },
         ...(features.expenses ? [{ href: "/accounts/expenses", label: "Expenses", icon: "doc" as const, badge: expenseWaiting }] : []),
+        // Company accounts (R39).
+        ...(features.companyAccounts && canManageCompanyAccounts(user.role)
+          ? [
+              { href: "/accounts/finance", label: "Company finance", icon: "grid" as const },
+              { href: "/accounts/bills", label: "Bills to pay", icon: "doc" as const, badge: spendWaiting.bills },
+              { href: "/accounts/salaries", label: "Salaries", icon: "users" as const, badge: spendWaiting.salaries },
+              { href: "/accounts/books", label: "Account books", icon: "briefcase" as const, badge: spendWaiting.entries },
+            ]
+          : []),
       ],
     });
   const admin = [

@@ -71,6 +71,16 @@ model User {
   expensesReimbursed Expense[]                @relation("ExpenseReimbursedBy")
   advancesHeld       EmployeeAdvance[]        @relation("AdvanceTo")
   advancesEntered    EmployeeAdvance[]        @relation("AdvanceEnteredBy")
+  companyEntries     CompanyEntry[]           @relation("EntryCreatedBy")
+  entriesDecided     CompanyEntry[]           @relation("EntryDecidedBy")
+  billsCreated       Bill[]                   @relation("BillCreatedBy")
+  billsDecided       Bill[]                   @relation("BillDecidedBy")
+  billPayments       BillPayment[]
+  salaries           SalaryPayment[]          @relation("SalaryOf")
+  salariesCreated    SalaryPayment[]          @relation("SalaryCreatedBy")
+  salariesDecided    SalaryPayment[]          @relation("SalaryDecidedBy")
+  transfers          AccountTransfer[]
+  bookMatches        BookMatch[]
 }
 
 // ───────────────────────── Masters ─────────────────────────
@@ -777,6 +787,10 @@ model Payment {
   statusAt     DateTime?
   tasks        Task[]
 
+  /// The company account the money went into (bank / office cash), chosen on approval (R39).
+  moneyAccountId String?
+  moneyAccount   MoneyAccount? @relation("PaymentInto", fields: [moneyAccountId], references: [id], onDelete: SetNull)
+
   /// Accounts approval (R36): only APPROVED payments count as received and get a receipt.
   approval     PaymentApproval @default(APPROVED)
   approvedById String?
@@ -894,6 +908,12 @@ model Expense {
   reimbursedBy   User?     @relation("ExpenseReimbursedBy", fields: [reimbursedById], references: [id])
   reimburseRef   String?
 
+  /// Company account / card that paid (company and card expenses), and the account used to pay the employee back (R39).
+  moneyAccountId     String?
+  moneyAccount       MoneyAccount? @relation("ExpensePaidFrom", fields: [moneyAccountId], references: [id], onDelete: SetNull)
+  reimburseAccountId String?
+  reimburseAccount   MoneyAccount? @relation("ExpenseReimbursedFrom", fields: [reimburseAccountId], references: [id], onDelete: SetNull)
+
   createdById String
   createdBy   User          @relation("ExpenseCreatedBy", fields: [createdById], references: [id])
   createdAt   DateTime      @default(now())
@@ -922,18 +942,195 @@ enum AdvanceKind {
 
 /// Money the company gives an employee in advance for spends (or that they give back).
 model EmployeeAdvance {
-  id          String      @id @default(cuid())
-  userId      String
-  user        User        @relation("AdvanceTo", fields: [userId], references: [id])
-  kind        AdvanceKind @default(GIVEN)
-  amount      Decimal     @db.Decimal(12, 2)
-  date        DateTime    @db.Date
-  mode        String?
-  reference   String?
-  note        String?
-  createdById String
-  createdBy   User        @relation("AdvanceEnteredBy", fields: [createdById], references: [id])
-  createdAt   DateTime    @default(now())
+  id             String        @id @default(cuid())
+  userId         String
+  user           User          @relation("AdvanceTo", fields: [userId], references: [id])
+  kind           AdvanceKind   @default(GIVEN)
+  amount         Decimal       @db.Decimal(12, 2)
+  date           DateTime      @db.Date
+  mode           String?
+  reference      String?
+  note           String?
+  /// Company account the advance was paid from (or returned into) (R39).
+  moneyAccountId String?
+  moneyAccount   MoneyAccount? @relation("AdvanceAccount", fields: [moneyAccountId], references: [id], onDelete: SetNull)
+  createdById    String
+  createdBy      User          @relation("AdvanceEnteredBy", fields: [createdById], references: [id])
+  createdAt      DateTime      @default(now())
 
   @@index([userId, date])
+}
+
+// ───────────────────────── Company accounts (R39) ─────────────────────────
+
+enum MoneyAccountKind {
+  BANK
+  CASH
+  CARD
+  OTHER
+}
+
+/// Where the company's money sits: a bank account, office cash, the company credit card (balance below 0 = card dues).
+model MoneyAccount {
+  id             String           @id @default(cuid())
+  name           String           @unique
+  kind           MoneyAccountKind
+  /// Last digits / card ending, shown to tell accounts apart.
+  number         String?
+  openingBalance Decimal          @default(0) @db.Decimal(14, 2)
+  openingDate    DateTime         @db.Date
+  active         Boolean          @default(true)
+  sortOrder      Int              @default(0)
+  createdAt      DateTime         @default(now())
+
+  payments           Payment[]         @relation("PaymentInto")
+  expensesPaid       Expense[]         @relation("ExpensePaidFrom")
+  expensesReimbursed Expense[]         @relation("ExpenseReimbursedFrom")
+  advances           EmployeeAdvance[] @relation("AdvanceAccount")
+  entries            CompanyEntry[]
+  transfersOut       AccountTransfer[] @relation("TransferFrom")
+  transfersIn        AccountTransfer[] @relation("TransferTo")
+  billPayments       BillPayment[]
+  salaries           SalaryPayment[]
+}
+
+enum MoneyDirection {
+  IN
+  OUT
+}
+
+/// The Director approves outgoing money entered by others (same rule as expenses, R38).
+enum SpendApproval {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+/// Other money in or out, not linked to a school: interest, capital, loans, rent, bank charges, GST / TDS paid…
+model CompanyEntry {
+  id             String         @id @default(cuid())
+  number         Int            @unique @default(autoincrement()) // M-<number>
+  date           DateTime       @db.Date
+  direction      MoneyDirection
+  category       String // COMPANY_IN_CATEGORIES / COMPANY_OUT_CATEGORIES
+  amount         Decimal        @db.Decimal(14, 2)
+  party          String?
+  reference      String?
+  note           String?
+  moneyAccountId String?
+  moneyAccount   MoneyAccount?  @relation(fields: [moneyAccountId], references: [id], onDelete: SetNull)
+  status         SpendApproval  @default(APPROVED)
+  decidedById    String?
+  decidedBy      User?          @relation("EntryDecidedBy", fields: [decidedById], references: [id])
+  decidedAt      DateTime?
+  rejectReason   String?
+  fileName       String?
+  fileType       String?
+  fileData       Bytes?
+  createdById    String
+  createdBy      User           @relation("EntryCreatedBy", fields: [createdById], references: [id])
+  createdAt      DateTime       @default(now())
+
+  @@index([date])
+}
+
+/// Money moved between the company's own accounts (cash deposited, card bill paid from the bank…).
+model AccountTransfer {
+  id            String       @id @default(cuid())
+  date          DateTime     @db.Date
+  amount        Decimal      @db.Decimal(14, 2)
+  fromAccountId String
+  fromAccount   MoneyAccount @relation("TransferFrom", fields: [fromAccountId], references: [id])
+  toAccountId   String
+  toAccount     MoneyAccount @relation("TransferTo", fields: [toAccountId], references: [id])
+  reference     String?
+  note          String?
+  createdById   String
+  createdBy     User         @relation(fields: [createdById], references: [id])
+  createdAt     DateTime     @default(now())
+}
+
+/// A supplier / printing-press / service bill the company has to pay (payables).
+model Bill {
+  id           String        @id @default(cuid())
+  number       Int           @unique @default(autoincrement()) // B-<number>
+  vendor       String
+  billNo       String?
+  billDate     DateTime      @db.Date
+  dueDate      DateTime?     @db.Date
+  category     String // BILL_CATEGORIES
+  description  String
+  /// Before GST; GST % optional (services with GST).
+  amount       Decimal       @db.Decimal(14, 2)
+  gstRate      Decimal       @default(0) @db.Decimal(5, 2)
+  gstAmount    Decimal       @default(0) @db.Decimal(14, 2)
+  total        Decimal       @db.Decimal(14, 2)
+  status       SpendApproval @default(APPROVED)
+  decidedById  String?
+  decidedBy    User?         @relation("BillDecidedBy", fields: [decidedById], references: [id])
+  decidedAt    DateTime?
+  rejectReason String?
+  fileName     String?
+  fileType     String?
+  fileData     Bytes?
+  createdById  String
+  createdBy    User          @relation("BillCreatedBy", fields: [createdById], references: [id])
+  createdAt    DateTime      @default(now())
+  payments     BillPayment[]
+
+  @@index([billDate])
+}
+
+model BillPayment {
+  id             String        @id @default(cuid())
+  billId         String
+  bill           Bill          @relation(fields: [billId], references: [id], onDelete: Cascade)
+  date           DateTime      @db.Date
+  amount         Decimal       @db.Decimal(14, 2)
+  moneyAccountId String?
+  moneyAccount   MoneyAccount? @relation(fields: [moneyAccountId], references: [id], onDelete: SetNull)
+  mode           String?
+  reference      String?
+  createdById    String
+  createdBy      User          @relation(fields: [createdById], references: [id])
+  createdAt      DateTime      @default(now())
+}
+
+/// A month's salary paid to one person (a CRM user, or someone without a login, e.g. a driver).
+model SalaryPayment {
+  id             String        @id @default(cuid())
+  /// "2026-10"
+  month          String
+  userId         String?
+  user           User?         @relation("SalaryOf", fields: [userId], references: [id])
+  employeeName   String
+  gross          Decimal       @db.Decimal(14, 2)
+  /// PF, ESI, TDS, professional tax, advance recovered…
+  deductions     Decimal       @default(0) @db.Decimal(14, 2)
+  net            Decimal       @db.Decimal(14, 2)
+  paidOn         DateTime      @db.Date
+  moneyAccountId String?
+  moneyAccount   MoneyAccount? @relation(fields: [moneyAccountId], references: [id], onDelete: SetNull)
+  mode           String?
+  reference      String?
+  note           String?
+  status         SpendApproval @default(APPROVED)
+  decidedById    String?
+  decidedBy      User?         @relation("SalaryDecidedBy", fields: [decidedById], references: [id])
+  decidedAt      DateTime?
+  rejectReason   String?
+  createdById    String
+  createdBy      User          @relation("SalaryCreatedBy", fields: [createdById], references: [id])
+  createdAt      DateTime      @default(now())
+
+  @@index([month])
+}
+
+/// "Matched with the bank statement" ticks in an account book; one per money movement.
+model BookMatch {
+  /// e.g. "payment:<id>", "bill-payment:<id>", "transfer-in:<id>".
+  key       String   @id
+  matchedAt DateTime @default(now())
+  byId      String
+  by        User     @relation(fields: [byId], references: [id])
 }

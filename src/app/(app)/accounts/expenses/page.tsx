@@ -7,6 +7,7 @@ import { inr } from "@/lib/format";
 import { canManageExpenses } from "@/lib/permissions";
 import { advanceList, canApproveExpenses, expenseApprover, expenseBalances, expenseList } from "@/server/expenses";
 import { getFeatures } from "@/server/features";
+import { listAccounts } from "@/server/company";
 import { taskTargets } from "@/server/queries";
 import { requireUser } from "@/server/session";
 import { selectedRange } from "@/server/year";
@@ -23,7 +24,7 @@ export default async function AccountsExpensesPage({ searchParams }: { searchPar
   if (!canManageExpenses(user.role) || !(await getFeatures()).expenses) notFound();
   const sp = await searchParams;
   const year = await selectedRange();
-  const [waiting, rows, balances, advances, people, targets, canApprove, approver] = await Promise.all([
+  const [waiting, rows, balances, advances, people, targets, canApprove, approver, features, moneyAccounts] = await Promise.all([
     expenseList(user, { status: "waiting" }),
     expenseList(user, { ...sp, year }),
     expenseBalances(user),
@@ -32,7 +33,12 @@ export default async function AccountsExpensesPage({ searchParams }: { searchPar
     taskTargets(user),
     canApproveExpenses(user),
     expenseApprover(),
+    getFeatures(),
+    listAccounts(),
   ]);
+  // R39: which company account the money moved through (once accounts are set up).
+  const acc = features.companyAccounts ? moneyAccounts.filter((a) => a.active).map((a) => ({ id: a.id, name: a.name, kind: a.kind, active: a.active })) : [];
+  const bankCash = acc.filter((a) => a.kind !== "CARD");
   const toPay = balances.reduce((t, b) => t + b.toReimburse, 0);
   const out = balances.reduce((t, b) => t + Math.max(0, b.advanceBalance), 0);
   const approved = rows.filter((r) => r.status === "APPROVED").reduce((t, r) => t + r.amount, 0);
@@ -40,8 +46,8 @@ export default async function AccountsExpensesPage({ searchParams }: { searchPar
     <>
       <PageHeader title="Expenses" sub="The team's bills and company spends. Approve claims, pay people back, give advances. Everything is counted here.">
         <ExportButtons report="expenses" />
-        <AdvanceButton people={people} />
-        <AddExpenseButton accounts people={people} targets={targets} me={user.id} label="Add expense" company />
+        <AdvanceButton people={people} accounts={bankCash} />
+        <AddExpenseButton accounts people={people} targets={targets} me={user.id} label="Add expense" company moneyAccounts={bankCash} />
       </PageHeader>
       <div className="mb-4 grid grid-cols-2 gap-3 min-[901px]:grid-cols-4">
         <Kpi label="Waiting for approval" value={String(waiting.length)} sub={inr(waiting.reduce((t, e) => t + e.amount, 0))} color="#E8930C" />
@@ -88,8 +94,8 @@ export default async function AccountsExpensesPage({ searchParams }: { searchPar
                     <dd>{inr(b.waiting)}</dd>
                   </dl>
                   <div className="mt-2 flex flex-wrap gap-1.5">
-                    {b.toReimburse > 0 ? <PayBackButton person={b} amount={b.toReimburse} /> : null}
-                    <AdvanceButton people={people} person={b} small />
+                    {b.toReimburse > 0 ? <PayBackButton person={b} amount={b.toReimburse} accounts={bankCash} /> : null}
+                    <AdvanceButton people={people} person={b} small accounts={bankCash} />
                   </div>
                 </div>
               ))}

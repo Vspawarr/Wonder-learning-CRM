@@ -6,8 +6,15 @@ import type { LeadInput } from "@/server/validation";
 
 export async function resetData() {
   await db.$transaction([
+    db.bookMatch.deleteMany(),
+    db.billPayment.deleteMany(),
+    db.bill.deleteMany(),
+    db.salaryPayment.deleteMany(),
+    db.companyEntry.deleteMany(),
+    db.accountTransfer.deleteMany(),
     db.expense.deleteMany(),
     db.employeeAdvance.deleteMany(),
+    db.moneyAccount.deleteMany(),
     db.quotation.deleteMany(),
     db.activity.deleteMany(),
     db.task.deleteMany(),

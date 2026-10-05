@@ -1,7 +1,8 @@
 // Every exportable report, built with the same filters and access rules as its screen.
 import { CLIENT_STATUS_LABEL, EXPENSE_PAID_BY_SHORT, LEAD_STATUS_LABEL, STAGE_LABEL, TEMPERATURE_LABEL, clientCode, leadCode, oppCode } from "@/lib/constants";
 import { daysFrom, istDate, todayIST } from "@/lib/dates";
-import { seesAllSales, type SessionUser } from "@/lib/permissions";
+import { canManageCompanyAccounts, seesAllSales, type SessionUser } from "@/lib/permissions";
+import { companySnapshot } from "../company-books";
 import { salesDashboard, serviceSummary } from "../dashboard";
 import { NotFoundError } from "../errors";
 import { INVOICE_STATE_LABEL } from "../finance/money";
@@ -10,6 +11,7 @@ import { approvalQueue, collectionsSummary, outstandingList } from "../finance/s
 import { expenseList, expenseTotal } from "../expenses";
 import { YEAR_FILTERS, YEAR_STANDING_LABEL, clientsList, leadsList, pipelineCards, taskList, type TaskKind } from "../queries";
 import type { Cell, Report } from "./types";
+import * as company from "./company";
 import { financialYear, fyLabel, fyRange, parseYearCookie } from "@/lib/fy";
 import { yearAnchor } from "../year";
 import { getFeatures } from "../features";
@@ -475,6 +477,12 @@ async function dashboard(user: SessionUser, p: Params): Promise<Report> {
       { k: "Cheques not cleared", m: owed.forecast.chequesPending },
       { k: "Waiting for Accounts approval", m: cash.awaiting },
       ...(features.expenses ? [await expenseTotal(user, d.range.from, d.range.to).then((x) => ({ k: "Expenses approved", v: x.count, m: x.amount }))] : []),
+      ...(features.companyAccounts && canManageCompanyAccounts(user.role)
+        ? await companySnapshot(user).then((b) => [
+            { k: "In bank & cash (today)", m: b.cash },
+            { k: "Supplier bills to pay", v: b.billCount, m: b.bills },
+          ])
+        : []),
     ]);
     sections.push({
       heading: "How late is the money owed",
@@ -683,6 +691,10 @@ async function approvals(user: SessionUser): Promise<Report> {
 
 export const REPORTS = {
   approvals,
+  finance: company.finance,
+  bills: company.bills,
+  salaries: company.salaries,
+  book: company.book,
   expenses,
   leads,
   opportunities,

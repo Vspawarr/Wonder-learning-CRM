@@ -202,3 +202,36 @@ export const EXPENSE_PAID_BY_LABEL = {
 export const EXPENSE_PAID_BY_SHORT = { OWN: "Own money", ADVANCE: "From advance", COMPANY_CARD: "Company card", COMPANY: "Company account" } as const;
 export const EXPENSE_STATUS_LABEL = { SUBMITTED: "Waiting for approval", APPROVED: "Approved", REJECTED: "Rejected" } as const;
 export const expenseCode = (n: number) => `E-${n}`;
+
+/* ---------- Company accounts (R39) ---------- */
+export const MONEY_ACCOUNT_KIND_LABEL = { BANK: "Bank account", CASH: "Cash", CARD: "Credit card", OTHER: "Other" } as const;
+/** Other money coming in (not from schools). */
+export const COMPANY_IN_CATEGORIES = ["Interest", "Capital introduced", "Loan received", "Refund received", "Other income"] as const;
+/** Other money going out (bills and salaries have their own sections). */
+export const COMPANY_OUT_CATEGORIES = [
+  "Rent",
+  "Electricity / utilities",
+  "Bank charges",
+  "GST paid",
+  "TDS paid",
+  "Professional / CA fees",
+  "Loan repayment",
+  "Owner withdrawal",
+  "Refund to school",
+  "Other payment",
+] as const;
+/** Not costs of running the business (left out of the income vs expense view). */
+export const NON_EXPENSE_CATEGORIES = ["Capital introduced", "Loan received", "Loan repayment", "Owner withdrawal", "GST paid"] as const;
+export const BILL_CATEGORIES = [
+  "Printing / books",
+  "Paper / material",
+  "Kit items / packaging",
+  "Transport / courier",
+  "Services",
+  "Software / licences",
+  "Marketing / ads",
+  "Office / repairs",
+  "Other",
+] as const;
+export const billCode = (n: number) => `B-${n}`;
+export const entryCode = (n: number) => `M-${n}`;

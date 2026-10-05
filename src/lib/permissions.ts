@@ -27,6 +27,9 @@ export const canApprovePayments = canManageSettings;
 /** Accounts also approves expense claims, reimburses them, gives advances and records company expenses (R37). */
 export const canManageExpenses = canApprovePayments;
 
+/** Company accounts (R39): money accounts, bills, salaries, books and the finance overview. Same people as Accounts. */
+export const canManageCompanyAccounts = canApprovePayments;
+
 /** Anyone who sees all sales data may view the user list. */
 export const canViewUsers = seesAllSales;
 

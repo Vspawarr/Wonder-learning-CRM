@@ -6,6 +6,7 @@ import { canApprovePayments } from "@/lib/permissions";
 import { isEmailConfigured } from "@/server/mailer";
 import { approvalQueue } from "@/server/finance/service";
 import { getFeatures } from "@/server/features";
+import { listAccounts } from "@/server/company";
 import { requireUser } from "@/server/session";
 import { ApprovalLists } from "./approval-card";
 
@@ -18,7 +19,9 @@ export const metadata = { title: "Payment approvals" };
 export default async function AccountsPage() {
   const user = await requireUser();
   if (!canApprovePayments(user.role)) notFound();
-  const [{ waiting, decided }, features] = await Promise.all([approvalQueue(user), getFeatures()]);
+  const [{ waiting, decided }, features, accounts] = await Promise.all([approvalQueue(user), getFeatures(), listAccounts()]);
+  // R39: choose which account the money went into (only once accounts are set up in Account books).
+  const into = features.companyAccounts ? accounts.filter((a) => a.active && a.kind !== "CARD").map((a) => ({ id: a.id, name: a.name, kind: a.kind, active: a.active })) : [];
   const total = waiting.reduce((t, p) => t + p.amount, 0);
   const emailReady = isEmailConfigured();
   return (
@@ -40,7 +43,7 @@ export default async function AccountsPage() {
         <Kpi label="Approved (30 days)" value={String(decided.filter((d) => d.approval === "APPROVED").length)} sub={inr(decided.filter((d) => d.approval === "APPROVED").reduce((t, p) => t + p.amount, 0))} color="#0E8F79" />
         <Kpi label="Rejected (30 days)" value={String(decided.filter((d) => d.approval === "REJECTED").length)} sub="Recorder told why" color="#D9412D" />
       </div>
-      <ApprovalLists waiting={waiting} decided={decided} emailReady={emailReady} me={{ name: user.name }} />
+      <ApprovalLists waiting={waiting} decided={decided} emailReady={emailReady} me={{ name: user.name }} accounts={into} />
     </>
   );
 }

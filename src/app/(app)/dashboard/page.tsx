@@ -3,10 +3,11 @@ import Link from "next/link";
 import { STAGE_COLOR, STAGE_LABEL } from "@/lib/constants";
 import { fmtDate, todayIST } from "@/lib/dates";
 import { inrS } from "@/lib/format";
-import { canApprovePayments, seesAllSales } from "@/lib/permissions";
+import { canApprovePayments, canManageCompanyAccounts, seesAllSales } from "@/lib/permissions";
 import { AvatarName, Card, DueTag, Empty, HBars, Kpi, PageHeader, Ribbon, Table, VBars } from "@/components/ui";
 import { requireUser } from "@/server/session";
 import { expenseTotal } from "@/server/expenses";
+import { companySnapshot } from "@/server/company-books";
 import { selectedRange } from "@/server/year";
 import { lifecycleCounts, salesDashboard, serviceSummary, type DashFilters } from "@/server/dashboard";
 import { collectionsSummary, outstandingList } from "@/server/finance/service";
@@ -65,6 +66,8 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   const targets = features.targets && has("team") ? await targetProgress(user) : null;
   const cash = await collectionsSummary(user, { exec, state: f.state }, d.range.from, d.range.to);
   const spend = features.expenses && has("finance") ? await expenseTotal(user, d.range.from, d.range.to) : null;
+  // Company accounts (R39): bank & cash and bills to pay, for Accounts only.
+  const books = features.companyAccounts && has("finance") && canManageCompanyAccounts(user.role) ? await companySnapshot(user) : null;
   const first = user.name.split(" ")[0];
   const period = `${fmtDate(d.range.from, today)} – ${fmtDate(d.range.to, today)}`;
 
@@ -209,6 +212,12 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                 color="#7A4FD0"
                 href={canApprovePayments(user.role) ? "/accounts/expenses" : "/expenses"}
               />
+            ) : null}
+            {books ? (
+              <>
+                <Kpi label="In bank & cash" value={inrS(books.cash)} sub="All company accounts today" color="#3D3BA8" href="/accounts/finance" />
+                <Kpi label="Bills to pay" value={inrS(books.bills)} sub={`${books.billCount} supplier bill(s) open`} color="#D97706" href="/accounts/bills?show=topay" />
+              </>
             ) : null}
             {cash.awaiting ? (
               <Kpi label="Waiting for Accounts" value={inrS(cash.awaiting)} sub="Recorded, not yet approved" color="#E8930C" href={canApprovePayments(user.role) ? "/accounts" : "/outstanding"} />

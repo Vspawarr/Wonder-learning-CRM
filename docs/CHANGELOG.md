@@ -5,6 +5,15 @@ wonder-learning-crm.vercel.app automatically). Newest first. **Add an entry with
 commit id, what changed in plain words, and the requirement it answers (R… in `REQUIREMENTS.md`).
 `git log --oneline` shows the full list.
 
+## 5 Oct 2026
+
+- `PENDING` **Company accounts.** Money accounts (bank, cash, card) with opening balances; every rupee tagged to an
+  account (school payments "Received into" on approval, company expenses, pay-backs, advances); transfers; other
+  money in / out; supplier **bills to pay** with GST %, Director approval and part payments; **salaries** register;
+  **account books** with running balance, Matched tick and move-to-account; **Company finance** overview (money in /
+  out, by month, balances, still to come in / to pay, income vs expense, GST summary). PDF / Excel for each, bell
+  alerts, menu badges, dashboard tiles, feature switch. Minus amounts now show as −₹4,000. (R39)
+
 ## 4 Oct 2026
 
 - `fcccd24` Docs only: plan for **company accounts** (R39) recorded for the next session; no app change.

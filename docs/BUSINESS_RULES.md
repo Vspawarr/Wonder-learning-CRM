@@ -126,6 +126,41 @@ client shows a warning (the user may still save). The Excel upload skips same sc
 - Lists follow the chosen financial year (by expense date); balances are today's position. Switchable in Settings
   → Features → "Expenses & advances". Numbers E-1, E-2…
 
+## Company accounts (R39)
+
+- A **management view** of the company's money (the CA keeps the official books; every screen exports PDF / Excel
+  for them). Accounts only (Director / Admin, `canManageCompanyAccounts`); switchable in Settings → Features →
+  "Company accounts".
+- **Money accounts**: each bank account, the office cash, the company credit card (and "other"), with an opening
+  balance on an opening date. Balance = opening balance + everything in − everything out from that date. A card's
+  balance below 0 is what is owed on the card.
+- **Every movement belongs to an account**: approved school payments ("Received into", chosen on approval;
+  default by mode: cash → cash box, else the first bank; a cheque counts on the day it clears), company and
+  company-card expenses, pay-backs, advances given / returned, bill payments, salaries, other money in / out and
+  transfers. Anything without an account is listed as **Not assigned** so nothing is missed; Accounts can move any
+  entry to another account from the account book.
+- **Transfers** between own accounts (cash deposited, card bill paid) are not money in or out.
+- **Approval of money going out** follows expenses (R38): supplier bills, salaries and "other payments" entered by
+  Admin / Accounts wait for the **Director** (Admin approves while there is no Director login). Rejection needs a
+  reason. Nothing counts until approved; **money coming in** ("other money in") needs no approval.
+- **Supplier bills** (B-1, B-2…): supplier, their bill no., bill date, due date, what for, amount before GST,
+  **GST % (0 / 5 / 12 / 18 / 28)**, photo / PDF. Paid once approved, in one go or in parts, never more than what is
+  left. States: Waiting for approval, To pay, Part paid, Overdue (past the due date), Paid, Rejected. A bill with
+  payments can't be deleted until its payments are deleted. Bell: bills due within 7 days or overdue.
+- **Salaries**: one entry per person per month (a second one is refused); gross − deductions = take-home, which is
+  the money out. A person without a login can be typed in.
+- **Other money in / out** (M-1, M-2…): in = interest, capital, loan received, refund, other income; out = rent,
+  utilities, bank charges, GST / TDS paid, CA fees, loan repayment, owner withdrawal…
+- **Company finance overview** (chosen financial year, or From–To dates): money in / out and net (cash basis, by
+  the day money moved), month by month, where it came from / went; balances today; **still to come in** (schools'
+  invoices, overdue part, cheques not yet cleared, payments waiting approval); **still to pay** (supplier bills,
+  overdue / due this week, pay-backs to employees, card dues); **income vs expense** (by the date of the sale /
+  spend: invoices before GST less credit notes, plus other income; minus approved expenses, bills before GST,
+  gross salaries and other payments; GST, loans, capital and owner withdrawals left out); **GST summary** (GST on
+  invoices vs GST on bills).
+- **Account book**: one account for the dates chosen, opening balance, each entry with a running balance, closing
+  balance; a **Matched** tick per line for checking against the bank statement.
+
 ## Numbering
 
 - **Receipts:** like the client's receipt book, `117/26-27`: a running number through the financial year

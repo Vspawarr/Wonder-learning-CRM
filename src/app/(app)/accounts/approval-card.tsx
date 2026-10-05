@@ -9,6 +9,7 @@ import { approvePayment, rejectPayment } from "@/app/actions";
 import { inrExact as money } from "@/lib/format";
 import type { ApprovalRow } from "@/server/finance/service";
 import { SendReceipt, type ReceiptInfo } from "../clients/[id]/finance";
+import { AccountSelect, guessAccount, type AccountOpt } from "./company-client";
 
 const dmy = (d: string) => d.split("-").reverse().join("/");
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -27,15 +28,17 @@ export function ApprovalLists({
   decided,
   emailReady,
   me,
+  accounts,
 }: {
   waiting: ApprovalRow[];
   decided: ApprovalRow[];
   emailReady: boolean;
   me: { name: string };
+  accounts: AccountOpt[];
 }) {
   const [open, setOpen] = useState<Open | null>(null);
   const card = (p: ApprovalRow) => (
-    <ApprovalCard key={p.id} p={p} onReceipt={(r) => setOpen({ r, school: p.client.schoolName, mobile: p.client.mobile, email: p.client.email })} />
+    <ApprovalCard key={p.id} p={p} accounts={accounts} onReceipt={(r) => setOpen({ r, school: p.client.schoolName, mobile: p.client.mobile, email: p.client.email })} />
   );
   return (
     <>
@@ -59,8 +62,9 @@ export function ApprovalLists({
 }
 
 /** One payment on the Accounts page: details, Approve / Reject, and the receipt once approved. */
-function ApprovalCard({ p, onReceipt }: { p: ApprovalRow; onReceipt: (r: ReceiptInfo) => void }) {
+function ApprovalCard({ p, accounts, onReceipt }: { p: ApprovalRow; accounts: AccountOpt[]; onReceipt: (r: ReceiptInfo) => void }) {
   const { pending, run } = useAction();
+  const [into, setInto] = useState(() => guessAccount(accounts, p.mode));
   const [rejecting, setRejecting] = useState(false);
   const [reason, setReason] = useState("");
   const info: ReceiptInfo | null = p.number ? { paymentId: p.id, number: p.number, shareToken: p.shareToken, amount: p.amount, against: p.against.toLowerCase() } : null;
@@ -95,6 +99,16 @@ function ApprovalCard({ p, onReceipt }: { p: ApprovalRow; onReceipt: (r: Receipt
           {p.rejectReason ? <span className="text-coral"> · {p.rejectReason}</span> : null}
         </div>
       ) : null}
+      {p.approval === "PENDING" && accounts.length ? (
+        <div className="mt-2 flex flex-wrap items-center gap-2">
+          <label className="small strong" htmlFor={`into-${p.id}`}>
+            Received into
+          </label>
+          <div className="min-w-[180px] flex-1">
+            <AccountSelect id={`into-${p.id}`} accounts={accounts} value={into} onChange={setInto} />
+          </div>
+        </div>
+      ) : null}
       <div className="mt-2 flex flex-wrap gap-1.5">
         {p.approval === "PENDING" ? (
           <>
@@ -102,7 +116,7 @@ function ApprovalCard({ p, onReceipt }: { p: ApprovalRow; onReceipt: (r: Receipt
               className="btn sm pri"
               disabled={pending}
               onClick={() =>
-                run(() => approvePayment(p.id), {
+                run(() => approvePayment(p.id, into || null), {
                   success: "Approved. It now counts as received; the receipt can be sent.",
                   onDone: (r) => r && onReceipt({ paymentId: r.paymentId, number: r.receiptNumber, shareToken: r.shareToken, amount: r.amount, against: r.against }),
                 })

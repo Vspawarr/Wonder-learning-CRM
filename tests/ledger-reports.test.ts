@@ -103,8 +103,9 @@ describe("exports", () => {
     await recordPayment(exA, a, pay(10000));
     for (const name of Object.keys(REPORTS)) {
       const params = name === "ledger" ? { client: clientId } : {};
-      // The approvals report belongs to Accounts (Director / Admin).
-      const r = await buildReport(name === "approvals" ? await makeUser("ADMIN") : head, name, params);
+      // Approvals and company accounts belong to Accounts (Director / Admin).
+      const accounts = ["approvals", "finance", "bills", "salaries", "book"].includes(name);
+      const r = await buildReport(accounts ? await makeUser("ADMIN") : head, name, params);
       expect(r.sections.length).toBeGreaterThan(0);
       const pdf = await reportPdf(r);
       expect(pdf.subarray(0, 4).toString()).toBe("%PDF");
@@ -121,5 +122,6 @@ describe("exports", () => {
     const all = await buildReport(head, "outstanding", {});
     expect(all.sections.find((x) => x.heading === "Invoices")!.rows).toHaveLength(1);
     await expect(buildReport(head, "nope", {})).rejects.toThrow(/not found/);
+    await expect(buildReport(head, "finance", {})).rejects.toThrow(/Only Accounts/);
   });
 });

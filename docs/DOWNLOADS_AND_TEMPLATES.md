@@ -57,7 +57,11 @@ Code: `src/server/reports/index.ts` (one builder per report, using the screen's 
 | `todo` | To-do | When, Date, Time, Type, Task, Related to, Priority, Postponed, Assigned to |
 | `approvals` | Accounts → Payment approvals (Director / Admin) | Waiting for approval, then decided in the last 30 days: School, Against, Amount, Paid on, Mode / ref., Recorded by, Decision, Receipt / reason, By |
 | `expenses` | My expenses (own) / Accounts → Expenses (everyone, with filters) | No., Date, Person, Kind, What for, City, Paid by (incl. Company card), Bill (Yes / No: description), Amount, Status, Paid back; total |
-| `dashboard` | Dashboard | Follows the **Show** buttons: Sales (key numbers, pipeline by stage, lead sources, biggest deals) · Finance (collected/outstanding/overdue/cheques, ageing, expected collections) · Team & management (win rate, lost, interactions, team table, targets, lost reasons, competitors) · Service & delivery (follow-ups, orders to deliver, kits in transit, onboarding, renewals, lists) |
+| `finance` | Accounts → Company finance | Summary (money in / out / net, bank & cash), by month, where the money came from / went, balances today, still to come in, still to pay, income and expense, GST summary; for the chosen year or From–To |
+| `bills` | Accounts → Bills to pay | No., Bill date, Supplier, Their no., For, Description, Before GST, GST, Total, Paid, To pay, Due, Status; totals (follows the To pay / Waiting chips and dates) |
+| `salaries` | Accounts → Salaries | Month, Employee, Gross, Deductions, Take-home, Paid on, From (account), Mode / ref., Status; totals of approved |
+| `book` | Accounts → Account books | The chosen account: Date, Type, Particulars, In, Out, Balance, Matched (opening and closing in the title line); then other money in / out |
+| `dashboard` | Dashboard | Follows the **Show** buttons: Sales (key numbers, pipeline by stage, lead sources, biggest deals) · Finance (collected/outstanding/overdue/cheques, expenses, and for Accounts bank & cash and bills to pay; ageing, expected collections) · Team & management (win rate, lost, interactions, team table, targets, lost reasons, competitors) · Service & delivery (follow-ups, orders to deliver, kits in transit, onboarding, renewals, lists) |
 
 Wording rule: the salesperson is always **"Assigned to"**; "Owner" only means the school's owner.
 
@@ -89,6 +93,8 @@ Sales orders are SO/YYYY/MM/NNN (on screen; the number prints on proforma and in
 |---|---|---|---|
 | Lead Excel | Leads → Upload leads | the downloaded .xlsx template only | `/api/leads/import`, `src/server/lead-excel/import.ts` |
 | Expense bills | My expenses / Accounts → Expenses → Add expense | Photos (shrunk in the browser) or PDF, up to 4 per expense, 4 MB each | `/api/expenses`, `src/server/expenses.ts`; viewed at `/api/expenses/files/<id>` |
+| Supplier bill photo / PDF | Accounts → Bills to pay → Add bill | One photo (shrunk) or PDF, 4 MB | `/api/company/bills`, `src/server/company.ts`; viewed at `/api/company/files/bill/<id>` |
+| Voucher for other money in / out | Accounts → Account books → Other money in / Other payment | One photo (shrunk) or PDF, 4 MB (optional) | `/api/company/entries`; viewed at `/api/company/files/entry/<id>` |
 | Signed PO | Client → Purchase orders → Upload signed PO | PDF or photo, max 4 MB | `src/server/finance/po.ts` |
 | Client documents, proof of delivery | Client → Documents tab; Dispatch → Mark received | PDF or photo, max 4 MB | `/api/clients/<id>/files`, `src/server/files.ts` |
 

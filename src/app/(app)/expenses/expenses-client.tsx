@@ -30,7 +30,7 @@ import type { ExpenseRow } from "@/server/expenses";
 const dmy = (d: string) => d.split("-").reverse().join("/");
 
 /** Phone photos can be 5–10 MB: shrink them to a clear JPEG (longest side 1800px) before upload. */
-async function shrink(file: File): Promise<File> {
+export async function shrink(file: File): Promise<File> {
   if (
     !file.type.startsWith("image/") ||
     (file.size < 900_000 && /jpe?g|png/.test(file.type))
@@ -66,6 +66,7 @@ export function AddExpenseButton({
   me,
   label = "Add expense",
   company = false,
+  moneyAccounts = [],
 }: {
   accounts: boolean;
   people: Person[];
@@ -74,6 +75,8 @@ export function AddExpenseButton({
   label?: string;
   /** Start as a company-account expense (Accounts page). */
   company?: boolean;
+  /** Company bank / cash accounts to pay a company expense from (R39). */
+  moneyAccounts?: { id: string; name: string; kind: string; active: boolean }[];
 }) {
   const router = useRouter();
   const toast = useToast();
@@ -91,6 +94,7 @@ export function AddExpenseButton({
     related: "",
     billAvailable: "yes",
     noBillReason: "",
+    moneyAccountId: moneyAccounts.find((a) => a.kind === "BANK")?.id ?? moneyAccounts[0]?.id ?? "",
   });
   const [open, setOpen] = useState(false);
   const [v, setV] = useState(blank);
@@ -364,6 +368,13 @@ export function AddExpenseButton({
                 <Options list={EXPENSE_MODES} blank="Not specified" />
               </select>
             </Field>
+            {v.paidBy === "COMPANY" && moneyAccounts.length ? (
+              <Field label="Paid from (company account)" htmlFor="ex-acc">
+                <select className="sel" id="ex-acc" value={v.moneyAccountId} onChange={(e) => set("moneyAccountId", e.target.value)}>
+                  <Options list={moneyAccounts.map((a) => [a.id, a.name] as const)} blank="Not assigned" />
+                </select>
+              </Field>
+            ) : null}
             <Field label="Reference" htmlFor="ex-ref">
               <input
                 className="in"

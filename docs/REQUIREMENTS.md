@@ -415,12 +415,31 @@ credit card in who paid."
 | **Company credit card** in Who paid | ✅ | Not paid back; not counted against an advance |
 | **Director approves expenses**, including Admin / Accounts' own | ✅ | Until a Director login exists, Admin approves; ⏳ create the Director's login (STATUS.md) |
 
-## R39. Company accounts: complete view of the company's money (4 Oct) — PLAN, waiting for go-ahead
+## R39. Company accounts: complete view of the company's money (4–5 Oct)
 
 "One more addition we will do tomorrow: company's complete account — money received, money spent, outstanding etc.,
 whatever is required to see the company's finance. First give plan, then we will proceed tomorrow."
 
-**Status: ⏳ plan shared; build after the owner confirms the plan and answers the questions below.**
+**Status: ✅ built 5 Oct** (first version). Owner's answers to the questions below (5 Oct): "1. I'll provide, ask me when
+we deploy on main domain. 2. Separate bills and salaries. 3. Not sure. 4. Yes. 5. Keep option if any services with GST
+it will apply."
+
+| Change | Status | Notes |
+|---|---|---|
+| **Money accounts** (bank, cash, credit card, other) with opening balance and date | ✅ | Accounts → Account books → Add account. ⏳ Real bank accounts and opening balances: owner gives them at the main-domain move (STATUS.md) |
+| Every rupee tagged to an account: school payments ("Received into" on approval), company expenses, pay-backs, advances | ✅ | Defaults by mode (cash → cash box, card → card, else bank); can be moved later in the account book |
+| **Transfers** between accounts | ✅ | Not counted as money in / out |
+| **Other money in / out** (interest, capital, loans, refunds / rent, utilities, bank charges, GST / TDS paid, CA fees…) with voucher photo | ✅ | Money out waits for the Director (as expenses, R38); money in needs no approval |
+| **Supplier bills to pay** (separate from salaries, answer 2): bill photo, due date, GST %, Director approval, pay in parts | ✅ | Accounts → Bills to pay; bell for bills due within a week / overdue |
+| **Salaries** (separate, answer 2): monthly register, gross − deductions = take-home, Director approval | ✅ | Accounts → Salaries |
+| **Company finance overview**: money in / out, by month, where from / where to, balances, still to come in, still to pay, income vs expense, GST summary | ✅ | Management view (answer 3: "not sure", so the CA keeps the official books; PDF / Excel for the CA) |
+| **Account book** per account with running balance, "Matched" tick, move entry to another account | ✅ | Accounts → Account books |
+| Cash collected by salespeople (answer 4) | ✅ | Payment approval (R36) is the hand-over check; Accounts picks the account on approval |
+| **GST option** on bills (answer 5) | ✅ | 0 / 5 / 12 / 18 / 28 %; GST summary on the overview |
+| PDF / Excel: finance, bills, salaries, account book | ✅ | Plus two lines in the dashboard export |
+| Feature switch "Company accounts" | ✅ | Settings → Features |
+
+Original plan (4 Oct):
 
 Plan (management view of the company's money; the CA keeps the statutory books, the CRM gives them exports):
 

@@ -1,6 +1,6 @@
 # Current status
 
-_Last updated: 3 Oct 2026. Update this page whenever the situation changes._
+_Last updated: 5 Oct 2026. Update this page whenever the situation changes._
 
 ## Where things stand
 
@@ -20,8 +20,8 @@ _Last updated: 3 Oct 2026. Update this page whenever the situation changes._
 |---|---|---|
 | Feedback from the client's testing | Final changes before go-live | — |
 | Prices (and item prices) for Play Group, Nursery (checklist kit), LKG and UKG kits: now unpriced, as prices come only from the Excel; answers to the open points in `docs/PRICING.md` | Settings → Products | R28, R29 |
-| **Company accounts (R39)**: plan shared on 4 Oct; owner to confirm and answer the questions in REQUIREMENTS.md R39 (bank accounts + opening balances, salaries / supplier bills, management view vs books, cash collection, GST) | Build starts once confirmed (next session) | R39 |
-| **Create the Director's login** (Settings → Users → Add user, role Director). From then on **expense approvals go to the Director**, including Admin's own expenses; until then Admin approves | Owner said: "expense approval should be to Director, keep in memory once we give credential to Director" | R38 |
+| **Ask the owner, when we move to the main domain: the company's bank account names, the company card and the office cash, with their opening balances and the date** (owner: "I'll provide, ask me when we deploy on main domain"). Then add them in Accounts → Account books | Company accounts (built 5 Oct) need them for correct balances; until then entries show as "Not assigned" | R39 |
+| **Create the Director's login** (Settings → Users → Add user, role Director). From then on **expense approvals go to the Director**, including Admin's own expenses, and so do supplier bills, salaries and other company payments (R39); until then Admin approves | Owner said: "expense approval should be to Director, keep in memory once we give credential to Director" | R38 |
 | Who owns the **Accounts** section (payment approvals): today the Director / Admin logins; a separate Accounts login/role can be added | Decide the person and their access | R36 |
 | Current receipt-book and PO numbers to continue from | Settings → Documents → Numbering | R27 |
 | Whether receipts should carry a scanned signature image (now: name only) | Printing someone's signature automatically needs their OK | R27 |
@@ -49,7 +49,7 @@ _Last updated: 3 Oct 2026. Update this page whenever the situation changes._
 
 - Start with `CLAUDE.md`, then this folder. You should not need old chat history.
 - Local: see `README.md` (Postgres via docker compose, `npm run dev`). Tests: `npm test` (integration tests
-  against `TEST_DATABASE_URL`, 146 passing on 4 Oct), `npm run lint`, `npm run typecheck`.
+  against `TEST_DATABASE_URL`, 149 passing on 5 Oct), `npm run lint`, `npm run typecheck`.
 - Database changes: add a migration in `prisma/migrations/` (Vercel runs `prisma migrate deploy` on each deploy).
 - Before every push: tests, lint, typecheck, a build, a look at desktop and phone width, the downloads
   checklist in `DOWNLOADS_AND_TEMPLATES.md`, then update `CHANGELOG.md`, `REQUIREMENTS.md` and this page.
