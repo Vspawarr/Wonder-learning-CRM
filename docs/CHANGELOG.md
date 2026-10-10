@@ -5,6 +5,10 @@ wonder-learning-crm.vercel.app automatically). Newest first. **Add an entry with
 commit id, what changed in plain words, and the requirement it answers (R… in `REQUIREMENTS.md`).
 `git log --oneline` shows the full list.
 
+## 10 Oct 2026
+
+- Docs only: plan for moving to the client's domain recorded as R42 (starts after the client's testing); no app change.
+
 ## 5 Oct 2026
 
 - `5375275` **Mobile 10 digits, competitor Other, one WhatsApp tab, client ledger.** Mobile boxes take 10 digits only

@@ -508,3 +508,23 @@ be handled if client with outstanding renewed."
 | **Ledger tab in the client's window** with **PO No.** per line; PDF / Excel; PO numbers also in the timeline | ✅ | Chosen financial year; "Other periods" opens the Ledger menu. Ledger menu and export also got the PO No. column |
 | How renewals work and dues on renewal | ✅ answered | Old invoices keep their balance; new order gets its own invoice; ledger carries the old balance as opening; renewal not blocked (BUSINESS_RULES.md) |
 
+## R42. Host on the client's domain and move everything to them (8–10 Oct) — LATER
+
+"If we want to host this on their domain and move to completely there, what's the process?" Decisions: "We will keep
+GitHub ours." "1. I'll provide [the domain] 2. Copy current data by cleaning our dummy data 3. Setup as their
+requirement." Then: "We will not do it right now; once their testing is complete then we will start this process."
+
+**Status: ⏸ waiting for the client's testing to finish.** Plan when it starts:
+1. Owner gives the domain (e.g. crm.wonderlearning.in) and who manages its DNS.
+2. Client creates Vercel and Neon accounts with a company email (paid plans for business use and backups).
+3. Code stays in our GitHub; their Vercel gets it either by adding us to their Vercel team or by a GitHub Action
+   deploy with their token (their choice). Live branch set to `main`.
+4. Clean our dummy / test data, then copy the database to their Neon (Singapore), pausing entries ~30 minutes;
+   check record counts.
+5. New Vercel project with new settings (database link, new login secret, email); add the domain + DNS record.
+6. Android app pointed at the new address and rebuilt; old vercel.app address redirected so links already sent
+   keep working; documents updated.
+7. Before go-live: bank accounts + opening balances (R39), Director login (R38), starting receipt / PO numbers,
+   backups on.
+8. Written agreement: code ownership / licence, support terms, a copy of the code for the client if work stops.
+

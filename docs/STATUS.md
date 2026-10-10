@@ -30,7 +30,7 @@ _Last updated: 5 Oct 2026. Update this page whenever the situation changes._
 | Custom quotation samples / other templates | Match their exact formats | R16.7 |
 | Email account details (SMTP) | Turns on email for quotations, invoices, receipts, reminders and "Forgot password" | R19 A6, `DEPLOY.md` |
 | Hosting plan decision (Vercel Pro, Neon with longer backups) | Free plans aren't meant for business use or real money data | R19 A8 |
-| Moving to the client's domain: keep Vercel + add domain, or own server | After the ~15-day trial | R13 |
+| **Move to the client's domain (R42), starts after the client's testing is complete.** Agreed: GitHub stays with us; website (Vercel) and database (Neon) in the client's own accounts; current data copied after cleaning out our dummy data; Vercel connection set up as the client prefers (add us to their Vercel team, or a GitHub Action deploy). Owner will provide the domain. At the move also: bank accounts + opening balances, Director login, starting receipt / PO numbers, rebuild the Android app for the new address, redirect the old vercel.app address | Plan in REQUIREMENTS.md R42 | R13, R42 |
 | Opening balances for the ledger, and their format | Not loaded yet | R16 |
 | Point 5 of the lead feedback (it came through empty) | Unknown request | R20 |
 
