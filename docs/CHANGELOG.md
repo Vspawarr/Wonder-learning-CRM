@@ -7,7 +7,7 @@ commit id, what changed in plain words, and the requirement it answers (R… in 
 
 ## 14 Oct 2026
 
-- `PENDING` **Today's to-dos after login, 15-minute reminders, read / unread.** After choosing the year you first see your
+- `ff10bec` **Today's to-dos after login, 15-minute reminders, read / unread.** After choosing the year you first see your
   overdue and today's to-dos (Skip goes to the dashboard). The bell reminds you 15 minutes before a timed to-do (pop-up,
   checked every minute; optional browser notifications) and has Mark read / Mark unread / Mark all read. Removed the
   temporary Clear test data page. (R45)
