@@ -2,7 +2,7 @@ import { DateRangeFilter } from "@/components/date-range";
 import Link from "next/link";
 import { ExportButtons } from "@/components/export-buttons";
 import { STAGE_COLOR, STAGE_LABEL, oppCode, TEMPERATURE_LABEL } from "@/lib/constants";
-import { fmtDate, todayIST } from "@/lib/dates";
+import { fmtDate, fmtDateTimeIST, todayIST } from "@/lib/dates";
 import { inrS } from "@/lib/format";
 import { seesAllSales } from "@/lib/permissions";
 import { AvatarName, DueTag, Empty, PageHeader, Pill, Table } from "@/components/ui";
@@ -16,7 +16,11 @@ import { OppFilterBar } from "./filters";
 
 export const metadata = { title: "Opportunities" };
 
+/** R43: newest first unless another order is chosen. */
+const OPP_SORT = (s?: string) => (s === "old" || s === "close" ? s : "new");
+
 type SP = Promise<{
+  sort?: string;
   q?: string;
   stage?: string;
   owner?: string;
@@ -33,6 +37,7 @@ export default async function OpportunitiesPage({ searchParams }: { searchParams
   const stage = sp.stage || "All";
   const [rows, team, detail, products] = await Promise.all([
     pipelineCards(user, {
+      sort: OPP_SORT(sp.sort),
       q: sp.q,
       stage: stage === "All" ? undefined : stage,
       owner: sp.owner,
@@ -70,7 +75,7 @@ export default async function OpportunitiesPage({ searchParams }: { searchParams
       {/* Computer: table */}
       <div className="hidden min-[901px]:block">
         <Table
-          head={["Opportunity", "School", "Stage", ["Value", "num"], ["Chance", "num"], "Expected close", "Next action", "Assigned to"]}
+          head={["Opportunity", "Added", "School", "Stage", ["Value", "num"], ["Chance", "num"], "Expected close", "Next action", "Assigned to"]}
           empty={filtered ? "No opportunities match these filters." : "No open opportunities. Leads become opportunities when marked Qualified."}
         >
           {rows.map((o) => (
@@ -80,6 +85,7 @@ export default async function OpportunitiesPage({ searchParams }: { searchParams
                   {oppCode(o.number)}
                 </Link>
               </td>
+              <td className="small whitespace-nowrap">{fmtDateTimeIST(o.createdAt)}</td>
               <td>
                 <Link href={href(o.id)} scroll={false} className="font-bold text-ink no-underline hover:underline">
                   {o.schoolName}
@@ -117,7 +123,7 @@ export default async function OpportunitiesPage({ searchParams }: { searchParams
               <b className="min-w-0">{o.schoolName}</b>
               <StagePill o={o} />
             </div>
-            <div className="small muted mt-0.5">{[o.contactName, o.city].filter(Boolean).join(" · ")}</div>
+            <div className="small muted mt-0.5">{[oppCode(o.number), o.contactName, o.city, `added ${fmtDateTimeIST(o.createdAt)}`].filter(Boolean).join(" · ")}</div>
             <div className="small mt-1.5">
               {o.noValue ? <span className="faint">No value yet</span> : <b>{inrS(o.value)}</b>} · {o.probability}% · Assigned to {o.owner.name}
             </div>

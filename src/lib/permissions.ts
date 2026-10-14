@@ -38,3 +38,6 @@ export const SALES_ROLES: readonly Role[] = ["SALES_HEAD", "SALES_MANAGER", "SAL
 
 /** Those who see only their own data can only assign work to themselves. */
 export const canAssignOthers = seesAllSales;
+
+/** R43: who approves moving a lead or client to another salesperson (their own transfers apply at once). */
+export const canApproveTransfers = seesAllSales;

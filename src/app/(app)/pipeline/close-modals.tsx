@@ -99,7 +99,7 @@ export function WonModal({ oppId, school, onClose }: { oppId: string; school: st
       }
     >
       <p>This closes the deal at 100%. Closed deals can&apos;t be moved back.</p>
-      <p className="small muted mt-2">Creating the school profile and sales order from a won deal comes in the next phase.</p>
+      <p className="small muted mt-2">To make the school a client straight away, use <b>Convert to client</b> in the deal instead: it marks it Won too.</p>
     </Modal>
   );
 }

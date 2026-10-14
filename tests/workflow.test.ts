@@ -288,11 +288,17 @@ describe("clients", () => {
     return oppId;
   }
 
-  it("only a won deal converts; it creates the client and an onboarding task", async () => {
+  it("an open deal converts straight to a client (marked Won on the way); a lost one doesn't (R43)", async () => {
+    const lostId = await wonDeal(exA);
+    await moveOpportunity(exA, lostId, { stage: "LOST", lostReason: "Price Issue", lostRemarks: "Too costly" });
+    await expect(convertToClient(exA, lostId)).rejects.toThrow(/lost/);
     const oppId = await wonDeal(exA);
-    await expect(convertToClient(exA, oppId)).rejects.toThrow(/won deal/);
-    await moveOpportunity(exA, oppId, { stage: "WON" });
     const clientId = await convertToClient(exA, oppId);
+    const won = await db.opportunity.findUniqueOrThrow({ where: { id: oppId }, include: { stageChanges: { orderBy: { changedAt: "desc" } }, tasks: true } });
+    expect(won).toMatchObject({ stage: "WON", probability: 100 });
+    expect(won.closedAt).not.toBeNull();
+    expect(won.stageChanges[0]).toMatchObject({ toStage: "WON" });
+    expect(won.tasks.every((t) => t.status !== "OPEN")).toBe(true);
     const c = await db.client.findUniqueOrThrow({ where: { id: clientId }, include: { tasks: true } });
     expect(c).toMatchObject({ schoolName: "Happy Kids", status: "ONBOARDING", ownerId: exA.id, mobile: "9876543210" });
     expect(c.number).toBeGreaterThanOrEqual(101);

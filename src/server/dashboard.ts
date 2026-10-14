@@ -174,16 +174,28 @@ export async function salesDashboard(user: SessionUser, f: DashFilters) {
 }
 
 /** Live counts for the coloured lifecycle strip (lead → client → cash), not tied to the period filter. */
-export async function lifecycleCounts(user: SessionUser) {
+export async function lifecycleCounts(user: SessionUser, f: { exec?: string } = {}) {
   const today = toDbDate(todayIST());
+  // R43: the salesperson filter (Admin / Director / Sales Head) narrows the strip too.
+  const exec = seesAllSales(user.role) && f.exec ? f.exec : undefined;
   const [leads, opps, quotes, orders, clients, invoices, todos] = await Promise.all([
-    db.lead.count({ where: { ...leadScope(user), status: { in: ["NEW", "CONTACTED", "QUALIFIED"] } } }),
-    db.opportunity.count({ where: { ...oppScope(user), stage: { notIn: ["WON", "LOST"] } } }),
-    db.quotation.count({ where: { ...quotationScope(user), salesOrders: { none: {} } } }),
-    db.salesOrder.count({ where: { status: "CONFIRMED", client: { is: clientScope(user) } } }),
-    db.client.count({ where: clientScope(user) }),
-    invoiceRows(user, { status: "ISSUED" }),
-    db.task.count({ where: { ...taskScope(user), assigneeId: user.id, status: "OPEN", dueDate: { lte: today } } }),
+    db.lead.count({ where: { ...leadScope(user), ...(exec ? { assignedToId: exec } : {}), status: { in: ["NEW", "CONTACTED", "QUALIFIED"] } } }),
+    db.opportunity.count({ where: { ...oppScope(user), ...(exec ? { ownerId: exec } : {}), stage: { notIn: ["WON", "LOST"] } } }),
+    db.quotation.count({
+      where: {
+        AND: [
+          quotationScope(user),
+          ...(exec
+            ? [{ OR: [{ opportunity: { is: { ownerId: exec } } }, { client: { is: { ownerId: exec } } }, { opportunityId: null, clientId: null, lead: { is: { assignedToId: exec } } }] }]
+            : []),
+        ],
+        salesOrders: { none: {} },
+      },
+    }),
+    db.salesOrder.count({ where: { status: "CONFIRMED", client: { is: { ...clientScope(user), ...(exec ? { ownerId: exec } : {}) } } } }),
+    db.client.count({ where: { ...clientScope(user), ...(exec ? { ownerId: exec } : {}) } }),
+    invoiceRows(user, { status: "ISSUED", ...(exec ? { client: { ownerId: exec } as Prisma.ClientWhereInput } : {}) }),
+    db.task.count({ where: { ...taskScope(user), assigneeId: exec ?? user.id, status: "OPEN", dueDate: { lte: today } } }),
   ]);
   const unpaid = invoices.filter((i) => i.balance > 0);
   return {

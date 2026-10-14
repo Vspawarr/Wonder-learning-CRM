@@ -5,6 +5,15 @@ wonder-learning-crm.vercel.app automatically). Newest first. **Add an entry with
 commit id, what changed in plain words, and the requirement it answers (R… in `REQUIREMENTS.md`).
 `git log --oneline` shows the full list.
 
+## 14 Oct 2026
+
+- `PENDING` **Salesperson filter, opportunity sort, direct conversion, remove client, WhatsApp with PDF, transfers.**
+  Temporary Settings → Clear test data (updated for expenses, company accounts and transfers). Dashboard "Salesperson"
+  filter covers the whole page and export. Opportunities sort newest / oldest / closing soonest, with date and time.
+  "Convert to client" from any open stage (marks Won). Admin "Remove client" for mistaken conversions. WhatsApp sends
+  the PDF too (phone share screen; Android app 1.3; computer saves the PDF to attach). Lead / client transfers with
+  Sales Head / Admin approval: Transfer button, Transfers page, bell, export, feature switch. (R43)
+
 ## 10 Oct 2026
 
 - Docs only: plan for moving to the client's domain recorded as R42 (starts after the client's testing); no app change.

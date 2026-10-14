@@ -528,3 +528,22 @@ requirement." Then: "We will not do it right now; once their testing is complete
    backups on.
 8. Written agreement: code ownership / licence, support terms, a copy of the code for the client if work stops.
 
+## R43. Salesperson filter, opportunity sort, direct conversion, remove client, WhatsApp with PDF, transfers (14 Oct)
+
+"1. In dashboard filter as per sales person should be added. 2. Opportunity should be sort option as per date and time,
+newest to oldest or oldest to newest. 3. Opportunity to client should be direct option, no need set stage as won.
+4. Remove client option to admin only if mistakenly converted to client but lead will be there. 5. In WhatsApp sending
+(invoice, receipt, quotation etc.) link and document both should be sent, not only link. 6. Transfer client or lead to
+other sales person option should be available and it must transfer after sales head or admin approval. First remove
+all data which is filled in website right now and then execute these changes."
+
+| Change | Status | Notes |
+|---|---|---|
+| **Remove all current data** | ✅ tool ready, ⏳ Admin to click once | Temporary **Settings → Clear test data** (type CLEAR): empties leads, deals, quotations, clients, orders, invoices, payments, to-dos, history, targets, expenses, company accounts and transfers; keeps logins, products, locations, document texts, numbering settings and feature switches; numbering restarts. The data lives only on the live site, so the Admin clicks it there; the page is removed afterwards |
+| **Salesperson filter on the dashboard** | ✅ | "Salesperson" (Admin, Director, Sales Head): the top strip, all sections, targets, renewals and the export follow it |
+| **Opportunity sort** by date and time | ✅ | Newest first (default), Oldest first, Expected close soonest; "Added" date + time on each row and in the export |
+| **Convert to client directly** | ✅ | Button in the deal window at any open stage; marks the deal Won on the way |
+| **Remove client** (Admin / Director) | ✅ | Only while there are no orders, invoices, payments, dispatches or renewals; deal reopens at its stage before Won; lead stays |
+| **WhatsApp sends the PDF with the link** (quotation, PO template, invoice / reminder, receipt) | ✅ | Phones: share screen with PDF + message. Android app 1.3: straight into WhatsApp (staff reinstall the app). Computers: WhatsApp Web + PDF saved to attach (WhatsApp Web can't take a file from a website automatically) |
+| **Transfer lead / client with approval** | ✅ | Transfer button on lead and client pages; Transfers page (badge, bell, PDF / Excel); Sales Head / Admin / Director approve or reject; their own transfers move at once; feature switch |
+

@@ -10,11 +10,12 @@ import { Shell, type NavGroup } from "./shell";
 import { selectedYear } from "@/server/year";
 import { canApproveExpenses } from "@/server/expenses";
 import { pendingSpend } from "@/server/company";
+import { pendingTransferCount } from "@/server/transfers";
 import { fyLabel } from "@/lib/fy";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const user = await requireUser();
-  const [due, features, year, approvals, expenseWaiting, spendWaiting] = await Promise.all([
+  const [due, features, year, approvals, expenseWaiting, spendWaiting, transferWaiting] = await Promise.all([
     db.task.count({
       where: {
         assigneeId: user.id,
@@ -27,6 +28,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     canApprovePayments(user.role) ? db.payment.count({ where: { approval: "PENDING" } }) : 0,
     canApproveExpenses(user).then((ok) => (ok ? db.expense.count({ where: { status: "SUBMITTED" } }) : 0)),
     canApproveExpenses(user).then((ok) => (ok ? pendingSpend() : { bills: 0, salaries: 0, entries: 0 })),
+    pendingTransferCount(user),
   ]);
 
   const nav: NavGroup[] = [
@@ -48,6 +50,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         { href: "/outstanding", label: "Outstanding", icon: "rupee" },
         { href: "/ledger", label: "Ledger", icon: "doc" },
         ...(features.expenses ? [{ href: "/expenses", label: "My expenses", icon: "upload" as const }] : []),
+        ...(features.transfers ? [{ href: "/transfers", label: "Transfers", icon: "users" as const, badge: transferWaiting }] : []),
       ],
     },
   ];
@@ -77,6 +80,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     ...(seesAllSales(user.role) && features.targets ? [{ href: "/admin/targets", label: "Targets", icon: "rupee" as const }] : []),
     ...(canManageSettings(user.role) ? [{ href: "/admin/features", label: "Features", icon: "grid" as const }] : []),
     ...(canManageSettings(user.role) ? [{ href: "/admin/docs", label: "Project documents", icon: "doc" as const }] : []),
+    // Temporary (R43): empty the testing data, then this page is removed again.
+    ...(canManageSettings(user.role) ? [{ href: "/admin/clear-data", label: "Clear test data", icon: "x" as const }] : []),
   ];
   if (admin.length) nav.push({ group: "Settings", items: admin });
 

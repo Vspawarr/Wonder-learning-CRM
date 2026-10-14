@@ -18,7 +18,7 @@ button on the way. It is written for everyone at Wonder Learning: salespeople, m
 | 4 | **Opportunity** | Lead page | **Convert to opportunity**, pick Hot or Warm | Creates the deal (O-2001…); the lead's quotations and follow-ups move with it |
 | 5 | **Work the deal** | Opportunities / Pipeline | Move it through the stages; send / revise quotations | Sets the chance % per stage; books follow-ups |
 | 6 | **PO template** | Quotation → **Send PO template** | Type the kits per class and order details, **Save**, send on WhatsApp | Gives a PO number (PO/2627/1), attaches the kit checklist, fills the deal value |
-| 7 | **Won** | Opportunity → Stage: Won | Mark Won, then **Convert to client** | Creates the client (C-101…) in Onboarding with an onboarding follow-up |
+| 7 | **Client** | Opportunity → **Convert to client** | One tap from any open stage (it marks the deal Won) | Creates the client (C-101…) in Onboarding with an onboarding follow-up |
 | 8 | **Signed PO → sales order** | Client → **Upload signed PO** | Upload the school's signed PO | Creates the sales order (SO/…) with the kits and PO number |
 | 9 | **Kits** | Sales order → **Dispatch kits** | Send kits in one or more lots | Makes the delivery challan; you mark it received |
 | 10 | **Invoice** | Sales order → **Create invoice** | Raise the invoice (due in 45 days by default) | Numbers it (INV/…); shows it on Outstanding |
@@ -148,7 +148,8 @@ After its validity date a sent quotation shows **Expired** (feature switch "Quot
 
 ## 7. Opportunities and the pipeline
 
-- **Opportunities** is the list (filters: stage, category Hot/Warm/Cold, salesperson, **Added from – to**);
+- **Opportunities** is the list (filters: stage, category Hot/Warm/Cold, salesperson, **Added from – to**; **Sort:**
+  Newest first (default), Oldest first or Expected close soonest; each row shows when it was added, date and time);
   **Board view** opens the **Pipeline**, which shows the stages side by side (one under another on a phone).
 - Drag a card to another stage, or open it and change **Stage**.
 
@@ -166,7 +167,8 @@ After its validity date a sent quotation shows **Expired** (feature switch "Quot
 - **Competitor**: choose from the list; **Other** opens a box to type which one (required). The dashboard's
   "Competitors met" lists each typed name.
 - **Lost** asks for the reason and remarks (and competitor; Other → type which). Open follow-ups are cancelled. Won and Lost are final.
-- **Won** → the window shows **Convert to client**.
+- **Convert to client** (button next to Log interaction, any open stage): confirm, and the deal is marked **Won** and the
+  school becomes a client in one step. Marking Won by itself still works; a won deal then shows **Convert to client** too.
 
 ## 8. The PO template (purchase order for the school to sign)
 
@@ -186,7 +188,7 @@ also carries a separate checklist link.
 
 ## 9. Clients
 
-**Convert to client** (on a Won deal) creates the client in **Onboarding** with a "Start onboarding" follow-up.
+**Convert to client** (on any open or won deal) creates the client in **Onboarding** with a "Start onboarding" follow-up.
 When set-up is finished, press **Onboarding complete** → **Active**.
 
 ### The Clients list
@@ -200,7 +202,9 @@ When set-up is finished, press **Onboarding complete** → **Active**.
 ### The client page
 **Header:** % collected ring, status, client number, salesperson. Buttons: **Edit details** (address, contact,
 salesperson; corrections also update the lead and opportunity), **Renewal FY 2027-28** (this client only), **Call**, **WhatsApp**, **Log interaction**,
-**Onboarding complete**.
+**Onboarding complete**, **Transfer** (see 9a), and for the Admin / Director only **Remove client**: when a school
+was converted by mistake (only while it has no orders, invoices or payments). Write why; the client page goes, the
+deal reopens at the stage it had before Won with its quotations and history, and the lead stays.
 **Strip:** Quotations → Sales orders → Invoiced → Received → Outstanding → Overdue.
 **Left:** About this school, open follow-ups, **Contacts** (**Add contact**: Owner, Principal, Accounts…; mark
 who gets payment messages).
@@ -360,13 +364,24 @@ month; the Director approves entries made by Admin / Accounts.
   salaries and other payments = **profit / loss** (GST, loans, capital and withdrawals left out).
 - **GST summary**: GST on invoices vs GST on supplier bills, for the CA.
 
+## 9a. Transferring a lead or client to another salesperson
+
+On a lead or client page: **Transfer** → choose the salesperson and write why → **Ask for approval**. The page shows
+"Transfer to … waiting for approval" (with **Withdraw**). The Sales Head / Admin / Director see it under **Transfers**
+(menu badge and bell) and **Approve** (it moves, with its open deal or renewal deals and open to-dos; the new
+salesperson gets a "Taken over" to-do) or **Reject** with a reason (the person who asked gets a to-do). When the Sales
+Head / Admin / Director use **Transfer** themselves, it moves at once. **Transfers** keeps the last 30 days of
+decisions; PDF / Excel. Switch: Settings → Features → "Lead / client transfer with approval".
+
 ## 12. Dashboard
 
 - **Top strip** (today's position): active leads → opportunities → open quotations → open sales orders → clients →
   unpaid invoices → to-dos due. Tap any number to see the records.
 - **Show:** All · Sales · Finance · Team & management · Service & delivery (pick one or several; remembered).
-- **Period:** This month · Last month · This quarter · This financial year · Last 30 days · Custom; salesperson and
-  state filters for managers. In a past year the dashboard opens on the whole year.
+- **Period:** This month · Last month · This quarter · This financial year · Last 30 days · Custom.
+- **Salesperson** (Admin, Director, Sales Head): pick one person and the whole dashboard (top strip, every section,
+  targets, renewals and the PDF / Excel) shows only their numbers; "All salespeople" for everyone. Also a **State**
+  filter. In a past year the dashboard opens on the whole year.
 - Salespeople see only their own numbers.
 
 ## 13. Year end and renewals
@@ -402,7 +417,7 @@ month; the Director approves entries made by Admin / Accounts.
 |---|---|
 | Send a quotation | A draft with at least one product, MRP and price |
 | Send a PO template | A **sent** quotation |
-| Convert to client | The opportunity marked **Won** |
+| Convert to client | An open (or won) opportunity made from a lead |
 | Upload signed PO / create a sales order | A **client** (a quotation is optional but fills everything in) |
 | Dispatch kits, take advance, proforma | A sales order |
 | Raise an invoice | A sales order |
@@ -412,6 +427,7 @@ month; the Director approves entries made by Admin / Accounts.
 | Take items out of a kit on a quotation | Item prices in the kit's contents (Settings → Products) |
 | Pay a supplier bill, count a salary or other payment | **Approval by the Director** (Admin until a Director login exists) |
 | Correct company balances | The money accounts with their **opening balances** (Account books → Add account) |
+| WhatsApp with the PDF | Phone: pick WhatsApp and the chat on the share screen (Android app: version 1.3). Computer: the PDF is saved; attach it in WhatsApp Web with 📎 |
 | WhatsApp to reuse one tab on a computer | Keep the WhatsApp Web tab the CRM opened (a tab you open yourself can't be reached by the CRM) |
 | Send anything by email | Email set up by the Admin (until then use Download or WhatsApp) |
 | Create renewals | A client with at least one order; Admin / Sales Head for everyone at once |

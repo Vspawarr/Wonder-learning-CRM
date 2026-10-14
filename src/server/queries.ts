@@ -241,6 +241,8 @@ export function oppValue(o: { expectedValue: Prisma.Decimal | null }) {
 }
 
 export type OppFilters = {
+  /** R43: "new" (newest first), "old" (oldest first), "close" (expected close soonest). The board uses "close". */
+  sort?: string;
   owner?: string;
   q?: string;
   stage?: string;
@@ -278,12 +280,16 @@ export async function pipelineCards(user: SessionUser, f: OppFilters = {}) {
       lead: { select: { contactName: true, city: true } },
       client: { select: { id: true } },
     },
-    orderBy: [{ expectedCloseDate: { sort: "asc", nulls: "last" } }, { createdAt: "asc" }],
+    orderBy:
+      f.sort === "new" || f.sort === "old"
+        ? { createdAt: f.sort === "old" ? "asc" : "desc" }
+        : [{ expectedCloseDate: { sort: "asc", nulls: "last" } }, { createdAt: "asc" }],
   });
   return rows.map((o) => ({
     id: o.id,
     number: o.number,
     schoolName: o.schoolName,
+    createdAt: o.createdAt.toISOString(),
     stage: o.stage as Stage,
     probability: o.probability,
     temperature: o.temperature,

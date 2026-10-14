@@ -43,7 +43,7 @@ import type { InvoiceRow } from "@/server/finance/service";
 import type { ClientDetail, ProductOption } from "@/server/queries";
 import { PoTemplateModal, type QuoteTarget } from "../../pipeline/quotations";
 import { DispatchSection } from "./dispatch";
-import { openWhatsApp } from "@/lib/phone";
+import { WHATSAPP_DONE, useWhatsAppPdf } from "@/components/whatsapp-share";
 
 const money = inrExact;
 
@@ -1511,10 +1511,12 @@ function SendInvoice({
     .replace(/\D/g, "")
     .replace(/^(\d{10})$/, "91$1");
 
+  const wa = useWhatsAppPdf(`/api/invoices/${row.id}/pdf`, `Invoice ${row.number}`);
+  const toast = useToast();
   const whatsapp = () => {
     const link = `${window.location.origin}/i/${row.shareToken}`;
-    const text = `Dear Sir/Madam,\n${body}\nInvoice: ${link}\n\n${sign}`;
-    openWhatsApp(mobile, text);
+    const text = `Dear Sir/Madam,\n${body}\nInvoice PDF attached; also here: ${link}\n\n${sign}`;
+    toast(WHATSAPP_DONE[wa.send(mobile, text)]);
     run(() => logInvoiceWhatsApp(row.id, kind), {
       success: reminder
         ? "Reminder logged on the client's activity."
@@ -1562,16 +1564,17 @@ function SendInvoice({
         </a>
         <button
           className="btn pri justify-center"
-          disabled={pending || !mobile}
+          disabled={pending || !mobile || !wa.ready}
           onClick={whatsapp}
         >
           <Icon name="chat" size={16} />{" "}
-          {reminder ? "Remind on WhatsApp" : "Share on WhatsApp"}
+          {!wa.ready ? "Preparing PDF…" : reminder ? "Remind on WhatsApp" : "Share on WhatsApp"}
         </button>
       </div>
       <p className="small muted mt-2">
-        WhatsApp opens a message to {person.mobile ?? "nobody (no mobile)"} with
-        a private link to the invoice PDF.
+        WhatsApp sends the invoice PDF with the message and a private link to{" "}
+        {person.mobile ?? "nobody (no mobile)"}. On a computer the PDF is saved
+        for you to attach in WhatsApp Web (📎).
       </p>
 
       <h3 className="mt-4">Email from the CRM</h3>
@@ -1883,10 +1886,12 @@ export function SendReceipt({
     .replace(/^(\d{10})$/, "91$1");
   const pdf = `/api/payments/${r.paymentId}/receipt`;
 
+  const wa = useWhatsAppPdf(pdf, `Receipt ${r.number}`);
+  const toast = useToast();
   const whatsapp = () => {
     const link = `${window.location.origin}/r/${r.shareToken}`;
-    const text = `Dear Sir/Madam,\n${body}\nReceipt: ${link}\n\n${sign}`;
-    openWhatsApp(mobile, text);
+    const text = `Dear Sir/Madam,\n${body}\nReceipt PDF attached; also here: ${link}\n\n${sign}`;
+    toast(WHATSAPP_DONE[wa.send(mobile, text)]);
     run(() => logReceiptShared(r.paymentId), {
       success: "Receipt shared on WhatsApp.",
       onDone: onClose,
@@ -1931,15 +1936,17 @@ export function SendReceipt({
         </a>
         <button
           className="btn pri justify-center"
-          disabled={pending || !mobile}
+          disabled={pending || !mobile || !wa.ready}
           onClick={whatsapp}
         >
-          <Icon name="chat" size={16} /> Send on WhatsApp
+          <Icon name="chat" size={16} />{" "}
+          {wa.ready ? "Send on WhatsApp" : "Preparing PDF…"}
         </button>
       </div>
       <p className="small muted mt-2">
-        WhatsApp opens a message to {person.mobile ?? "nobody (no mobile)"} with
-        a private link to the receipt PDF.
+        WhatsApp sends the receipt PDF with the message and a private link to{" "}
+        {person.mobile ?? "nobody (no mobile)"}. On a computer the PDF is saved
+        for you to attach in WhatsApp Web (📎).
       </p>
 
       <h3 className="mt-4">Email from the CRM</h3>

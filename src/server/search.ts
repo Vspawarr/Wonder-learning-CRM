@@ -9,6 +9,7 @@ import { renewalCandidates } from "./renewals";
 import { getFeatures } from "./features";
 import { canApproveExpenses } from "./expenses";
 import { billsDueSoon, pendingSpend } from "./company";
+import { pendingTransferCount } from "./transfers";
 
 // Read-only helpers for the top bar: search everything, and "needs attention" alerts.
 // Both go through the same scope rules as the screens they link to.
@@ -82,7 +83,7 @@ export type Alert = { tone: "bad" | "warn" | "info"; icon: "check" | "rupee" | "
 
 export async function attentionAlerts(user: SessionUser): Promise<Alert[]> {
   const today = toDbDate(todayIST());
-  const [overdueTasks, todayTasks, invoices, cheques, renewals, approvals, expenses, spend] = await Promise.all([
+  const [overdueTasks, todayTasks, invoices, cheques, renewals, approvals, expenses, spend, transfers] = await Promise.all([
     db.task.count({ where: { ...taskScope(user), assigneeId: user.id, status: "OPEN", dueDate: { lt: today } } }),
     db.task.count({ where: { ...taskScope(user), assigneeId: user.id, status: "OPEN", dueDate: today } }),
     invoiceRows(user, { status: { not: "CANCELLED" } }),
@@ -95,6 +96,7 @@ export async function attentionAlerts(user: SessionUser): Promise<Alert[]> {
         ? { ...((await canApproveExpenses(user)) ? await pendingSpend() : { bills: 0, salaries: 0, entries: 0 }), due: await billsDueSoon() }
         : { bills: 0, salaries: 0, entries: 0, due: 0 },
     ),
+    getFeatures().then((f) => (f.transfers ? pendingTransferCount(user) : 0)),
   ]);
   const overdue = invoices.filter((i) => i.state === "OVERDUE");
   const a: Alert[] = [];
@@ -104,6 +106,7 @@ export async function attentionAlerts(user: SessionUser): Promise<Alert[]> {
   if (spend.bills) a.push({ tone: "warn", icon: "doc", text: `${plural(spend.bills, "supplier bill", "supplier bills")} waiting for your approval`, href: "/accounts/bills?show=waiting" });
   if (spend.salaries) a.push({ tone: "warn", icon: "doc", text: `${plural(spend.salaries, "salary", "salaries")} waiting for your approval`, href: "/accounts/salaries" });
   if (spend.entries) a.push({ tone: "warn", icon: "doc", text: `${plural(spend.entries, "company payment", "company payments")} waiting for your approval`, href: "/accounts/books" });
+  if (transfers) a.push({ tone: "warn", icon: "refresh", text: `${transfers} lead / client transfer${transfers > 1 ? "s" : ""} waiting for your approval`, href: "/transfers" });
   if (spend.due) a.push({ tone: "bad", icon: "rupee", text: `${spend.due} supplier bill${spend.due > 1 ? "s" : ""} due within a week or overdue`, href: "/accounts/bills?show=topay" });
   if (overdueTasks) a.push({ tone: "bad", icon: "check", text: `${overdueTasks} overdue to-do${overdueTasks > 1 ? "s" : ""}`, href: "/tasks" });
   if (todayTasks) a.push({ tone: "warn", icon: "check", text: `${todayTasks} to-do${todayTasks > 1 ? "s" : ""} due today`, href: "/tasks" });

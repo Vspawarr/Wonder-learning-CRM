@@ -3,7 +3,8 @@
 A small Android app that opens the live CRM website full-screen. It is strictly online:
 pages are never cached, and with no internet it shows a "No internet" screen instead of the CRM.
 PDFs and Excel files are saved to the phone's Downloads; WhatsApp, phone and email links open
-their own apps.
+their own apps. From version 1.3 the CRM can hand a PDF plus its message straight to WhatsApp
+(`window.WonderApp.shareFile`, served read-only by `ShareProvider`).
 
 - Where it points: `src/in/wonderlearning/crm/Config.java` (`BASE_URL`).
 - Build: `./build.sh`, which writes `public/downloads/wonder-crm.apk`. The website's

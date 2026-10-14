@@ -3,6 +3,8 @@
 // Thin server-action layer: authenticate, call the domain service, revalidate.
 // All rules and access checks live in src/server/*.
 import { revalidatePath } from "next/cache";
+import * as reset from "@/server/reset";
+import * as transfers from "@/server/transfers";
 import { signIn, signOut } from "@/auth";
 import { AuthError } from "next-auth";
 import type { SessionUser } from "@/lib/permissions";
@@ -298,3 +300,25 @@ export const addState = async (data: unknown) => run((u) => settings.addState(u,
 export const setStateActive = async (id: string, active: boolean) => run((u) => settings.setStateActive(u, id, active));
 export const addCity = async (data: unknown) => run((u) => settings.addCity(u, data));
 export const setCityActive = async (id: string, active: boolean) => run((u) => settings.setCityActive(u, id, active));
+
+/* ---------- clear test data (R43, temporary) ---------- */
+
+export async function clearTestData(confirm: string) {
+  return run((u) => reset.clearTestData(u, confirm));
+}
+
+export async function removeClient(id: string, reason: string) {
+  return run((u) => clients.removeClient(u, id, reason));
+}
+
+/* ---------- lead / client transfers (R43) ---------- */
+
+export async function requestTransfer(data: unknown) {
+  return run((u) => transfers.requestTransfer(u, data));
+}
+export async function decideTransfer(id: string, data: unknown) {
+  return run((u) => transfers.decideTransfer(u, id, data));
+}
+export async function cancelTransfer(id: string) {
+  return run((u) => transfers.cancelTransfer(u, id));
+}

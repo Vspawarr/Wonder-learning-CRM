@@ -15,7 +15,12 @@ import android.os.Message;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
+import android.content.ClipData;
+import android.util.Base64;
 import android.webkit.CookieManager;
+import android.webkit.JavascriptInterface;
+import java.io.File;
+import java.io.FileOutputStream;
 import android.webkit.URLUtil;
 import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
@@ -129,6 +134,8 @@ public class MainActivity extends Activity {
                 return true;
             }
         });
+        // R43: lets the CRM send a PDF together with its WhatsApp message (see shareFile below).
+        web.addJavascriptInterface(new AppBridge(), "WonderApp");
         web.setDownloadListener(new android.webkit.DownloadListener() {
             @Override
             public void onDownloadStart(String url, String ua, String disposition, String mime, long length) {
@@ -282,6 +289,55 @@ public class MainActivity extends Activity {
             return;
         }
         super.onActivityResult(req, result, data);
+    }
+
+    /** Called from the CRM page: window.WonderApp.shareFile(base64, fileName, mime, text, phone). */
+    private class AppBridge {
+        @JavascriptInterface
+        public void shareFile(final String base64, final String name, final String mime, final String text, final String phone) {
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    sharePdf(base64, name, mime, text, phone);
+                }
+            });
+        }
+    }
+
+    private void sharePdf(String base64, String name, String mime, String text, String phone) {
+        try {
+            String safe = name.replaceAll("[^A-Za-z0-9 ._()-]", "-");
+            if (!safe.toLowerCase().endsWith(".pdf")) safe = safe + ".pdf";
+            File dir = ShareProvider.folder(this);
+            File[] old = dir.listFiles();
+            if (old != null) for (File f : old) f.delete(); // only the latest document is kept
+            File out = new File(dir, safe);
+            FileOutputStream fos = new FileOutputStream(out);
+            fos.write(Base64.decode(base64, Base64.DEFAULT));
+            fos.close();
+            Uri uri = Uri.parse("content://" + ShareProvider.AUTHORITY + "/" + Uri.encode(safe));
+            Intent send = new Intent(Intent.ACTION_SEND);
+            send.setType(mime == null || mime.isEmpty() ? "application/pdf" : mime);
+            send.putExtra(Intent.EXTRA_STREAM, uri);
+            send.putExtra(Intent.EXTRA_TEXT, text);
+            send.setClipData(ClipData.newRawUri(safe, uri));
+            send.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            if (phone != null && phone.length() >= 10) send.putExtra("jid", phone + "@s.whatsapp.net"); // opens that chat
+            for (String pkg : new String[] {"com.whatsapp", "com.whatsapp.w4b"}) {
+                try {
+                    send.setPackage(pkg);
+                    startActivity(send);
+                    return;
+                } catch (ActivityNotFoundException e) {
+                    // try the next WhatsApp, then the share screen
+                }
+            }
+            send.setPackage(null);
+            send.removeExtra("jid");
+            startActivity(Intent.createChooser(send, "Send " + safe));
+        } catch (Exception e) {
+            Toast.makeText(this, "Couldn't share the PDF.", Toast.LENGTH_SHORT).show();
+        }
     }
 
     private int dp(int v) {

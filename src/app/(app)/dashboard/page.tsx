@@ -56,7 +56,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
     salesDashboard(user, f),
     all ? assignees(user) : Promise.resolve([]),
     getLocations(),
-    lifecycleCounts(user),
+    lifecycleCounts(user, { exec }),
     has("service") ? serviceSummary(user, f) : null,
     has("finance") ? outstandingList(user, { owner: exec, year: f.year }) : null,
     has("service") && features.renewals ? renewalCandidates(user) : null,
@@ -69,11 +69,12 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   // Company accounts (R39): bank & cash and bills to pay, for Accounts only.
   const books = features.companyAccounts && has("finance") && canManageCompanyAccounts(user.role) ? await companySnapshot(user) : null;
   const first = user.name.split(" ")[0];
+  const execName = exec ? team.find((t) => t.id === exec)?.name : undefined;
   const period = `${fmtDate(d.range.from, today)} – ${fmtDate(d.range.to, today)}`;
 
   return (
     <>
-      <PageHeader title={`Hello, ${first}`} sub={`${all ? "The whole business" : "Your numbers"} · ${period}. Tap any number to see the records behind it.`}>
+      <PageHeader title={`Hello, ${first}`} sub={`${all ? (execName ? `${execName}'s numbers` : "The whole business") : "Your numbers"} · ${period}. Tap any number to see the records behind it.`}>
         <ExportButtons report="dashboard" />
       </PageHeader>
       <Ribbon
@@ -279,7 +280,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
               className="mb-4"
             >
               {targets.rows
-                .filter((r) => r.salesTarget || r.collectionTarget)
+                .filter((r) => (r.salesTarget || r.collectionTarget) && (!exec || r.userId === exec))
                 .map((r) => (
                   <div
                     key={r.userId}
@@ -337,7 +338,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
             {features.dispatch ? <Kpi label="Kits in transit" value={svc.inTransit} sub="Dispatched, not yet received" color="#7A48B8" /> : null}
             <Kpi label="Onboarding" value={svc.onboarding} sub="New clients being set up" color="#1C86C4" href="/clients" />
             {renewals ? (
-              <Kpi label="Renewals due" value={renewals.clients.length} sub={`For FY ${renewals.ay.label}`} color="#0E8F79" href="/clients" />
+              <Kpi label="Renewals due" value={renewals.clients.filter((c) => !exec || c.ownerId === exec).length} sub={`For FY ${renewals.ay.label}`} color="#0E8F79" href="/clients" />
             ) : null}
           </div>
           <div className="grid grid-cols-1 gap-4 min-[901px]:grid-cols-2">

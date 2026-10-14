@@ -1,14 +1,14 @@
 import { db } from "@/lib/db";
-import { clientCode } from "@/lib/constants";
+import { STAGE_LABEL, STAGE_PROBABILITY, clientCode } from "@/lib/constants";
 import { addDays, todayIST, toDbDate } from "@/lib/dates";
-import { seesAllSales, type SessionUser } from "@/lib/permissions";
+import { canManageSettings, seesAllSales, type SessionUser } from "@/lib/permissions";
 import { assertAssignable, clientScope, oppScope } from "./access";
 import { assertLocation } from "./locations";
 import { clientInput, parse } from "./validation";
 import { syncSchool } from "./school";
 import { DomainError, NotFoundError } from "./errors";
 
-/** Turns a won opportunity into a client and starts onboarding. Returns the client id. */
+/** Turns an opportunity into a client (marking it Won if still open) and starts onboarding. Returns the client id. */
 export async function convertToClient(user: SessionUser, opportunityId: string) {
   return db.$transaction(async (tx) => {
     const opp = await tx.opportunity.findFirst({
@@ -16,11 +16,28 @@ export async function convertToClient(user: SessionUser, opportunityId: string) 
       include: { lead: true, client: { select: { id: true } } },
     });
     if (!opp) throw new NotFoundError("Opportunity");
-    if (opp.stage !== "WON") throw new DomainError("Only a won deal can be converted to a client.");
+    if (opp.stage === "LOST") throw new DomainError("This deal is lost; it can't become a client.");
     if (opp.client) throw new DomainError("This deal is already a client.");
     if (opp.renewalOfId) throw new DomainError("This is a renewal of an existing client; create its sales order on the client page.");
     const lead = opp.lead;
     if (!lead) throw new DomainError("This deal has no lead details to create the client from.");
+
+    // R43: converting is enough; an open deal is marked Won on the way (no need to set the stage first).
+    if (opp.stage !== "WON") {
+      const now = new Date();
+      await tx.opportunity.update({ where: { id: opp.id }, data: { stage: "WON", probability: STAGE_PROBABILITY.WON, closedAt: now } });
+      await tx.opportunityStageChange.create({ data: { opportunityId: opp.id, fromStage: opp.stage, toStage: "WON", changedById: user.id } });
+      await tx.task.updateMany({ where: { opportunityId: opp.id, status: "OPEN" }, data: { status: "CANCELLED", outcome: "Deal won", completedAt: now } });
+      await tx.activity.create({
+        data: {
+          type: "SYSTEM",
+          subject: `Stage: ${STAGE_LABEL[opp.stage]} → ${STAGE_LABEL.WON} (converted to client)`,
+          byId: user.id,
+          opportunityId: opp.id,
+          leadId: opp.leadId,
+        },
+      });
+    }
 
     const client = await tx.client.create({
       data: {
@@ -146,5 +163,57 @@ export async function updateClient(user: SessionUser, id: string, raw: unknown) 
           clientId: id,
         },
       });
+  });
+}
+
+/**
+ * R43: undo a conversion made by mistake (Admin / Director only). The client goes, its history and quotations move back
+ * to the deal, and the deal reopens at the stage it had before Won. The lead stays as it is. Refused once orders,
+ * invoices or payments exist (those are real business and must be cancelled first).
+ */
+export async function removeClient(user: SessionUser, clientId: string, reason: string) {
+  if (!canManageSettings(user.role)) throw new DomainError("Only an Admin or the Director can remove a client.");
+  if (!reason || reason.trim().length < 3) throw new DomainError("Write why the client is being removed.");
+  return db.$transaction(async (tx) => {
+    const c = await tx.client.findUnique({
+      where: { id: clientId },
+      include: { _count: { select: { salesOrders: true, invoices: true, payments: true, creditNotes: true, dispatches: true, renewals: true } } },
+    });
+    if (!c) throw new NotFoundError("Client");
+    const n = c._count;
+    const blockers = [
+      n.salesOrders && `${n.salesOrders} sales order(s)`,
+      n.invoices && `${n.invoices} invoice(s)`,
+      n.payments && `${n.payments} payment(s)`,
+      n.creditNotes && `${n.creditNotes} credit note(s)`,
+      n.dispatches && `${n.dispatches} dispatch(es)`,
+      n.renewals && `${n.renewals} renewal deal(s)`,
+    ].filter(Boolean);
+    if (blockers.length) throw new DomainError(`This client already has ${blockers.join(", ")}. Only a client without orders, invoices or payments can be removed.`);
+
+    // Keep the history and quotations on the deal.
+    await tx.activity.updateMany({ where: { clientId, opportunityId: null }, data: { opportunityId: c.opportunityId } });
+    await tx.activity.updateMany({ where: { clientId }, data: { clientId: null } });
+    await tx.quotation.updateMany({ where: { clientId, opportunityId: null }, data: { opportunityId: c.opportunityId } });
+    await tx.quotation.updateMany({ where: { clientId }, data: { clientId: null } });
+
+    // Reopen the deal where it was before it was won.
+    const opp = await tx.opportunity.findUniqueOrThrow({ where: { id: c.opportunityId } });
+    const lastWon = await tx.opportunityStageChange.findFirst({ where: { opportunityId: opp.id, toStage: "WON" }, orderBy: { changedAt: "desc" } });
+    const back = lastWon?.fromStage && lastWon.fromStage !== "WON" && lastWon.fromStage !== "LOST" ? lastWon.fromStage : "NEGOTIATION";
+    await tx.opportunity.update({ where: { id: opp.id }, data: { stage: back, probability: STAGE_PROBABILITY[back], closedAt: null } });
+    await tx.opportunityStageChange.create({ data: { opportunityId: opp.id, fromStage: opp.stage, toStage: back, changedById: user.id } });
+    await tx.client.delete({ where: { id: clientId } });
+    await tx.activity.create({
+      data: {
+        type: "SYSTEM",
+        subject: `Client ${clientCode(c.number)} removed by ${user.name}; deal reopened at ${STAGE_LABEL[back]}`,
+        summary: reason.trim(),
+        byId: user.id,
+        opportunityId: opp.id,
+        leadId: opp.leadId,
+      },
+    });
+    return opp.id;
   });
 }

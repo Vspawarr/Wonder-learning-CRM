@@ -5,8 +5,14 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { PERIODS } from "@/server/dashboard-periods";
 import type { Option } from "@/server/queries";
 
-/** Period for everyone; executive and state filters for managers and above. */
-export function DashFilterBar({ team, states }: { team: Option[] | null; states: string[] }) {
+/** Period for everyone; salesperson and state filters for Admin, Director and Sales Head. */
+export function DashFilterBar({
+  team,
+  states,
+}: {
+  team: Option[] | null;
+  states: string[];
+}) {
   const router = useRouter();
   const path = usePathname();
   const sp = useSearchParams();
@@ -23,29 +29,57 @@ export function DashFilterBar({ team, states }: { team: Option[] | null; states:
     <div className="flex flex-wrap items-center gap-2.5">
       <div className="chips" role="group" aria-label="Period">
         {PERIODS.map(([v, l]) => (
-          <button key={v} className={`chip ${period === v ? "on" : ""}`} aria-pressed={period === v} onClick={() => set({ period: v === "month" ? "" : v })}>
+          <button
+            key={v}
+            className={`chip ${period === v ? "on" : ""}`}
+            aria-pressed={period === v}
+            onClick={() => set({ period: v === "month" ? "" : v })}
+          >
             {l}
           </button>
         ))}
       </div>
       {period === "custom" ? (
         <>
-          <DateInput className="w-[150px]" ariaLabel="From" value={sp.get("from") ?? ""} onChange={(from) => from && set({ from })} />
+          <DateInput
+            className="w-[150px]"
+            ariaLabel="From"
+            value={sp.get("from") ?? ""}
+            onChange={(from) => from && set({ from })}
+          />
           <span className="muted">to</span>
-          <DateInput className="w-[150px]" ariaLabel="To" value={sp.get("to") ?? ""} onChange={(to) => to && set({ to })} />
+          <DateInput
+            className="w-[150px]"
+            ariaLabel="To"
+            value={sp.get("to") ?? ""}
+            onChange={(to) => to && set({ to })}
+          />
         </>
       ) : null}
       {team ? (
         <>
-          <select className="sel w-auto min-w-[170px]" aria-label="Executive" value={sp.get("exec") ?? ""} onChange={(e) => set({ exec: e.target.value })}>
-            <option value="">Whole team</option>
-            {team.map((t) => (
-              <option key={t.id} value={t.id}>
-                {t.name}
-              </option>
-            ))}
-          </select>
-          <select className="sel w-auto min-w-[150px]" aria-label="State" value={sp.get("state") ?? ""} onChange={(e) => set({ state: e.target.value })}>
+          <label className="flex items-center gap-1.5">
+            <span className="small strong muted">Salesperson</span>
+            <select
+              className="sel w-auto min-w-[170px]"
+              aria-label="Salesperson"
+              value={sp.get("exec") ?? ""}
+              onChange={(e) => set({ exec: e.target.value })}
+            >
+              <option value="">All salespeople</option>
+              {team.map((t) => (
+                <option key={t.id} value={t.id}>
+                  {t.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <select
+            className="sel w-auto min-w-[150px]"
+            aria-label="State"
+            value={sp.get("state") ?? ""}
+            onChange={(e) => set({ state: e.target.value })}
+          >
             <option value="">All states</option>
             {states.map((s) => (
               <option key={s}>{s}</option>

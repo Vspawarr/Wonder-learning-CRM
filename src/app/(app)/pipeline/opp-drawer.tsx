@@ -17,6 +17,7 @@ import { SchoolDetailsButton } from "@/components/school-details";
 import { schoolValues } from "@/lib/school-values";
 import type { Locations } from "@/server/locations";
 import { QuotationsPanel } from "./quotations";
+import { Icon } from "@/components/icons";
 
 export function OppDrawer({
   opp,
@@ -168,6 +169,21 @@ export function OppDrawer({
         </Field>
         <div className="mb-3 flex flex-wrap gap-2">
           <LogInteractionButton opportunityId={opp.id} />
+          {!opp.closed && !opp.renewalOf && opp.lead ? (
+            <button
+              className="btn pri"
+              disabled={pending}
+              onClick={() =>
+                confirm(`Convert ${opp.schoolName} to a client? The deal is marked Won and onboarding starts.`) &&
+                run(() => convertToClient(opp.id), {
+                  success: `${opp.schoolName} is now a client. Onboarding task created.`,
+                  onDone: (id) => id && router.push(`/clients/${id}`),
+                })
+              }
+            >
+              <Icon name="school" size={16} /> Convert to client
+            </button>
+          ) : null}
           {opp.school ? <SchoolDetailsButton target={{ opportunityId: opp.id }} initial={schoolValues(opp.school)} locations={locations} /> : null}
         </div>
       </div>

@@ -32,7 +32,11 @@ change it here in the same commit as the code. Requirement numbers (R…) point 
    Negotiation 75% → Won 100% / Lost 0%. Won and Lost are final. Lost needs a reason + remarks.
    Proposal Sent and Negotiation create a follow-up in 2 days. Sending a quotation moves the deal to
    Proposal Sent. Pipeline value = the typed **Expected deal value** (deals without one show "no value yet").
-4. **Convert to client** on a Won deal → client in **Onboarding**, then **Active** when onboarding is marked complete.
+4. **Convert to client** on any open (or won) deal → the deal is marked **Won** on the way (R43) and the client starts in
+   **Onboarding**, then **Active** when onboarding is marked complete. A lost deal can't be converted. **Remove client**
+   (Admin / Director, R43) undoes a mistaken conversion while the client has no orders, invoices, payments, dispatches or
+   renewal deals: the client is deleted, its history and quotations move back to the deal, the deal reopens at the stage
+   before Won, the lead stays.
 5. **Renewals:** each financial year (April – March), clients who ordered get a "Renewal: FY …" opportunity for the
    next financial year, valued at this year's orders, to close by 31 March (switchable feature) (R32).
    A renewal is a new deal for the **same client**: when won, its sales order and invoices are made on that client's
@@ -169,6 +173,16 @@ client shows a warning (the user may still save). The Excel upload skips same sc
 - **Account book**: one account for the dates chosen, opening balance, each entry with a running balance, closing
   balance; a **Matched** tick per line for checking against the bank statement.
 
+## Transfers of leads and clients (R43)
+
+- Anyone who can see a lead or client can ask to move it to another active salesperson, with a reason. It moves only
+  when the **Sales Head, Admin or Director** approves (`canApproveTransfers`); their own transfers move at once. One
+  waiting request per record; the asker can withdraw it.
+- On approval: a lead moves with its open deal and their open to-dos; a client with its open to-dos and open renewal
+  deals. The new salesperson gets a "Taken over" to-do; the record's timeline shows who moved it. A rejection needs a
+  reason and gives the asker a to-do. Editing "Assigned to" directly stays an Admin / Sales Head action.
+- Switch: Settings → Features → "Lead / client transfer with approval".
+
 ## Numbering
 
 - **Receipts:** like the client's receipt book, `117/26-27`: a running number through the financial year
@@ -186,6 +200,10 @@ client shows a warning (the user may still save). The Excel upload skips same sc
 
 - WhatsApp buttons open WhatsApp with a ready message and a private link to the PDF (`/q/`, `/i/`, `/r/`
   links work without logging in, but only with the secret token).
+- **The document goes with the message (R43):** quotation, PO template, invoice / reminder and receipt. Phones: the
+  share screen opens with the PDF and the message (pick WhatsApp and the chat); the Android app (version 1.3) hands
+  them straight to WhatsApp. Computers: WhatsApp Web opens with the message and link, and the PDF is saved to the
+  computer to attach with 📎, because no website can attach a file inside WhatsApp Web by itself.
 - On a computer they open **WhatsApp Web in one tab**: the first message opens it, every later one reuses that same
   tab (R41). Browsers don't let a website reach a WhatsApp Web tab the user opened themselves, so keep using the tab
   the CRM opened. Phones and the Android app open the WhatsApp app.

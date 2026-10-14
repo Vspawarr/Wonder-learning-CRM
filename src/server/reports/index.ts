@@ -1,6 +1,7 @@
 // Every exportable report, built with the same filters and access rules as its screen.
 import { CLIENT_STATUS_LABEL, EXPENSE_PAID_BY_SHORT, LEAD_STATUS_LABEL, STAGE_LABEL, TEMPERATURE_LABEL, clientCode, leadCode, oppCode } from "@/lib/constants";
-import { daysFrom, istDate, todayIST } from "@/lib/dates";
+import { daysFrom, fmtDateTimeIST, istDate, todayIST } from "@/lib/dates";
+import { db } from "@/lib/db";
 import { canManageCompanyAccounts, seesAllSales, type SessionUser } from "@/lib/permissions";
 import { companySnapshot } from "../company-books";
 import { salesDashboard, serviceSummary } from "../dashboard";
@@ -12,6 +13,7 @@ import { expenseList, expenseTotal } from "../expenses";
 import { YEAR_FILTERS, YEAR_STANDING_LABEL, clientsList, leadsList, pipelineCards, taskList, type TaskKind } from "../queries";
 import type { Cell, Report } from "./types";
 import * as company from "./company";
+import { transferList } from "../transfers";
 import { financialYear, fyLabel, fyRange, parseYearCookie } from "@/lib/fy";
 import { yearAnchor } from "../year";
 import { getFeatures } from "../features";
@@ -96,7 +98,9 @@ async function leads(user: SessionUser, p: Params): Promise<Report> {
 
 async function opportunities(user: SessionUser, p: Params): Promise<Report> {
   const stage = p.stage || "All";
+  const sort = p.sort === "old" || p.sort === "close" ? p.sort : "new";
   const rows = await pipelineCards(user, {
+    sort,
     q: p.q,
     stage: stage === "All" ? undefined : stage,
     owner: p.owner,
@@ -114,11 +118,13 @@ async function opportunities(user: SessionUser, p: Params): Promise<Report> {
       p.cat && `Category: ${TEMPERATURE_LABEL[p.cat as "HOT"] ?? p.cat}`,
       rangeLine("Added", p),
       p.q && `Search: "${p.q}"`,
+      `Order: ${sort === "old" ? "oldest first" : sort === "close" ? "expected close soonest" : "newest first"}`,
     ]),
     sections: [
       {
         columns: [
           { key: "no", header: "Opp.", width: 0.6 },
+          { key: "added", header: "Added", width: 0.9 },
           { key: "school", header: "School", width: 2 },
           { key: "contact", header: "Contact", width: 1.2 },
           { key: "city", header: "City", width: 0.9 },
@@ -132,6 +138,7 @@ async function opportunities(user: SessionUser, p: Params): Promise<Report> {
         ],
         rows: rows.map((o) => ({
           no: oppCode(o.number),
+          added: fmtDateTimeIST(o.createdAt),
           school: o.schoolName,
           contact: o.contactName,
           city: o.city,
@@ -599,7 +606,7 @@ async function dashboard(user: SessionUser, p: Params): Promise<Report> {
     subtitle: filtersLine([
       yearLine(p),
       range,
-      all ? (f.exec ? "One salesperson" : "Whole team") : `For ${user.name}`,
+      all ? (f.exec ? `Salesperson: ${(await db.user.findUnique({ where: { id: f.exec }, select: { name: true } }))?.name ?? "one person"}` : "All salespeople") : `For ${user.name}`,
       f.state && `State: ${f.state}`,
       shown.length < DASH_SECTIONS.length && `Sections: ${DASH_SECTIONS.filter(([key]) => has(key)).map(([, l]) => l).join(", ")}`,
     ]),
@@ -691,8 +698,47 @@ async function approvals(user: SessionUser): Promise<Report> {
   };
 }
 
+/** Lead / client transfers (R43): waiting, then decided in the last 30 days. */
+async function transfers(user: SessionUser): Promise<Report> {
+  const { waiting, decided } = await transferList(user);
+  const cols = [
+    { key: "kind", header: "What", width: 0.8 },
+    { key: "school", header: "School", width: 1.8 },
+    { key: "from", header: "From", width: 1 },
+    { key: "to", header: "To", width: 1 },
+    { key: "reason", header: "Reason", width: 1.8 },
+    { key: "asked", header: "Asked by / on", width: 1.4 },
+  ];
+  const row = (t: (typeof waiting)[number]) => ({
+    kind: `${t.kind} ${t.code}`,
+    school: t.school,
+    from: t.from,
+    to: t.to,
+    reason: t.reason ?? "",
+    asked: `${t.requestedBy}, ${fmtDateTimeIST(t.requestedAt)}`,
+  });
+  return {
+    title: "Transfers",
+    subtitle: `${waiting.length} waiting · decided in the last 30 days: ${decided.length}`,
+    landscape: true,
+    sections: [
+      { heading: "Waiting for approval", columns: cols, rows: waiting.map(row), empty: "Nothing waiting." },
+      {
+        heading: "Decided in the last 30 days",
+        columns: [...cols, { key: "decision", header: "Decision", width: 1.6 }],
+        rows: decided.map((t) => ({
+          ...row(t),
+          decision: `${t.status === "APPROVED" ? "Moved" : `Rejected: ${t.rejectReason ?? ""}`} (${t.decidedBy ?? ""})`,
+        })),
+        empty: "No decisions yet.",
+      },
+    ],
+  };
+}
+
 export const REPORTS = {
   approvals,
+  transfers,
   finance: company.finance,
   bills: company.bills,
   salaries: company.salaries,

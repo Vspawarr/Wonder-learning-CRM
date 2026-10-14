@@ -66,6 +66,10 @@ model User {
   targets            Target[]
   paymentsApproved   Payment[]                @relation("PaymentApprovedBy")
   expensesOwn        Expense[]                @relation("ExpenseOf")
+  transfersFrom      OwnerTransfer[]          @relation("TransferFrom")
+  transfersTo        OwnerTransfer[]          @relation("TransferTo")
+  transfersAsked     OwnerTransfer[]          @relation("TransferAskedBy")
+  transfersDecided   OwnerTransfer[]          @relation("TransferDecidedBy")
   expensesCreated    Expense[]                @relation("ExpenseCreatedBy")
   expensesDecided    Expense[]                @relation("ExpenseDecidedBy")
   expensesReimbursed Expense[]                @relation("ExpenseReimbursedBy")
@@ -206,6 +210,7 @@ model Lead {
   activities    Activity[]
   quotations    Quotation[]
   expenses      Expense[]
+  transfers     OwnerTransfer[]
 
   @@index([assignedToId, status])
   @@index([nextFollowUpDate])
@@ -453,6 +458,7 @@ model Client {
   expenses    Expense[]
   contacts    ClientContact[]
   renewals    Opportunity[]   @relation("Renewals")
+  transfers   OwnerTransfer[]
 
   @@index([ownerId, status])
 }
@@ -1134,4 +1140,31 @@ model BookMatch {
   matchedAt DateTime @default(now())
   byId      String
   by        User     @relation(fields: [byId], references: [id])
+}
+
+/// A request to move a lead or a client to another salesperson (R43). Approved by the Sales Head / Admin / Director;
+/// their own requests apply at once.
+model OwnerTransfer {
+  id            String        @id @default(cuid())
+  leadId        String?
+  lead          Lead?         @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  clientId      String?
+  client        Client?       @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  fromUserId    String
+  fromUser      User          @relation("TransferFrom", fields: [fromUserId], references: [id])
+  toUserId      String
+  toUser        User          @relation("TransferTo", fields: [toUserId], references: [id])
+  reason        String?
+  status        SpendApproval @default(PENDING)
+  requestedById String
+  requestedBy   User          @relation("TransferAskedBy", fields: [requestedById], references: [id])
+  decidedById   String?
+  decidedBy     User?         @relation("TransferDecidedBy", fields: [decidedById], references: [id])
+  decidedAt     DateTime?
+  rejectReason  String?
+  createdAt     DateTime      @default(now())
+
+  @@index([status])
+  @@index([leadId])
+  @@index([clientId])
 }

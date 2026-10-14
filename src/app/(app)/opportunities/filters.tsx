@@ -53,6 +53,11 @@ export function OppFilterBar({ team }: { team: Option[] | null }) {
           </button>
         ))}
       </div>
+      <select className="sel w-auto" aria-label="Sort" value={sp.get("sort") ?? ""} onChange={(e) => set("sort", e.target.value)}>
+        <option value="">Newest first</option>
+        <option value="old">Oldest first</option>
+        <option value="close">Expected close soonest</option>
+      </select>
       {team ? (
         <select className="sel w-auto min-w-[170px]" aria-label="Assigned to" value={sp.get("owner") ?? ""} onChange={(e) => set("owner", e.target.value)}>
           <option value="">All salespeople</option>

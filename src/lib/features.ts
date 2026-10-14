@@ -15,6 +15,7 @@ export const FEATURES = {
   paymentApproval: { label: "Payment approval by Accounts", hint: "Payments recorded by the team wait in Accounts; they count as received and get a receipt only after approval." },
   expenses: { label: "Expenses & advances", hint: "Team expense claims with bill photos, Accounts approval and reimbursement, advances to employees, company expenses." },
   companyAccounts: { label: "Company accounts", hint: "Money accounts (bank, cash, card), other money in / out, transfers, supplier bills, salaries, account books and the company finance overview." },
+  transfers: { label: "Lead / client transfer with approval", hint: "Anyone can ask to move a lead or client to another salesperson; the Sales Head or Admin approves before it moves." },
   guide: { label: "How it works guide", hint: "A \"How it works\" page in the menu for everyone: the whole workflow and every button, step by step." },
 } as const;
 

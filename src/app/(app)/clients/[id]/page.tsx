@@ -14,13 +14,15 @@ import { requireUser } from "@/server/session";
 import { assignees, clientDetail, productOptions } from "@/server/queries";
 import { getLocations } from "@/server/locations";
 import { getFeatures } from "@/server/features";
-import { seesAllSales } from "@/lib/permissions";
+import { canApproveTransfers, canManageSettings, seesAllSales } from "@/lib/permissions";
+import { TransferButton } from "@/components/transfer";
+import { pendingTransferFor, salesTeam } from "@/server/transfers";
 import { EditClientButton } from "./edit-client";
 import { ContactsCard, DocumentsCard } from "./extras";
 import { RenewalButton } from "@/components/renewals";
 import { renewalCandidates } from "@/server/renewals";
 import { QuotationsPanel } from "../../pipeline/quotations";
-import { ClientActions } from "./client-actions";
+import { ClientActions, RemoveClientButton } from "./client-actions";
 import { InvoicesPanel, PaymentsPanel, SalesOrdersPanel } from "./finance";
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
@@ -42,6 +44,7 @@ export default async function ClientPage({ params }: { params: Promise<{ id: str
   // With extra contacts switched off, messages go to the main contact only.
   const c = features.contacts ? c0 : { ...c0, people: [] };
   const renewal = features.renewals ? await renewalCandidates(user, c0.id) : null;
+  const [sales, pendingTransfer] = features.transfers ? await Promise.all([salesTeam(), pendingTransferFor("client", c0.id)]) : [[], null];
   const today = todayIST();
   const period = resolvePeriod({}, yearAnchor(await selectedRange()));
   const emailReady = isEmailConfigured();
@@ -198,6 +201,18 @@ export default async function ClientPage({ params }: { params: Promise<{ id: str
           <EditClientButton client={c} team={team} locations={locations} canChangeOwner={seesAllSales(user.role)} />
           {renewal?.clients.length ? <RenewalButton clientId={c.id} ay={renewal.ay.label} /> : null}
           <ClientActions id={c.id} mobile={c.mobile} onboarding={c.status === "ONBOARDING"} />
+          {features.transfers ? (
+            <TransferButton
+              kind="client"
+              id={c.id}
+              school={c.schoolName}
+              ownerId={c.owner.id}
+              team={sales}
+              approver={canApproveTransfers(user.role)}
+              pending={pendingTransfer}
+            />
+          ) : null}
+          {canManageSettings(user.role) && !c.salesOrders.length && !c.invoices.length && !c.payments.length ? <RemoveClientButton id={c.id} school={c.schoolName} /> : null}
         </div>
       </div>
 

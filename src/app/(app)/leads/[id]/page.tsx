@@ -11,6 +11,10 @@ import { QuotationsPanel } from "../../pipeline/quotations";
 import { getLocations } from "@/server/locations";
 import { isActiveLead } from "@/server/rules";
 import { LeadActions, LeadEditor } from "./lead-client";
+import { TransferButton } from "@/components/transfer";
+import { getFeatures } from "@/server/features";
+import { pendingTransferFor, salesTeam } from "@/server/transfers";
+import { canApproveTransfers } from "@/lib/permissions";
 import { SchoolDetailsButton } from "@/components/school-details";
 import { schoolValues } from "@/lib/school-values";
 import type { Locations } from "@/server/locations";
@@ -25,7 +29,14 @@ export default async function LeadPage({ params }: { params: Promise<{ id: strin
   const user = await requireUser();
   const lead = await leadDetail(user, (await params).id);
   if (!lead) notFound();
-  const [team, locations, products] = await Promise.all([assignees(user), getLocations(), productOptions()]);
+  const [team, locations, products, features, sales, pendingTransfer] = await Promise.all([
+    assignees(user),
+    getLocations(),
+    productOptions(),
+    getFeatures(),
+    salesTeam(),
+    pendingTransferFor("lead", lead.id),
+  ]);
   const active = isActiveLead(lead.status);
   const today = todayIST();
   // A reassigned lead keeps showing its current owner even if they're not a choice for this user.
@@ -66,6 +77,19 @@ export default async function LeadPage({ params }: { params: Promise<{ id: strin
             ]}
           />
           <LeadActions lead={lead} />
+          {features.transfers ? (
+            <div>
+              <TransferButton
+                kind="lead"
+                id={lead.id}
+                school={lead.schoolName}
+                ownerId={lead.assignedTo.id}
+                team={sales}
+                approver={canApproveTransfers(user.role)}
+                pending={pendingTransfer}
+              />
+            </div>
+          ) : null}
         </div>
       </div>
 

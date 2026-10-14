@@ -23,7 +23,7 @@ import { fmtDate, istDate, todayIST } from "@/lib/dates";
 import { customDelta, customLabel, isCustomised, type KitCustom } from "@/lib/kit-custom";
 import type { ProductOption, QuoteSummary } from "@/server/queries";
 import type { QuoteParent } from "@/server/quotation/service";
-import { openWhatsApp } from "@/lib/phone";
+import { WHATSAPP_DONE, useWhatsAppPdf } from "@/components/whatsapp-share";
 
 type Q = QuoteSummary;
 /** What the panel needs to know about the deal or client it quotes for. */
@@ -528,12 +528,14 @@ function SendQuotation({
     `Dear Sir/Madam,\n\nPlease find attached our quotation ${q.number} for ${opp.schoolName}.\n\nWe look forward to working with you.\n\nRegards,\n${me.name}\nWonder Learning India Pvt. Ltd.`,
   );
   const mobile = (opp.mobile ?? "").replace(/\D/g, "").replace(/^(\d{10})$/, "91$1");
+  const wa = useWhatsAppPdf(`/api/quotations/${q.id}/pdf`, `Quotation ${q.number}`);
 
   const whatsapp = () => {
     const link = `${window.location.origin}/q/${q.shareToken}`;
-    const text = `Dear Sir/Madam,\nPlease find our quotation ${q.number} for ${opp.schoolName}:\n${link}\n\nRegards,\n${me.name}\nWonder Learning`;
-    // Open straight away (inside the click) so the browser doesn't block it.
-    openWhatsApp(mobile, text);
+    const text = `Dear Sir/Madam,\nPlease find our quotation ${q.number} for ${opp.schoolName} (PDF attached; also here: ${link})\n\nRegards,\n${me.name}\nWonder Learning`;
+    // Inside the tap, so the browser allows it: the PDF and the message go together (R43).
+    const how = wa.send(mobile, text);
+    toast(WHATSAPP_DONE[how]);
     run(() => markQuotationSent(q.id, "whatsapp"), {
       success: `${q.number} marked as sent on WhatsApp.`,
       onDone: onClose,
@@ -569,12 +571,12 @@ function SendQuotation({
         <button className="btn justify-center" disabled={pending} onClick={download}>
           <Icon name="download" size={16} /> Download PDF
         </button>
-        <button className="btn justify-center" disabled={pending || !mobile} onClick={whatsapp} title={mobile ? "" : "No mobile number on record"}>
-          <Icon name="chat" size={16} /> Share on WhatsApp
+        <button className="btn justify-center" disabled={pending || !mobile || !wa.ready} onClick={whatsapp} title={mobile ? "" : "No mobile number on record"}>
+          <Icon name="chat" size={16} /> {wa.ready ? "Share on WhatsApp" : "Preparing PDF…"}
         </button>
       </div>
       <p className="small muted mt-2">
-        WhatsApp opens a message to {opp.mobile ?? "the school"} with a private link to the PDF. Download saves the PDF so you can attach it yourself.
+        WhatsApp sends the quotation PDF with a message and a private link to {opp.mobile ?? "the school"}. On a computer, WhatsApp Web opens with the message and the PDF is saved for you to attach (📎).
       </p>
 
       <h3 className="mt-4">Email from the CRM</h3>
@@ -682,10 +684,12 @@ export function PoTemplateModal({ q, target, me, onClose }: { q: Q; target: Quot
     );
   const pdf = `/api/quotations/${q.id}/po-template`;
   const mobile = (target.mobile ?? "").replace(/\D/g, "").replace(/^(\d{10})$/, "91$1");
+  const toast = useToast();
+  const waPo = useWhatsAppPdf(saved ? `${pdf}?v=${encodeURIComponent(poNumber ?? "")}` : null, `PO ${poNumber ?? q.number} ${target.schoolName}`);
   const whatsapp = () => {
     const base = `${window.location.origin}/q/${q.shareToken}`;
     const text = `Dear Sir/Madam,\nAs discussed, here is purchase order ${poNumber ?? ""} for ${target.schoolName} against our quotation ${q.number}. Please check the quantities, sign, put the school stamp and send it back to us. The kit checklist (every item in each kit) is attached from page 2:\n${base}/po\n\nKit checklist on its own:\n${base}/checklist\n\nRegards,\n${me.name}\nWonder Learning`;
-    openWhatsApp(mobile, text);
+    toast(WHATSAPP_DONE[waPo.send(mobile, text)]);
   };
   const setCheque = (i: number, patch: Partial<(typeof v.cheques)[number]>) => edit({ cheques: v.cheques.map((c, j) => (j === i ? { ...c, ...patch } : c)) });
 
@@ -795,8 +799,8 @@ export function PoTemplateModal({ q, target, me, onClose }: { q: Q; target: Quot
         <a className={`btn justify-center ${saved ? "" : "pointer-events-none opacity-45"}`} aria-disabled={!saved} href={`${pdf}?download=1`}>
           <Icon name="download" size={16} /> Download
         </a>
-        <button className="btn pri justify-center" disabled={!saved || !mobile} onClick={whatsapp}>
-          <Icon name="chat" size={16} /> WhatsApp
+        <button className="btn pri justify-center" disabled={!saved || !mobile || !waPo.ready} onClick={whatsapp}>
+          <Icon name="chat" size={16} /> {saved && !waPo.ready ? "Preparing PDF…" : "WhatsApp"}
         </button>
       </div>
       <p className="small muted mt-3">
