@@ -66,6 +66,7 @@ model User {
   targets            Target[]
   paymentsApproved   Payment[]                @relation("PaymentApprovedBy")
   expensesOwn        Expense[]                @relation("ExpenseOf")
+  notificationsRead  NotificationRead[]
   transfersFrom      OwnerTransfer[]          @relation("TransferFrom")
   transfersTo        OwnerTransfer[]          @relation("TransferTo")
   transfersAsked     OwnerTransfer[]          @relation("TransferAskedBy")
@@ -1167,4 +1168,15 @@ model OwnerTransfer {
   @@index([status])
   @@index([leadId])
   @@index([clientId])
+}
+
+/// R45: notifications (bell) a person marked as read. A notification's key changes when its content changes
+/// (e.g. "3 payments waiting" → "4 payments waiting"), so new things show as unread again.
+model NotificationRead {
+  userId String
+  user   User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  key    String
+  readAt DateTime @default(now())
+
+  @@id([userId, key])
 }

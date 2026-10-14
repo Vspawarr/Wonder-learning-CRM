@@ -7,6 +7,10 @@ commit id, what changed in plain words, and the requirement it answers (R… in 
 
 ## 14 Oct 2026
 
+- `PENDING` **Today's to-dos after login, 15-minute reminders, read / unread.** After choosing the year you first see your
+  overdue and today's to-dos (Skip goes to the dashboard). The bell reminds you 15 minutes before a timed to-do (pop-up,
+  checked every minute; optional browser notifications) and has Mark read / Mark unread / Mark all read. Removed the
+  temporary Clear test data page. (R45)
 - `5e51e91` **Leads: salesperson filter** for Admin, Director and Sales Head; the export follows it. (R44)
 - `84e49c4` **Salesperson filter, opportunity sort, direct conversion, remove client, WhatsApp with PDF, transfers.**
   Temporary Settings → Clear test data (updated for expenses, company accounts and transfers). Dashboard "Salesperson"

@@ -19,7 +19,6 @@ _Last updated: 14 Oct 2026. Update this page whenever the situation changes._
 | Item | Why it matters | Ref |
 |---|---|---|
 | Feedback from the client's testing | Final changes before go-live | — |
-| **Admin: clear the current data once** (Settings → Clear test data, type CLEAR), as asked on 14 Oct. Then tell us, and the temporary page is removed | Starts testing of the new changes on an empty CRM | R43 |
 | **Staff: reinstall the Android app (version 1.3)** from the "Download app" page, so WhatsApp gets the PDF with the message | Older app versions send only the link | R43 |
 | Prices (and item prices) for Play Group, Nursery (checklist kit), LKG and UKG kits: now unpriced, as prices come only from the Excel; answers to the open points in `docs/PRICING.md` | Settings → Products | R28, R29 |
 | **Ask the owner, when we move to the main domain: the company's bank account names, the company card and the office cash, with their opening balances and the date** (owner: "I'll provide, ask me when we deploy on main domain"). Then add them in Accounts → Account books | Company accounts (built 5 Oct) need them for correct balances; until then entries show as "Not assigned" | R39 |
@@ -52,7 +51,7 @@ _Last updated: 14 Oct 2026. Update this page whenever the situation changes._
 
 - Start with `CLAUDE.md`, then this folder. You should not need old chat history.
 - Local: see `README.md` (Postgres via docker compose, `npm run dev`). Tests: `npm test` (integration tests
-  against `TEST_DATABASE_URL`, 155 passing on 14 Oct), `npm run lint`, `npm run typecheck`.
+  against `TEST_DATABASE_URL`, 156 passing on 14 Oct), `npm run lint`, `npm run typecheck`.
 - Database changes: add a migration in `prisma/migrations/` (Vercel runs `prisma migrate deploy` on each deploy).
 - Before every push: tests, lint, typecheck, a build, a look at desktop and phone width, the downloads
   checklist in `DOWNLOADS_AND_TEMPLATES.md`, then update `CHANGELOG.md`, `REQUIREMENTS.md` and this page.

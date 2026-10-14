@@ -3,7 +3,6 @@
 // Thin server-action layer: authenticate, call the domain service, revalidate.
 // All rules and access checks live in src/server/*.
 import { revalidatePath } from "next/cache";
-import * as reset from "@/server/reset";
 import * as transfers from "@/server/transfers";
 import { signIn, signOut } from "@/auth";
 import { AuthError } from "next-auth";
@@ -180,7 +179,8 @@ export async function chooseYear(form: FormData) {
     (await cookies()).set(YEAR_COOKIE, v, { path: "/", maxAge: 60 * 60 * 24 * 400, sameSite: "lax", httpOnly: true, secure: process.env.NODE_ENV === "production" });
   }
   revalidatePath("/", "layout");
-  redirect(next.startsWith("/") && !next.startsWith("//") ? next : "/dashboard");
+  // Straight after login there is no "next": show today's to-dos first (R45).
+  redirect(next.startsWith("/") && !next.startsWith("//") ? next : "/today");
 }
 
 export async function logout() {
@@ -301,12 +301,6 @@ export const setStateActive = async (id: string, active: boolean) => run((u) => 
 export const addCity = async (data: unknown) => run((u) => settings.addCity(u, data));
 export const setCityActive = async (id: string, active: boolean) => run((u) => settings.setCityActive(u, id, active));
 
-/* ---------- clear test data (R43, temporary) ---------- */
-
-export async function clearTestData(confirm: string) {
-  return run((u) => reset.clearTestData(u, confirm));
-}
-
 export async function removeClient(id: string, reason: string) {
   return run((u) => clients.removeClient(u, id, reason));
 }
@@ -321,4 +315,9 @@ export async function decideTransfer(id: string, data: unknown) {
 }
 export async function cancelTransfer(id: string) {
   return run((u) => transfers.cancelTransfer(u, id));
+}
+
+/** Bell: mark notifications read / unread (R45). */
+export async function markAlerts(keys: string[], read: boolean) {
+  return run((u) => search.markAlerts(u, keys, read));
 }

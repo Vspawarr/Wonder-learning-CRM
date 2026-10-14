@@ -38,6 +38,15 @@ Nothing is ever deleted at year end. A school that doesn't renew stays in Client
    - The year shows at the top (**FY 2026-27**; on phones **26-27**). Tap it to switch any time.
    - "Following the year" means *alive during that year*: leads and deals added that year **plus older ones
      still open**, and invoices of that year **plus older ones still unpaid**. So nothing open is lost on 1 April.
+3. **Today's to-dos** (R45): your overdue to-dos and today's, with times and schools. Tap one to open it, **Open my
+   to-dos**, or **Skip, go to dashboard**. (Changing the year later from the top bar doesn't show this again.)
+
+**The bell (notifications):** everything that needs you: approvals, overdue and today's to-dos, overdue invoices,
+cheques, renewals, transfers… Unread ones are bold and counted on the bell. **Mark read** / **Mark unread** on each
+line, **Mark all read** at the top; opening one marks it read. A line comes back as unread when it changes (e.g. a 4th
+payment waiting). **Reminders:** 15 minutes before a to-do that has a time, a "⏰ In 12 min: …" message pops up on
+the screen and sits at the top of the bell (the CRM checks every minute while it is open). **Allow pop-up reminders on
+this device** (in the bell) also shows them as phone / computer notifications while the CRM is open in the browser.
 
 ## 3. Finding your way around
 
@@ -48,7 +57,7 @@ Nothing is ever deleted at year end. A school that doesn't renew stays in Client
 | **FY 2026-27** | Change the financial year |
 | **Search** (box on a computer, magnifier on a phone) | Find any school, lead, client, invoice or quotation by name, number or mobile |
 | **+ Add** | New lead · New to-do · Open the pipeline · Find a client |
-| **Bell** | What needs attention now: overdue to-dos, to-dos due today, overdue invoices, cheques in hand not yet deposited, clients due for renewal. Tap one to open it |
+| **Bell** | What needs attention now: 15-minute to-do reminders, overdue / today's to-dos, approvals, overdue invoices, cheques in hand, renewals, transfers. Unread ones are counted; **Mark read / Mark unread / Mark all read** (see section 2) |
 
 **Menu (left side; on a phone tap ☰)**: Dashboard · Leads · Opportunities · Pipeline · To-do · Clients ·
 Outstanding · Ledger · How it works (this guide), and for Admins: Settings (Users, Products, Locations, Documents,

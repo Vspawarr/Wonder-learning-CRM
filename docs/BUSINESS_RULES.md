@@ -286,4 +286,5 @@ read the same lists, so they can't drift apart (R9, R10).
   receipts always read the client's current details. A timeline note records what was corrected.
 
 - No fictional sample data is ever seeded. No passwords or secrets in code or docs.
-- Test data was cleared on 1 Oct before client testing (R23); the "Clear test data" page was then removed.
+- Test data was cleared on 1 Oct before client testing (R23) and again on 14 Oct (R43); each time the "Clear test data" page was then removed (R45).
+- **Notifications (R45):** the bell lists what needs the person now; read / unread is remembered per person and resets when a line changes. A to-do with a time gives a reminder 15 minutes before it (while the CRM is open). After login and choosing the year, the person sees their overdue and today's to-dos first.

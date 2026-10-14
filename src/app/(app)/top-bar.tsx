@@ -4,7 +4,8 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { Icon } from "@/components/icons";
-import { attentionAlerts, globalSearch } from "@/app/actions";
+import { attentionAlerts, globalSearch, markAlerts } from "@/app/actions";
+import { useToast } from "@/components/client";
 import type { Alert, SearchHit } from "@/server/search";
 
 const KIND_TONE: Record<SearchHit["kind"], string> = { Client: "ok", Lead: "info", Opportunity: "grape", Invoice: "warn" };
@@ -18,16 +19,43 @@ export function TopBarTools() {
   const [stamp, setStamp] = useState(0);
   const box = useRef<HTMLDivElement>(null);
 
-  // Alerts: load after the page shows, and again whenever the page changes.
+  const toast = useToast();
+  // Reminders already popped up on this device, so each one shows once.
+  const shown = useRef<Set<string>>(new Set());
+  // Alerts: load after the page shows, again whenever the page changes, and every minute (for the 15-minute reminders, R45).
   useEffect(() => {
     let live = true;
-    attentionAlerts()
-      .then((a) => live && setAlerts(a))
-      .catch(() => live && setAlerts([]));
+    const load = () =>
+      attentionAlerts()
+        .then((a) => {
+          if (!live) return;
+          setAlerts(a);
+          for (const r of a.filter((x) => x.reminder && !x.read && !shown.current.has(x.key))) {
+            shown.current.add(r.key);
+            toast(`⏰ ${r.text}`);
+            try {
+              if ("Notification" in window && Notification.permission === "granted") new Notification("Wonder CRM reminder", { body: r.text, tag: r.key });
+            } catch {
+              /* some phones don't allow pop-up notifications from a page */
+            }
+          }
+        })
+        .catch(() => live && setAlerts((cur) => cur ?? []));
+    load();
+    const t = setInterval(load, 60_000);
     return () => {
       live = false;
+      clearInterval(t);
     };
-  }, [path]);
+  }, [path, toast]);
+
+  const mark = (keys: string[], read: boolean) => {
+    setAlerts((cur) => cur?.map((x) => (keys.includes(x.key) ? { ...x, read } : x)) ?? cur);
+    markAlerts(keys, read).catch(() => {});
+  };
+  // Offer pop-up reminders where the browser supports them and hasn't been asked yet (checked when the bell opens).
+  const [asked, setAsked] = useState(false);
+  const canNotify = menu === "bell" && !asked && typeof window !== "undefined" && "Notification" in window && Notification.permission === "default";
 
   // Close any open menu on navigation, outside tap or Escape.
   const [lastPath, setLastPath] = useState(path);
@@ -47,7 +75,7 @@ export function TopBarTools() {
     };
   }, [menu]);
 
-  const n = alerts?.length ?? 0;
+  const n = alerts?.filter((a) => !a.read).length ?? 0;
   return (
     <div ref={box} className="flex min-w-0 flex-1 items-center gap-2.5 max-[900px]:min-w-fit">
       <Search open={menu === "search"} onOpen={() => setMenu("search")} onClose={() => setMenu(null)} />
@@ -96,21 +124,50 @@ export function TopBarTools() {
         </button>
         {menu === "bell" ? (
           <div className="menu">
-            <h4>Needs attention</h4>
+            <div className="flex items-center justify-between gap-2">
+              <h4>Needs attention</h4>
+              {n ? (
+                <button className="btn ghost sm" onClick={() => mark(alerts!.filter((a) => !a.read).map((a) => a.key), true)}>
+                  Mark all read
+                </button>
+              ) : null}
+            </div>
             {alerts === null ? (
               <div className="empty">Checking…</div>
             ) : alerts.length ? (
-              alerts.map((a, i) => (
-                <Link key={i} className="mi" href={a.href}>
-                  <span className={`ati ${a.tone}`}>
-                    <Icon name={a.icon} size={15} />
-                  </span>
-                  <span>{a.text}</span>
-                </Link>
+              alerts.map((a) => (
+                <div key={a.key} className={`flex items-center gap-1 ${a.read ? "opacity-60" : ""}`}>
+                  <Link className="mi min-w-0 flex-1" href={a.href} onClick={() => !a.read && mark([a.key], true)}>
+                    <span className={`ati ${a.tone}`}>
+                      <Icon name={a.icon} size={15} />
+                    </span>
+                    <span className={a.read ? "" : "font-semibold"}>{a.text}</span>
+                  </Link>
+                  <button
+                    className="btn ghost sm shrink-0 px-1.5 text-[12px]"
+                    aria-label={a.read ? `Mark unread: ${a.text}` : `Mark read: ${a.text}`}
+                    title={a.read ? "Mark as unread" : "Mark as read"}
+                    onClick={() => mark([a.key], !a.read)}
+                  >
+                    {a.read ? "Mark unread" : "Mark read"}
+                  </button>
+                </div>
               ))
             ) : (
               <div className="empty">All clear. Nothing needs you right now.</div>
             )}
+            {canNotify ? (
+              <button
+                className="btn sm mt-2 w-full justify-center"
+                onClick={() =>
+                  Notification.requestPermission()
+                    .catch(() => "denied")
+                    .finally(() => setAsked(true))
+                }
+              >
+                <Icon name="bell" size={14} /> Allow pop-up reminders on this device
+              </button>
+            ) : null}
           </div>
         ) : null}
       </div>

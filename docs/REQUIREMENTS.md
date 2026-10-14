@@ -539,7 +539,7 @@ all data which is filled in website right now and then execute these changes."
 
 | Change | Status | Notes |
 |---|---|---|
-| **Remove all current data** | ✅ tool ready, ⏳ Admin to click once | Temporary **Settings → Clear test data** (type CLEAR): empties leads, deals, quotations, clients, orders, invoices, payments, to-dos, history, targets, expenses, company accounts and transfers; keeps logins, products, locations, document texts, numbering settings and feature switches; numbering restarts. The data lives only on the live site, so the Admin clicks it there; the page is removed afterwards |
+| **Remove all current data** | ✅ done by the Admin; page removed (R45) | Temporary **Settings → Clear test data** (type CLEAR): empties leads, deals, quotations, clients, orders, invoices, payments, to-dos, history, targets, expenses, company accounts and transfers; keeps logins, products, locations, document texts, numbering settings and feature switches; numbering restarts. The data lives only on the live site, so the Admin clicks it there; the page is removed afterwards |
 | **Salesperson filter on the dashboard** | ✅ | "Salesperson" (Admin, Director, Sales Head): the top strip, all sections, targets, renewals and the export follow it |
 | **Opportunity sort** by date and time | ✅ | Newest first (default), Oldest first, Expected close soonest; "Added" date + time on each row and in the export |
 | **Convert to client directly** | ✅ | Button in the deal window at any open stage; marks the deal Won on the way |
@@ -554,4 +554,17 @@ all data which is filled in website right now and then execute these changes."
 | Change | Status | Notes |
 |---|---|---|
 | **Salesperson** filter on the Leads list (Admin, Director, Sales Head: those who see everyone's leads) | ✅ | "All salespeople" or one person; works with status, source, search, dates and sort; the PDF / Excel follow it. Salespeople still see only their own leads |
+
+## R45. Remove Clear test data; today's to-dos after login; 15-minute reminders; read / unread (14 Oct)
+
+"1. Now remove clear test data button. 2. After login and selecting financial year person should be reflected with his
+to-do for today notification; after skip he can go to main page. Also in notification there should be reminder before
+15 min for his task. Also there should mark as read and mark as unread option in notification symbol."
+
+| Change | Status | Notes |
+|---|---|---|
+| **Clear test data** page removed | ✅ | Menu item, page and code removed |
+| **Today's to-dos** after login + year | ✅ | Overdue and today's to-dos with times and schools; Open my to-dos / **Skip, go to dashboard**. Not shown when the year is changed later |
+| **Reminder 15 minutes before** a timed to-do | ✅ | Pops up on screen and sits at the top of the bell; the bell checks every minute while the CRM is open. Optional "Allow pop-up reminders on this device" for browser notifications. Not a push message when the CRM is closed (that would need a push-notification service) |
+| **Mark as read / unread** in the bell | ✅ | Per line and "Mark all read"; badge counts unread; remembered per person on every device; a line returns as unread when its content changes |
 

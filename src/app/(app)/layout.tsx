@@ -80,8 +80,6 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     ...(seesAllSales(user.role) && features.targets ? [{ href: "/admin/targets", label: "Targets", icon: "rupee" as const }] : []),
     ...(canManageSettings(user.role) ? [{ href: "/admin/features", label: "Features", icon: "grid" as const }] : []),
     ...(canManageSettings(user.role) ? [{ href: "/admin/docs", label: "Project documents", icon: "doc" as const }] : []),
-    // Temporary (R43): empty the testing data, then this page is removed again.
-    ...(canManageSettings(user.role) ? [{ href: "/admin/clear-data", label: "Clear test data", icon: "x" as const }] : []),
   ];
   if (admin.length) nav.push({ group: "Settings", items: admin });
 
