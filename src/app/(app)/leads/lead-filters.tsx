@@ -6,7 +6,7 @@ import { SOURCES } from "@/lib/constants";
 
 const STATUS = ["All", "Active", "Converted", "Disqualified"];
 
-export function LeadFilters() {
+export function LeadFilters({ team }: { team: { id: string; name: string }[] | null }) {
   const router = useRouter();
   const path = usePathname();
   const sp = useSearchParams();
@@ -49,6 +49,16 @@ export function LeadFilters() {
         <option value="old">Oldest first</option>
         <option value="follow">Next follow-up first</option>
       </select>
+      {team ? (
+        <select className="sel w-auto min-w-[170px]" aria-label="Salesperson" value={sp.get("owner") ?? ""} onChange={(e) => set("owner", e.target.value)}>
+          <option value="">All salespeople</option>
+          {team.map((t) => (
+            <option key={t.id} value={t.id}>
+              {t.name}
+            </option>
+          ))}
+        </select>
+      ) : null}
       <select className="sel w-auto min-w-[150px]" aria-label="Source" value={sp.get("src") ?? ""} onChange={(e) => set("src", e.target.value)}>
         <option value="">All sources</option>
         {SOURCES.map((s) => (

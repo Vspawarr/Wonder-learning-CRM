@@ -547,3 +547,11 @@ all data which is filled in website right now and then execute these changes."
 | **WhatsApp sends the PDF with the link** (quotation, PO template, invoice / reminder, receipt) | ✅ | Phones: share screen with PDF + message. Android app 1.3: straight into WhatsApp (staff reinstall the app). Computers: WhatsApp Web + PDF saved to attach (WhatsApp Web can't take a file from a website automatically) |
 | **Transfer lead / client with approval** | ✅ | Transfer button on lead and client pages; Transfers page (badge, bell, PDF / Excel); Sales Head / Admin / Director approve or reject; their own transfers move at once; feature switch |
 
+## R44. Salesperson filter on Leads (14 Oct)
+
+"In leads tab filter as per sales person should be added for admin and who has access to all sales person."
+
+| Change | Status | Notes |
+|---|---|---|
+| **Salesperson** filter on the Leads list (Admin, Director, Sales Head: those who see everyone's leads) | ✅ | "All salespeople" or one person; works with status, source, search, dates and sort; the PDF / Excel follow it. Salespeople still see only their own leads |
+

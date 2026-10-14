@@ -89,7 +89,8 @@ Director, Admin and Sales Head.
    skipped, with the reason.
 
 ### The lead list
-Filters: **All · Active · Converted · Disqualified**, source, search, sort, **Added from – to** dates.
+Filters: **All · Active · Converted · Disqualified**, source, search, sort, **Added from – to** dates, and for the Admin,
+Director and Sales Head a **Salesperson** filter (one person's leads, or all salespeople; the PDF / Excel follow it).
 **Convert to opportunity** is right on the row.
 
 ### The lead page

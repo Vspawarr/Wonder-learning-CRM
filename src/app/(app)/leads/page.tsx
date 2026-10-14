@@ -16,7 +16,7 @@ import { BulkLeadButtons } from "./bulk-upload";
 
 export const metadata = { title: "Leads" };
 
-type SP = Promise<{ q?: string; status?: string; src?: string; sort?: string; new?: string; from?: string; to?: string }>;
+type SP = Promise<{ q?: string; status?: string; src?: string; owner?: string; sort?: string; new?: string; from?: string; to?: string }>;
 
 export default async function LeadsPage({ searchParams }: { searchParams: SP }) {
   const user = await requireUser();
@@ -27,7 +27,7 @@ export default async function LeadsPage({ searchParams }: { searchParams: SP }) 
     getLocations(),
   ]);
   const today = todayIST();
-  const empty = sp.q || sp.src || (sp.status && sp.status !== "All") ? "No leads match these filters." : "No leads yet. Add your first lead.";
+  const empty = sp.q || sp.src || sp.owner || (sp.status && sp.status !== "All") ? "No leads match these filters." : "No leads yet. Add your first lead.";
   // Leads that haven't become an opportunity yet (Qualified ones convert automatically).
   const convertible = (status: string) => status === "NEW" || status === "CONTACTED";
 
@@ -41,7 +41,7 @@ export default async function LeadsPage({ searchParams }: { searchParams: SP }) 
         <ExportButtons report="leads" />
         <NewLeadButton key={sp.new} autoOpen={!!sp.new} team={team} locations={locations} defaultAssignee={team.some((t) => t.id === user.id) ? user.id : ""} />
       </PageHeader>
-      <LeadFilters />
+      <LeadFilters team={seesAllSales(user.role) ? team : null} />
       <div className="mb-3">
         <DateRangeFilter label="Added" />
       </div>

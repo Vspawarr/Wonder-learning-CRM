@@ -7,6 +7,7 @@ commit id, what changed in plain words, and the requirement it answers (R… in 
 
 ## 14 Oct 2026
 
+- `PENDING` **Leads: salesperson filter** for Admin, Director and Sales Head; the export follows it. (R44)
 - `84e49c4` **Salesperson filter, opportunity sort, direct conversion, remove client, WhatsApp with PDF, transfers.**
   Temporary Settings → Clear test data (updated for expenses, company accounts and transfers). Dashboard "Salesperson"
   filter covers the whole page and export. Opportunities sort newest / oldest / closing soonest, with date and time.

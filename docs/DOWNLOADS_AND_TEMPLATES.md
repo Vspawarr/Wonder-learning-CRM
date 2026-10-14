@@ -49,7 +49,7 @@ Code: `src/server/reports/index.ts` (one builder per report, using the screen's 
 
 | Report | Screen | Columns / sections |
 |---|---|---|
-| `leads` | Leads | Lead, Added (date + time), School, Contact, Mobile, City, Source, Status, Assigned to, Next follow-up |
+| `leads` | Leads (follows status, source, salesperson, dates, sort) | Lead, Added (date + time), School, Contact, Mobile, City, Source, Status, Assigned to, Next follow-up |
 | `opportunities` | Opportunities (follows Sort) | Opp., Added (date + time), School, Contact, City, Stage, Category, Value, Chance %, Expected close, Next action, Assigned to |
 | `clients` | Clients | Client, School, Contact, Mobile, City, Status, In 2026-27 (standing + order value; "Last order" for All years), Since, Assigned to |
 | `outstanding` | Outstanding | Summary, ageing, expected collections, then each invoice: Invoice, Date, School, PO No., Due, Total, Received, Balance, Status, Assigned to |

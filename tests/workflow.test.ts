@@ -561,3 +561,18 @@ describe("mobile numbers and competitor (R41)", () => {
     expect((await db.opportunity.findUniqueOrThrow({ where: { id: opp } })).competitorNote).toBeNull();
   });
 });
+
+describe("leads salesperson filter (R44)", () => {
+  it("Admin / Sales Head filter by salesperson; a salesperson still sees only their own", async () => {
+    await resetData();
+    const head = await makeUser("SALES_HEAD");
+    const exA = await makeUser("SALES_EXECUTIVE");
+    const exB = await makeUser("SALES_EXECUTIVE");
+    await createLead(exA, leadData(exA.id, { schoolName: "A School" }));
+    await createLead(exB, leadData(exB.id, { schoolName: "B School", mobile: "9811100001" }));
+    const { leadsList } = await import("@/server/queries");
+    expect((await leadsList(head, {})).length).toBe(2);
+    expect((await leadsList(head, { owner: exB.id })).map((l) => l.schoolName)).toEqual(["B School"]);
+    expect((await leadsList(exA, { owner: exB.id })).map((l) => l.schoolName)).toEqual(["A School"]);
+  });
+});

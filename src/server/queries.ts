@@ -103,7 +103,7 @@ export async function productOptions(): Promise<ProductOption[]> {
 /* ---------- leads ---------- */
 
 /** sort: "new" (default, newest first), "old" (oldest first) or "follow" (next follow-up first). */
-export type LeadFilters = { q?: string; status?: string; src?: string; sort?: string; from?: string; to?: string; year?: YearRange };
+export type LeadFilters = { q?: string; status?: string; src?: string; owner?: string; sort?: string; from?: string; to?: string; year?: YearRange };
 
 export async function leadsList(user: SessionUser, f: LeadFilters) {
   const where: Prisma.LeadWhereInput = { ...leadScope(user), AND: [leadsInYear(f.year)] };
@@ -112,6 +112,8 @@ export async function leadsList(user: SessionUser, f: LeadFilters) {
   else if (status === "Converted") where.status = "CONVERTED";
   else if (status === "Disqualified") where.status = "DISQUALIFIED";
   if (f.src) where.source = f.src;
+  // R44: salesperson filter, for those who see everyone's leads.
+  if (f.owner && seesAllSales(user.role)) where.assignedToId = f.owner;
   const added = createdBetween(f.from, f.to);
   if (added) where.createdAt = added;
   const q = f.q?.trim();

@@ -53,13 +53,15 @@ const rangeLine = (label: string, p: Params) =>
   p.from || p.to ? `${label} ${p.from ? dmy(p.from) : "…"} – ${p.to ? dmy(p.to) : "…"}` : undefined;
 
 async function leads(user: SessionUser, p: Params): Promise<Report> {
-  const rows = await leadsList(user, { q: p.q, status: p.status, src: p.src, sort: p.sort, from: p.from, to: p.to, year: yearOf(p) });
+  const owner = p.owner && seesAllSales(user.role) ? await db.user.findUnique({ where: { id: p.owner }, select: { name: true } }) : null;
+  const rows = await leadsList(user, { q: p.q, status: p.status, src: p.src, owner: p.owner, sort: p.sort, from: p.from, to: p.to, year: yearOf(p) });
   return {
     title: "Leads",
     subtitle: filtersLine([
       yearLine(p),
       `Status: ${p.status || "All"}`,
       p.src && `Source: ${p.src}`,
+      owner && `Salesperson: ${owner.name}`,
       rangeLine("Added", p),
       p.q && `Search: "${p.q}"`,
       !seesAllSales(user.role) && "My leads only",
