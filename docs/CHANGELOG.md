@@ -7,6 +7,9 @@ commit id, what changed in plain words, and the requirement it answers (R… in 
 
 ## 26 Oct 2026
 
+- `PENDING` **New price list.** The client's "Kit Cost" Excel replaces all products: Play Group, Nursery, LKG and UKG kits
+  with item prices and MRPs in four modules, plus 10 other books / notebooks (no prices yet). Old kits, Nursery Core /
+  Focus / Plus and the 33 optional items removed; kept for reference in docs/OLD_PRICE_LIST.md. (R47)
 - `49737e0` **Lead source optional, to-do colours, editable quotations.** Lead source no longer required (form + Excel
   template). To-do calendar: done green ✓, pending blue, overdue red, counts and an overdue strip; list colours too.
   Sent quotations can be edited (same number) until a sales order is made from them. (R46)

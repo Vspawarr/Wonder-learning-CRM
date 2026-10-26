@@ -31,6 +31,9 @@ roles and the code map. You should not need old chat history.
 - The Android app (`android/`) points at the live address in `Config.java`. If the domain changes, rebuild it (see `android/README.md`).
 - Every report-like screen has PDF + Excel export (`ExportButtons` + a builder in `src/server/reports/index.ts`); add one for new reports.
 - Opportunity "Category" (Hot/Warm/Cold, stored as `temperature`) belongs to the opportunity, not the lead.
+- Products and prices come only from the client's Excel. Current list: "Kit Cost" (26 Oct 2026) in `src/lib/kits.ts` and
+  `docs/PRICING.md`. The **old catalogue and prices are kept for reference** in `docs/OLD_PRICE_LIST.md` / `src/lib/kits-old.ts`:
+  if the owner asks for an old kit or price again, take it from there.
 - Optional features are switchable in Settings → Features (`src/lib/features.ts`); new optional features should get a switch so the client can turn them off.
 - Money corrections (cancel invoice, delete payment, credit notes, clear/bounce cheques) are for `canManageFinance` roles only.
 - Deploys: pushing to the `claude/kind-pasteur-jpzqm5` branch auto-deploys to Vercel (see DEPLOY.md).

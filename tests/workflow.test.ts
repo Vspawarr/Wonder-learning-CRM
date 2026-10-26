@@ -366,7 +366,7 @@ describe("list filters", () => {
 describe("class kits and the kit checklist", () => {
   it("a kit keeps its contents as groups, gets a K code, and prints on the checklist", async () => {
     const { checklistPdf, checklistKits, checklistForQuotation } = await import("@/server/products/checklist");
-    const { KIT_PRODUCTS } = await import("@/lib/kits");
+    const { KIT_PRODUCTS } = await import("@/lib/kits-old");
     const id = await saveProduct(admin, null, {
       name: "Play Group Kit",
       price: 2360,

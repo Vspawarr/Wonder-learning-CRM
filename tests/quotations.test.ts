@@ -355,16 +355,23 @@ describe("kits changed per school and hidden transport (R29)", () => {
     await db.product.delete({ where: { id: kit.id } });
   });
 
-  it("prices come only from the Excel price list: class kits are unpriced, freight is out of the kits", async () => {
-    const { KIT_PRODUCTS, NURSERY_KIT_TYPES } = await import("@/lib/kits");
-    expect(KIT_PRODUCTS.every((k) => k.price === null)).toBe(true);
-    for (const k of NURSERY_KIT_TYPES) {
-      const items = k.groups.flatMap((g) => g.items);
-      expect(items.some((i) => /freight/i.test(i.name))).toBe(false);
-      expect(items.reduce((t, i) => t + i.sp, 0)).toBe(k.sp);
-      expect(items.reduce((t, i) => t + i.mrp, 0)).toBe(k.mrp);
+  it("prices come only from the Kit Cost Excel (R47): four class kits, four modules each, totals as in the sheet", async () => {
+    const { CLASS_KITS, OTHER_BOOKS, CATALOGUE } = await import("@/lib/kits");
+    expect(CLASS_KITS.map((k) => k.name)).toEqual(["Play Group Kit", "Nursery Kit", "LKG Kit", "UKG Kit"]);
+    expect(CLASS_KITS.map((k) => k.sp)).toEqual([2425, 3085, 3370, 3460]);
+    expect(CLASS_KITS.map((k) => k.mrp)).toEqual([3640, 4705, 5065, 5205]);
+    for (const k of CLASS_KITS) {
+      expect(k.groups.map((g) => g.title.split(" |")[0])).toEqual(["Class Connect", "Home Connect", "Skill Booster", "Essential Kit"]);
+      expect(k.groups.flatMap((g) => g.items).some((i) => /freight|transport/i.test(i.name))).toBe(false);
     }
-    expect(NURSERY_KIT_TYPES.map((k) => k.sp)).toEqual([2112, 2854, 3144]);
+    // The sheet's own module totals.
+    const mod = (code: string, title: string) => CLASS_KITS.find((k) => k.code === code)!.groups.find((g) => g.title.startsWith(title))!.items.reduce((t, i) => [t[0] + i.sp, t[1] + i.mrp], [0, 0]);
+    expect(mod("K01", "Home Connect")).toEqual([685, 990]);
+    expect(mod("K02", "Home Connect")).toEqual([430, 780]);
+    expect(mod("K04", "Essential Kit")).toEqual([640, 1050]);
+    expect(OTHER_BOOKS).toHaveLength(10);
+    expect(CATALOGUE).toHaveLength(14);
+    expect(CATALOGUE.filter((p) => p.price === null).map((p) => p.code)).toEqual(OTHER_BOOKS.map((_, i) => `O${String(i + 1).padStart(2, "0")}`));
   });
 });
 

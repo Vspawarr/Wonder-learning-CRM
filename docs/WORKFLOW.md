@@ -136,7 +136,7 @@ same buttons everywhere.
      whichever line(s) you choose.
    - **Change kit items** (kits only): **untick** items to take them out (price and MRP go down by that item's
      price) and **add optional items** (Bag, Diary, Hindi books…; price goes up). The description updates by
-     itself, e.g. "Nursery Focus Kit (without Shape Kit; with Bag)".
+     itself, e.g. "Nursery Kit (without Shape kit; with HINDI -Swar)".
    - **Remove**: drops the line.
 4. **Create draft.** Drafts can be **Edit**ed or **Delete**d.
 
@@ -193,7 +193,7 @@ On a **sent** quotation: **Send PO template**.
 
 **What the school receives:** the PO in your format with their name, kits, rates (transport already inside),
 terms, bank details and signature boxes. The **Material Exclude** box lists any items taken out of a kit (e.g.
-"Nursery Focus Kit: Shape Kit"), or "Nothing excluded". **The kit checklist is attached from page 2**: every item in
+"Nursery Kit: Shape kit"), or "Nothing excluded". **The kit checklist is attached from page 2**: every item in
 each kit, with removed items left out and added items listed under "Added for this school". The WhatsApp message
 also carries a separate checklist link.
 

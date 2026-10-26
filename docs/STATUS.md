@@ -20,7 +20,7 @@ _Last updated: 26 Oct 2026. Update this page whenever the situation changes._
 |---|---|---|
 | Feedback from the client's testing | Final changes before go-live | — |
 | **Staff: reinstall the Android app (version 1.3)** from the "Download app" page, so WhatsApp gets the PDF with the message | Older app versions send only the link | R43 |
-| Prices (and item prices) for Play Group, Nursery (checklist kit), LKG and UKG kits: now unpriced, as prices come only from the Excel; answers to the open points in `docs/PRICING.md` | Settings → Products | R28, R29 |
+| **Prices (and MRP) for the 10 "Other Note book" items** (O01–O10) from the new "Kit Cost" Excel, and the open points in `docs/PRICING.md` | Settings → Products; until priced they can't be added inside a kit | R47 |
 | **Ask the owner, when we move to the main domain: the company's bank account names, the company card and the office cash, with their opening balances and the date** (owner: "I'll provide, ask me when we deploy on main domain"). Then add them in Accounts → Account books | Company accounts (built 5 Oct) need them for correct balances; until then entries show as "Not assigned" | R39 |
 | **Create the Director's login** (Settings → Users → Add user, role Director). From then on **expense approvals go to the Director**, including Admin's own expenses, and so do supplier bills, salaries and other company payments (R39); until then Admin approves | Owner said: "expense approval should be to Director, keep in memory once we give credential to Director" | R38 |
 | Who owns the **Accounts** section (payment approvals): today the Director / Admin logins; a separate Accounts login/role can be added | Decide the person and their access | R36 |

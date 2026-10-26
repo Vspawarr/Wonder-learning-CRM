@@ -1,4 +1,32 @@
-# Pricing and conflicts to confirm
+# Pricing
+
+## Current price list: "Kit Cost" Excel (26 Oct 2026, R47)
+
+Loaded exactly as given; it **replaced every earlier product and price** (old list kept in `docs/OLD_PRICE_LIST.md`).
+
+| Code | Product | Price (SP) | MRP | Modules |
+|---|---|---:|---:|---|
+| K01 | Play Group Kit | ₹2,425 | ₹3,640 | Class Connect ₹900 · Home Connect ₹685 · Skill Booster ₹200 · Essential Kit ₹640 |
+| K02 | Nursery Kit | ₹3,085 | ₹4,705 | Class Connect ₹1,790 · Home Connect ₹430 · Skill Booster ₹225 · Essential Kit ₹640 |
+| K03 | LKG Kit | ₹3,370 | ₹5,065 | Class Connect ₹2,075 · Home Connect ₹430 · Skill Booster ₹225 · Essential Kit ₹640 |
+| K04 | UKG Kit | ₹3,460 | ₹5,205 | Class Connect ₹2,165 · Home Connect ₹430 · Skill Booster ₹225 · Essential Kit ₹640 |
+| O01–O10 | Other books & notebooks (sheet "Other Note book") | not given | not given | HINDI -Swar, -Vyanjan, -Shabda, -Matra; Reader book 1, 2; Note Book Capital Letter; Note Book Number 1 to 20; Five Line Note book; Square Note book |
+
+Every item keeps its own price and MRP inside the kit (taking an item out of a kit on a quotation lowers the price by
+it). Kit totals are the sums of the items and match the sheet's module totals. Transport stays separate (added per
+quotation, hidden in the price, R29).
+
+**To confirm with the client:**
+1. **Prices (and MRP) for the 10 "Other Note book" items.** Until set in Settings → Products they can be added to a
+   quotation as their own line with a typed price, but not added *inside* a kit.
+2. The UKG column's Home Connect / Skill Booster / Essential Kit headings say "LKG"; loaded as UKG (same items as LKG).
+3. Nursery / LKG / UKG Home Connect numbering skips 3 (1, 2, 4…): loaded as the six items shown.
+4. The new kits no longer list the old checklist items (Common Kit greeting / invitation cards, text-book names…);
+   the kit checklist PDF now prints the new modules. Is a separate detailed checklist still needed?
+
+---
+
+*Earlier notes (price files of 3 Oct 2026, now replaced; kept for history):*
 
 From the client's two price files (received 3 Oct 2026), checked sheet by sheet against the kit checklist
 (`WLI_Checklist_2025-26.pdf`), the sample PO (Caring Hood Preschool) and the quotation text. **The prices were

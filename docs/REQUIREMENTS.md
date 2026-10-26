@@ -579,3 +579,15 @@ be reflected and also overdue to-do should be reflected there. 3. Quotation shou
 | **To-do colours**: done green, pending blue, overdue red | ✅ | Calendar (month, week, phone agenda) with counts on top and an "Overdue: still to do" strip listing every overdue to-do (also from earlier months); List view: red Overdue card, green done items |
 | **Quotations editable** | ✅ | Drafts as before; sent quotations now have **Edit** too (same number; timeline note; send again). Fixed once a sales order is made from it (then Revise). PO template quantities follow their lines |
 
+## R47. New "Kit Cost" price list replaces all old products (26 Oct)
+
+"For quotation this is new list. Remove all old items from old data and use this new data, both sheets. For our
+reference keep old items and list somewhere in your memory; if they ask for this again then we can use that."
+
+| Change | Status | Notes |
+|---|---|---|
+| Sheet **"pg to ukg"**: Play Group / Nursery / LKG / UKG kits with every item's rate and MRP, in four modules | ✅ | K01–K04 updated in place: Play Group ₹2,425 / MRP ₹3,640 · Nursery ₹3,085 / ₹4,705 · LKG ₹3,370 / ₹5,065 · UKG ₹3,460 / ₹5,205 (sums of the items; match the sheet's module totals) |
+| Sheet **"Other Note book"**: 10 other books / notebooks | ✅ | O01–O10, no prices in the sheet: ⏳ prices from the client (docs/PRICING.md) |
+| **All old products removed** | ✅ | Nursery Core / Focus / Plus kits, the 33 optional items and any other product; old quotations / orders / invoices keep their lines (text and prices) |
+| **Old list kept for reference** | ✅ | `docs/OLD_PRICE_LIST.md` (readable) and `src/lib/kits-old.ts` (code); CLAUDE.md points to it |
+
