@@ -7,7 +7,7 @@ commit id, what changed in plain words, and the requirement it answers (R… in 
 
 ## 26 Oct 2026
 
-- `PENDING` **Lead source optional, to-do colours, editable quotations.** Lead source no longer required (form + Excel
+- `49737e0` **Lead source optional, to-do colours, editable quotations.** Lead source no longer required (form + Excel
   template). To-do calendar: done green ✓, pending blue, overdue red, counts and an overdue strip; list colours too.
   Sent quotations can be edited (same number) until a sales order is made from them. (R46)
 
