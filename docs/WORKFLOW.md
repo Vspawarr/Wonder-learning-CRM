@@ -83,8 +83,8 @@ Director, Admin and Sales Head.
 ### Adding a lead
 - **+ Add → New lead**, or Leads → **New lead**.
 - Mobile number: 10 digits only (the box stops at 10; a pasted +91 is removed).
-- Required (*): School name, Owner / contact person, Mobile number, State, City, Lead source, Assigned to, Next
-  follow-up date. Lead source includes **Social Media** (Facebook, Instagram etc.); "Reference name" appears for
+- Required (*): School name, Owner / contact person, Mobile number, State, City, Assigned to, Next follow-up date.
+  **Lead source is optional** (R46; "Not specified" if left empty). Lead source includes **Social Media** (Facebook, Instagram etc.); "Reference name" appears for
   reference sources.
 - If the same mobile, or the same school name in the same city, already exists, a **possible duplicate** warning
   shows who has it. You can still save if it really is a different school.
@@ -143,15 +143,16 @@ same buttons everywhere.
 ### Sending it: **Send quotation**
 - **Preview PDF**, **Download PDF** (to attach yourself), **Share on WhatsApp** (a private link to the PDF), or
   **Email from the CRM** (once email is set up).
-- Sending **locks** it and marks it **Sent**. On an early deal it moves the stage to **Proposal Sent**; on a lead it
+- Sending marks it **Sent**. On an early deal it moves the stage to **Proposal Sent**; on a lead it
   marks the lead Contacted. A follow-up is booked for the day before it expires.
 
 ### After sending
 | Button | What it does |
 |---|---|
 | **View PDF** | Open the quotation |
+| **Edit** | Correct it (prices, kits, lines, dates); it keeps its number. Then **Send again** so the school has the latest (the timeline notes the change). Not possible once a sales order was made from it (R46) |
 | **Send again** | Share the same quotation again |
-| **Revise** | A new draft copied from it (new number) to change prices or kits |
+| **Revise** | A new draft copied from it (new number), e.g. for a new version alongside the old one |
 | **Send PO template** | See §8 |
 
 After its validity date a sent quotation shows **Expired** (feature switch "Quotation validity").
@@ -279,8 +280,10 @@ each line. **PDF / Excel**, and **Other periods** opens it in the Ledger menu (l
 
 ## 10. To-do
 
-- Opens on the **Calendar**: **Month** or **Week** (hours 8 AM – 8 PM), **Today**, **‹ ›**. Blue = school
-  follow-up, purple = own to-do, red = overdue, grey = done.
+- Opens on the **Calendar**: **Month** or **Week** (hours 8 AM – 8 PM), **Today**, **‹ ›**. Colours by status (R46):
+  **green ✓ = done**, **blue = pending**, **red = overdue**, grey crossed out = cancelled. Counts on top (Done · Pending ·
+  Overdue), and an **Overdue: still to do** strip lists every overdue to-do, even from earlier months; tap one to
+  finish, postpone or cancel it. In **List**, the Overdue card is red and recently done ones are green.
 - **Double-click a day** (or an hour in Week) to add a to-do there. On a phone: tap the day, then **+ Add**.
 - Tap an item → **Done** (write the outcome, optionally book the next one), **Postpone** (new date + reason;
   postponements are counted), **Cancel to-do**.

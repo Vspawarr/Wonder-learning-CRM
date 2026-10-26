@@ -165,7 +165,7 @@ export async function importLeads(user: SessionUser, file: ArrayBuffer | Buffer)
         currentCurriculum: text.currentCurriculum || null,
         studentStrength: text.studentStrength || null,
         branches: text.branches || null,
-        source: text.source,
+        source: text.source || null,
         referenceName: REF_SOURCES.includes(text.source) ? text.referenceName || null : null,
         interests: [],
         status: text.status ? STATUS_BY_LABEL[text.status] : "NEW",

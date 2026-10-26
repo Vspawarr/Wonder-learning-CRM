@@ -5,6 +5,12 @@ wonder-learning-crm.vercel.app automatically). Newest first. **Add an entry with
 commit id, what changed in plain words, and the requirement it answers (R… in `REQUIREMENTS.md`).
 `git log --oneline` shows the full list.
 
+## 26 Oct 2026
+
+- `PENDING` **Lead source optional, to-do colours, editable quotations.** Lead source no longer required (form + Excel
+  template). To-do calendar: done green ✓, pending blue, overdue red, counts and an overdue strip; list colours too.
+  Sent quotations can be edited (same number) until a sales order is made from them. (R46)
+
 ## 14 Oct 2026
 
 - `ff10bec` **Today's to-dos after login, 15-minute reminders, read / unread.** After choosing the year you first see your

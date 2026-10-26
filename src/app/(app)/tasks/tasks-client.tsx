@@ -107,7 +107,7 @@ export function TaskBoard({
     <>
       {groups.map(([label, ts]) => (
         <div key={label} className="card mb-3">
-          <h2>
+          <h2 className={label === "Overdue" && ts.length ? "text-coral" : ""}>
             {label} <span className="small muted">{ts.length}</span>
           </h2>
           {ts.map((t) => (
@@ -186,9 +186,9 @@ export function TaskBoard({
       ))}
       {done.length ? (
         <div className="card">
-          <h2>Recently closed</h2>
+          <h2 className="text-mint">Recently closed</h2>
           {done.map((t) => (
-            <div key={t.id} className="small muted py-1">
+            <div key={t.id} className={`small py-1 ${t.status === "DONE" ? "text-mint" : "muted line-through"}`}>
               {t.status === "CANCELLED" ? "✕" : <Icon name="check" size={14} />}{" "}
               {t.title} –{" "}
               {t.status === "CANCELLED"

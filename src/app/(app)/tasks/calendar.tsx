@@ -27,17 +27,19 @@ function label(d: string, opts: { weekday?: "long"; day?: "numeric"; month: "lon
   return [opts.weekday ? `${WEEKDAYS[weekday(d)]},` : "", opts.day ? String(dd) : "", month, opts.year ? String(y) : ""].filter(Boolean).join(" ");
 }
 
-/** Colour of an item: done/cancelled grey, overdue red, own to-do purple, school follow-up blue. */
+/** Colour of an item by status (R46): done green, pending blue, overdue red, cancelled grey. */
 function tone(t: TaskRow, today: string) {
-  if (t.status !== "OPEN") return "ev-done";
+  if (t.status === "DONE") return "ev-ok";
+  if (t.status !== "OPEN") return "ev-cancel";
   if (t.dueDate < today) return "ev-late";
-  return t.related ? "ev-school" : "ev-own";
+  return "ev-open";
 }
 
 type People = { people: Option[]; targets: { value: string; label: string }[]; me: string };
 
 export function TaskCalendar({
   tasks,
+  overdue = [],
   mode,
   anchor,
   today,
@@ -45,7 +47,7 @@ export function TaskCalendar({
   people,
   targets,
   me,
-}: { tasks: TaskRow[]; mode: "month" | "week"; anchor: string; today: string; showOwner: boolean } & People) {
+}: { tasks: TaskRow[]; overdue?: TaskRow[]; mode: "month" | "week"; anchor: string; today: string; showOwner: boolean } & People) {
   const router = useRouter();
   const path = usePathname();
   const sp = useSearchParams();
@@ -86,6 +88,7 @@ export function TaskCalendar({
       onDoubleClick={(e) => e.stopPropagation()}
       title={t.title}
     >
+      {t.status === "DONE" ? "✓ " : null}
       {t.dueTime ? <b>{fmtTime(t.dueTime).replace(":00", "")} </b> : null}
       {t.title}
     </button>
@@ -115,12 +118,26 @@ export function TaskCalendar({
           </button>
         </div>
       </div>
-      <div className="cal-legend small muted">
-        <span><i className="ev-school" /> School follow-up</span>
-        <span><i className="ev-own" /> Own to-do</span>
-        <span><i className="ev-late" /> Overdue</span>
-        <span><i className="ev-done" /> Done / cancelled</span>
+      <div className="cal-sum" aria-label="On this calendar">
+        <span className="ev-ok"><i /> Done {tasks.filter((t) => t.status === "DONE").length}</span>
+        <span className="ev-open"><i /> Pending {tasks.filter((t) => t.status === "OPEN" && t.dueDate >= today).length}</span>
+        <span className="ev-late"><i /> Overdue {overdue.length}</span>
+        {tasks.some((t) => t.status === "CANCELLED") ? (
+          <span className="ev-cancel"><i /> Cancelled {tasks.filter((t) => t.status === "CANCELLED").length}</span>
+        ) : null}
       </div>
+      {overdue.length ? (
+        <div className="cal-over">
+          <div className="small mb-1 font-semibold text-coral">Overdue: still to do ({overdue.length})</div>
+          {overdue.slice(0, 12).map((t) => (
+            <button key={t.id} className="cev ev-late" onClick={() => setPicked(t)} title={t.title}>
+              <b>{label(t.dueDate, { day: "numeric", month: "short" })} </b>
+              {t.title}
+            </button>
+          ))}
+          {overdue.length > 12 ? <span className="cal-more">+{overdue.length - 12} more (List view)</span> : null}
+        </div>
+      ) : null}
 
       {mode === "month" ? (
         <>

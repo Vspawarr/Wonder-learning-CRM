@@ -80,7 +80,7 @@ client shows a warning (the user may still save). The Excel upload skips same sc
 - Quotation lines: products from the list; **MRP and Price typed by hand**,
   no discount column, GST % per line; validity days (default from Settings → Quotation). After the
   validity date it shows **Expired**, and a follow-up is booked the day before.
-- Drafts can be edited; **sent quotations are locked**: use **Revise** to make a new version.
+- Drafts and **sent quotations can be edited** (same number; editing a sent one is noted on the timeline and it should be sent again), until a **sales order is made from it**; then it is fixed and **Revise** makes a new version (R46). Only drafts can be deleted.
 - **PO flow:** send the school a **PO template** in the client's PO format, made from the sent quotation and
   the details typed in "Send PO template" (kits, requisitioner, expected delivery, ship via, shipping terms,
   remarks, customisation YES/NO, advance cheque/DD plan). "Material Exclude" lists items taken out of the kits and

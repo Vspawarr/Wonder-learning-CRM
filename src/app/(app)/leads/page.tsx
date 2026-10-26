@@ -65,7 +65,7 @@ export default async function LeadsPage({ searchParams }: { searchParams: SP }) 
                 <div className="small muted">{l.contactName}</div>
               </td>
               <td>{l.city}</td>
-              <td>{l.source}</td>
+              <td>{l.source ?? <span className="faint">—</span>}</td>
               <td>
                 <Pill>{LEAD_STATUS_LABEL[l.status]}</Pill>
               </td>

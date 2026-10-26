@@ -54,6 +54,7 @@ export default async function TasksPage({ searchParams }: { searchParams: Promis
       {calendar ? (
         <TaskCalendar
           tasks={[...tasks.open, ...tasks.done]}
+          overdue={tasks.overdue}
           mode={mode}
           anchor={anchor}
           today={todayIST()}

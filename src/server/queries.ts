@@ -414,7 +414,7 @@ export async function taskList(user: SessionUser, team: boolean, kind: TaskKind 
     opportunity: { select: { id: true, schoolName: true, number: true } },
     client: { select: { id: true, schoolName: true } },
   } as const;
-  const [open, done] = await Promise.all([
+  const [open, done, overdue] = await Promise.all([
     db.task.findMany({
       where: { ...mine, status: "OPEN", ...(due ? { dueDate: due } : {}) },
       include,
@@ -426,6 +426,13 @@ export async function taskList(user: SessionUser, team: boolean, kind: TaskKind 
       include,
       orderBy: { completedAt: "desc" },
       take: due ? 500 : 15,
+    }),
+    // R46: every open to-do past its date, whatever dates are on screen.
+    db.task.findMany({
+      where: { ...mine, status: "OPEN", dueDate: { lt: toDbDate(todayIST()) } },
+      include,
+      orderBy: [{ dueDate: "asc" }, { dueTime: { sort: "asc", nulls: "last" } }],
+      take: 200,
     }),
   ]);
   const shape = (t: (typeof open)[number]) => ({
@@ -455,7 +462,7 @@ export async function taskList(user: SessionUser, team: boolean, kind: TaskKind 
           ? { href: `/leads/${t.lead.id}`, label: t.lead.schoolName }
           : null,
   });
-  return { open: open.map(shape), done: done.map(shape) };
+  return { open: open.map(shape), done: done.map(shape), overdue: overdue.map(shape) };
 }
 export type TaskRow = Awaited<ReturnType<typeof taskList>>["open"][number];
 
@@ -590,7 +597,7 @@ export async function clientsList(user: SessionUser, f: { q?: string; status?: s
 }
 
 const quoteInclude = {
-  _count: { select: { items: true } },
+  _count: { select: { items: true, salesOrders: true } },
   preparedBy: { select: { name: true } },
   items: { select: { description: true }, orderBy: { sortOrder: "asc" } },
 } as const;
@@ -612,6 +619,8 @@ function quoteSummary(q: Prisma.QuotationGetPayload<{ include: typeof quoteInclu
     shareToken: q.shareToken,
     poNumber: q.poNumber,
     poDetails: (q.poDetails ?? null) as PoDetails | null,
+    /** A sales order was made from it: it is then fixed (R46). */
+    ordered: q._count.salesOrders > 0,
   };
 }
 export type QuoteSummary = ReturnType<typeof quoteSummary>;

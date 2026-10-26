@@ -78,6 +78,7 @@ export function QuotationsPanel({
   const [editing, setEditing] = useState<{
     id: string | null;
     draft: Draft;
+    sent?: boolean;
   } | null>(null);
   const [sending, setSending] = useState<Q | null>(null);
   const [poFor, setPoFor] = useState<Q | null>(null);
@@ -104,7 +105,7 @@ export function QuotationsPanel({
 
   const editDraft = (q: Q) =>
     run(() => quotationForEdit(q.id), {
-      onDone: (d) => d && setEditing({ id: q.id, draft: d }),
+      onDone: (d) => d && setEditing({ id: q.id, draft: d, sent: q.status === "SENT" }),
     });
 
   return (
@@ -159,6 +160,11 @@ export function QuotationsPanel({
                     </>
                   ) : (
                     <>
+                      {!q.ordered ? (
+                        <button className="btn sm" disabled={pending} onClick={() => editDraft(q)}>
+                          Edit
+                        </button>
+                      ) : null}
                       <button className="btn sm" onClick={() => setSending(q)}>
                         Send again
                       </button>
@@ -190,7 +196,7 @@ export function QuotationsPanel({
       )}
 
       {editing ? (
-        <QuotationEditor parent={opp.parent} id={editing.id} initial={editing.draft} products={products} me={me} onClose={() => setEditing(null)} />
+        <QuotationEditor parent={opp.parent} id={editing.id} sent={!!editing.sent} initial={editing.draft} products={products} me={me} onClose={() => setEditing(null)} />
       ) : null}
       {poFor ? <PoTemplateModal q={poFor} target={opp} me={me} onClose={() => setPoFor(null)} /> : null}
       {sending ? <SendQuotation q={sending} opp={opp} emailReady={emailReady} me={me} onClose={() => setSending(null)} /> : null}
@@ -201,6 +207,7 @@ export function QuotationsPanel({
 function QuotationEditor({
   parent,
   id,
+  sent = false,
   initial,
   products,
   me,
@@ -208,6 +215,8 @@ function QuotationEditor({
 }: {
   parent: QuoteParent;
   id: string | null;
+  /** Editing a quotation that was already sent (R46): same number; send it again afterwards. */
+  sent?: boolean;
   initial: Draft;
   products: ProductOption[];
   me: { name: string };
@@ -248,14 +257,14 @@ function QuotationEditor({
 
   const save = () =>
     run(() => (id ? updateQuotation(id, d) : createQuotation(parent, d)) as Promise<{ ok: true } | { ok: false; error: string }>, {
-      success: id ? "Quotation saved." : "Quotation created as a draft. Use “Send quotation” when ready.",
+      success: id ? (sent ? "Quotation updated. Send it again so the school has the latest." : "Quotation saved.") : "Quotation created as a draft. Use “Send quotation” when ready.",
       onDone: onClose,
     });
 
   return (
     <Modal
       title={id ? "Edit quotation" : "Create quotation"}
-      sub={`Prepared by ${me.name}. MRP and price fill in from Settings → Products and can be changed. Transport is added into the price and never printed.`}
+      sub={`${sent ? "This quotation was already sent: it keeps its number; after saving, send it again so the school has the latest. " : ""}Prepared by ${me.name}. MRP and price fill in from Settings → Products and can be changed. Transport is added into the price and never printed.`}
       wide
       onClose={onClose}
       footer={
@@ -264,7 +273,7 @@ function QuotationEditor({
             Cancel
           </button>
           <button className="btn pri" disabled={pending} onClick={save}>
-            {pending ? "Saving…" : id ? "Save draft" : "Create draft"}
+            {pending ? "Saving…" : id ? (sent ? "Save changes" : "Save draft") : "Create draft"}
           </button>
         </>
       }

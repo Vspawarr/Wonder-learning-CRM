@@ -180,7 +180,7 @@ model Lead {
   branches          Int?
 
   // Lead
-  source        String // SOURCES
+  source        String? // SOURCES; optional (R46)
   referenceName String? // only when source ∈ REF_SOURCES
   remarks       String?
 
@@ -468,7 +468,7 @@ model Client {
 
 enum QuotationStatus {
   DRAFT // editable
-  SENT // locked; revise by creating a new quotation
+  SENT // sent; still editable (same number) until a sales order is made from it (R46)
 }
 
 model Quotation {

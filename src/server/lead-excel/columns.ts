@@ -88,7 +88,7 @@ export const COLUMNS: Column[] = [
   { key: "currentCurriculum", header: "Current Publication/Curriculum", required: false, width: 26, note: "e.g. Oxford, own books" },
   { key: "studentStrength", header: "Current Student Strength", required: false, width: 14, kind: "int", min: 0 },
   { key: "branches", header: "Number of Branches", required: false, width: 12, kind: "int", min: 1, note: "Leave blank if single school" },
-  { key: "source", header: "Lead Source*", required: true, width: 22, list: "source" },
+  { key: "source", header: "Lead Source", required: false, width: 22, list: "source" },
   { key: "referenceName", header: "Reference Name", required: false, width: 20, note: "Only kept for Reference / Existing School Reference" },
   { key: "status", header: "Lead Status", required: false, width: 13, list: "status", note: "Blank = New. Qualified creates an opportunity" },
   { key: "category", header: "Opportunity Category (if Qualified)", required: false, width: 16, list: "category", note: "Required when Lead Status = Qualified (the lead becomes an opportunity): Hot or Warm. Leave blank otherwise." },

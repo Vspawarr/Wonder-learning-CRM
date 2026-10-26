@@ -103,9 +103,9 @@ export async function salesDashboard(user: SessionUser, f: DashFilters) {
     };
   });
 
-  const sources = SOURCES.map((s) => {
+  const sources = [...SOURCES, null].map((s) => {
     const q = leadsNow.filter((l) => l.source === s);
-    return { source: s, leads: q.length, converted: q.filter((l) => l.status === "CONVERTED").length };
+    return { source: s ?? "Not specified", leads: q.length, converted: q.filter((l) => l.status === "CONVERTED").length };
   }).filter((r) => r.leads);
 
   const interactionsBy = new Map(interactions.map((i) => [i.byId, i._count._all]));

@@ -568,3 +568,14 @@ to-do for today notification; after skip he can go to main page. Also in notific
 | **Reminder 15 minutes before** a timed to-do | ✅ | Pops up on screen and sits at the top of the bell; the bell checks every minute while the CRM is open. Optional "Allow pop-up reminders on this device" for browser notifications. Not a push message when the CRM is closed (that would need a push-notification service) |
 | **Mark as read / unread** in the bell | ✅ | Per line and "Mark all read"; badge counts unread; remembered per person on every device; a line returns as unread when its content changes |
 
+## R46. Lead source optional; to-do colours by status; quotations editable (26 Oct)
+
+"1. Remove mandatory (*) to source in lead. 2. In to-do completed should be reflected as green and non completed should
+be reflected and also overdue to-do should be reflected there. 3. Quotation should be editable."
+
+| Change | Status | Notes |
+|---|---|---|
+| **Lead source optional** | ✅ | New lead form, lead editing and the Excel template ("Lead Source", no *; an old template with "Lead Source*" is refused, so download a fresh one). Existing leads unchanged; empty shows "Not specified" in the dashboard's lead sources |
+| **To-do colours**: done green, pending blue, overdue red | ✅ | Calendar (month, week, phone agenda) with counts on top and an "Overdue: still to do" strip listing every overdue to-do (also from earlier months); List view: red Overdue card, green done items |
+| **Quotations editable** | ✅ | Drafts as before; sent quotations now have **Edit** too (same number; timeline note; send again). Fixed once a sales order is made from it (then Revise). PO template quantities follow their lines |
+

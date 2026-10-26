@@ -291,7 +291,14 @@ export async function createQuotation(user: SessionUser, parentRef: string | Quo
 export async function updateQuotation(user: SessionUser, id: string, raw: unknown) {
   const d = parse(quotationInput, raw);
   const q = await loadQuotation(user, id);
-  if (q.status !== "DRAFT") throw new DomainError("A sent quotation can't be changed. Use Revise to make a new version.");
+  // R46: a sent quotation can be corrected too (same number), until a sales order is made from it.
+  if (await db.salesOrder.count({ where: { quotationId: id } }))
+    throw new DomainError("A sales order was made from this quotation, so it can't be changed. Use Revise to make a new version.");
+  const rows = itemRows(d.items);
+  // The PO template's kit quantities follow their lines by name.
+  const po = q.poDetails as { kits?: (number | null)[] } | null;
+  const kitsByName = new Map(q.items.map((it, i) => [it.description, po?.kits?.[i] ?? null]));
+  const poDetails = po?.kits ? { ...po, kits: rows.map((r) => kitsByName.get(r.description) ?? null) } : undefined;
   await db.$transaction([
     db.quotationItem.deleteMany({ where: { quotationId: id } }),
     db.quotation.update({
@@ -302,9 +309,24 @@ export async function updateQuotation(user: SessionUser, id: string, raw: unknow
         toLine: d.toLine,
         schoolName: d.schoolName,
         address: d.address,
-        items: { create: itemRows(d.items) },
+        items: { create: rows },
+        ...(poDetails ? { poDetails } : {}),
       },
     }),
+    ...(q.status === "SENT"
+      ? [
+          db.activity.create({
+            data: {
+              type: "SYSTEM",
+              subject: `Quotation ${q.number} edited after it was sent: send it again so the school has the latest`,
+              byId: user.id,
+              opportunityId: q.opportunityId,
+              clientId: q.clientId,
+              leadId: q.opportunityId || q.clientId ? null : q.leadId,
+            },
+          }),
+        ]
+      : []),
   ]);
 }
 

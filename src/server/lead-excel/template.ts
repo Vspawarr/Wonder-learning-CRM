@@ -151,7 +151,7 @@ export async function buildLeadTemplate(live: LiveLists): Promise<Buffer> {
     ["How to fill in this sheet", true],
     [""],
     [`1. Enter one lead per row on the "${DATA_SHEET}" tab, starting on row 3. Row 2 is a grey example — delete it.`],
-    ["2. Columns with * are required: School Name, Owner/Contact Person Name, Mobile Number, State, City, Lead Source, Assigned To, Next Follow-up Date."],
+    ["2. Columns with * are required: School Name, Owner/Contact Person Name, Mobile Number, State, City, Assigned To, Next Follow-up Date. Lead Source is optional."],
     ["3. Columns with a dropdown only accept values from their list. Choose the State before the City — the City list follows the State on that row."],
     ["4. Dates must be DD/MM/YYYY (for example 25/12/2026)."],
     ["5. Lead Status blank = New. Choosing Qualified turns the lead into an opportunity straight away, so a Qualified row also needs its Opportunity Category (Hot or Warm). Leave the category blank for New or Contacted leads."],

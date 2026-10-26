@@ -75,7 +75,7 @@ const leadDetails = {
   currentCurriculum: optText(200),
   studentStrength: optInt("Student strength", 0),
   branches: optInt("Number of branches", 1),
-  source: oneOf(SOURCES, "lead source"),
+  source: optOneOf(SOURCES, "lead source"), // optional since R46
   referenceName: optText(200),
   interests: z.array(z.string()).max(50).default([]),
   remarks: optText(),

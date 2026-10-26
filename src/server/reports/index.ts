@@ -87,7 +87,7 @@ async function leads(user: SessionUser, p: Params): Promise<Report> {
           contact: l.contactName,
           mobile: l.mobile,
           city: l.city,
-          source: l.source,
+          source: l.source ?? "",
           status: LEAD_STATUS_LABEL[l.status],
           owner: l.owner.name,
           next: dmy(l.nextFollowUpDate),

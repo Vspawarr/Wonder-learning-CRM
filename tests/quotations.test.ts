@@ -21,6 +21,8 @@ import {
   reviseQuotation,
   updateQuotation,
 } from "@/server/quotation/service";
+import { convertToClient } from "@/server/clients";
+import { createSalesOrder } from "@/server/finance/service";
 import { leadData, makeUser, resetData } from "./helpers";
 
 let exA: SessionUser, exB: SessionUser, head: SessionUser;
@@ -128,7 +130,7 @@ describe("creating quotations", () => {
 });
 
 describe("drafts, sending and revising", () => {
-  it("drafts can be edited or deleted; sent ones are locked", async () => {
+  it("drafts can be edited or deleted; sent ones stay editable until ordered (R46)", async () => {
     const id = await createQuotation(exA, oppId, quote());
     await updateQuotation(
       exA,
@@ -142,11 +144,20 @@ describe("drafts, sending and revising", () => {
       1,
     );
     await markQuotationSent(exA, id, "download");
-    await expect(updateQuotation(exA, id, quote())).rejects.toThrow(/Revise/);
+    const before = await db.quotation.findUniqueOrThrow({ where: { id } });
+    await updateQuotation(exA, id, quote({ items: [{ description: "LKG Academic Kit", mrp: 5600, price: 3600 }] }));
+    const after = await db.quotation.findUniqueOrThrow({ where: { id }, include: { items: true } });
+    expect(after).toMatchObject({ status: "SENT", number: before.number });
+    expect(Number(after.items[0].price)).toBe(3600);
+    expect(await db.activity.count({ where: { opportunityId: oppId, subject: { contains: "edited after it was sent" } } })).toBe(1);
     await expect(deleteQuotation(exA, id)).rejects.toThrow(/draft/);
     const other = await createQuotation(exA, oppId, quote());
     await deleteQuotation(exA, other);
     expect(await db.quotation.count({ where: { id: other } })).toBe(0);
+    // Once a sales order is made from it, it is fixed.
+    const clientId = await convertToClient(exA, oppId);
+    await createSalesOrder(exA, clientId, { date: todayIST(), quotationId: id, items: [{ description: "LKG Academic Kit", qty: 10, price: 3600, gstRate: 0 }] });
+    await expect(updateQuotation(exA, id, quote())).rejects.toThrow(/sales order/);
   });
 
   it("sending moves an early deal to Proposal Sent with its follow-up task", async () => {

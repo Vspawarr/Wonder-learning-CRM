@@ -576,3 +576,13 @@ describe("leads salesperson filter (R44)", () => {
     expect((await leadsList(exA, { owner: exB.id })).map((l) => l.schoolName)).toEqual(["A School"]);
   });
 });
+
+describe("lead source is optional (R46)", () => {
+  it("saves a lead without a source; a wrong source is still refused", async () => {
+    await resetData();
+    const ex = await makeUser("SALES_EXECUTIVE");
+    const id = await createLead(ex, leadData(ex.id, { source: "" }));
+    expect((await db.lead.findUniqueOrThrow({ where: { id } })).source).toBeNull();
+    await expect(createLead(ex, leadData(ex.id, { schoolName: "Other", mobile: "9811100002", source: "Newspaper ad" }))).rejects.toThrow(/lead source/);
+  });
+});

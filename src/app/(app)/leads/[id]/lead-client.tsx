@@ -30,7 +30,7 @@ function toValues(l: LeadDetail): LeadValues {
     currentCurriculum: s(l.currentCurriculum),
     studentStrength: s(l.studentStrength),
     branches: s(l.branches),
-    source: l.source,
+    source: l.source ?? "",
     referenceName: s(l.referenceName),
     status: l.status,
     temperature: "",

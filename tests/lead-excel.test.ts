@@ -77,7 +77,6 @@ describe("template", () => {
       "Mobile Number*",
       "State*",
       "City*",
-      "Lead Source*",
       "Assigned To*",
       "Next Follow-up Date*",
     ]);

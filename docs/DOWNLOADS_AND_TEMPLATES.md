@@ -20,7 +20,7 @@ the Android APK and the logo.)
 - **Columns** (same order and required fields as the New lead form; * = required):
   School Name* · Owner/Contact Person Name* · Designation · Mobile Number* · Email ID · State* · City* ·
   Area/Location · Address · Current Publication/Curriculum · Current Student Strength · Number of Branches ·
-  Lead Source* · Reference Name · Lead Status · **Opportunity Category (if Qualified)** · Assigned To* ·
+  Lead Source (optional, R46) · Reference Name · Lead Status · **Opportunity Category (if Qualified)** · Assigned To* ·
   Next Follow-up Date* · Follow-up Type · Follow-up Remark
 - **Dropdowns (hard, "stop" style):** Designation, State, City (follows the row's State), Lead Source (incl. "Social Media"; Facebook/Instagram are refused), Lead
   Status (New / Contacted / Qualified), Opportunity Category (Hot / Warm; R34), Assigned To (active

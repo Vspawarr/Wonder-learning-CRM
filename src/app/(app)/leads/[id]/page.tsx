@@ -52,7 +52,7 @@ export default async function LeadPage({ params }: { params: Promise<{ id: strin
           <h1>{lead.schoolName}</h1>
           <div className="mt-2 flex flex-wrap items-center gap-2">
             <Pill>{LEAD_STATUS_LABEL[lead.status]}</Pill>
-            <span className="tag">{lead.source}</span>
+            {lead.source ? <span className="tag">{lead.source}</span> : null}
             <span className="tag">{leadCode(lead.number)}</span>
           </div>
           <div className="small faint mt-2 break-words">

@@ -134,9 +134,9 @@ export function LeadForm({
 
       <h3 className="mt-4">Lead</h3>
       <div className="fg2 mt-2">
-        <Field label="Lead source *" htmlFor={id("src")}>
+        <Field label="Lead source" htmlFor={id("src")}>
           <select className="sel" id={id("src")} value={value.source} onChange={(e) => set("source", e.target.value)}>
-            <Options list={SOURCES} blank="Choose a source" />
+            <Options list={SOURCES} blank="Not specified" />
           </select>
         </Field>
         {REF_SOURCES.includes(value.source) ? (
