@@ -295,10 +295,11 @@ export async function updateQuotation(user: SessionUser, id: string, raw: unknow
   if (await db.salesOrder.count({ where: { quotationId: id } }))
     throw new DomainError("A sales order was made from this quotation, so it can't be changed. Use Revise to make a new version.");
   const rows = itemRows(d.items);
-  // The PO template's kit quantities follow their lines by name.
-  const po = q.poDetails as { kits?: (number | null)[] } | null;
-  const kitsByName = new Map(q.items.map((it, i) => [it.description, po?.kits?.[i] ?? null]));
-  const poDetails = po?.kits ? { ...po, kits: rows.map((r) => kitsByName.get(r.description) ?? null) } : undefined;
+  // The PO template's kit quantities and checklist ticks (R48) follow their lines by name.
+  const po = q.poDetails as { kits?: (number | null)[]; pages?: ({ on: boolean; off: string[] } | null)[] } | null;
+  const lineOf = new Map(q.items.map((it, i) => [it.description, i]));
+  const moved = <T,>(list: T[] | undefined) => rows.map((r) => (lineOf.has(r.description) ? (list?.[lineOf.get(r.description)!] ?? null) : null));
+  const poDetails = po?.kits ? { ...po, kits: moved(po.kits), ...(po.pages ? { pages: moved(po.pages) } : {}) } : undefined;
   await db.$transaction([
     db.quotationItem.deleteMany({ where: { quotationId: id } }),
     db.quotation.update({

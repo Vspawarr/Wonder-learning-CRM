@@ -13,6 +13,7 @@ export const SOURCES = [
   "Seminar / Workshop",
   "Teacher Training",
   "Sales Visit",
+  "Direct School Visit", // R48
   "Telecalling",
   "Walk-in",
   "Email",

@@ -33,3 +33,19 @@ export async function assertLocation(db: Db, state: string, city: string, curren
   const problem = locationProblem(await getLocations(db), state, city);
   if (problem) throw new DomainError(`${problem} Ask an admin to add it in Settings → Locations.`);
 }
+
+/**
+ * R48: the city as listed under the state, adding it (or showing a hidden one again) when it isn't.
+ * Used by the lead Excel upload, so a new city in the file goes into Settings → Locations by itself.
+ * Returns the listed spelling and whether it was added.
+ */
+export async function ensureCity(db: Db, state: string, city: string): Promise<{ name: string; added: boolean }> {
+  const found = await db.city.findFirst({ where: { stateName: state, name: { equals: city, mode: "insensitive" } } });
+  if (found?.active) return { name: found.name, added: false };
+  if (found) {
+    await db.city.update({ where: { id: found.id }, data: { active: true } });
+    return { name: found.name, added: true };
+  }
+  await db.city.create({ data: { stateName: state, name: city } });
+  return { name: city, added: true };
+}

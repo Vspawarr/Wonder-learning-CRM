@@ -37,6 +37,7 @@ import { lockMessage, requestPasswordReset as requestReset, resetPassword as doR
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { YEAR_COOKIE } from "@/lib/fy";
+import { shareLinkFor, type ShareKind } from "@/server/share-links";
 
 export type ActionResult<T = undefined> = { ok: true; data?: T } | { ok: false; error: string };
 
@@ -252,7 +253,18 @@ export const poTemplateSetup = async () => {
   const d = await documents.getDocumentSettings();
   return { customise: d.poCustomise, shippingTerms: d.poShippingTerms };
 };
+/** The quoted kits' checklists for the PO template window (read only). */
+export const poTemplateKits = async (quotationId: string) => po.poTemplateKits(await requireUser(), quotationId);
 export const savePoTemplate = async (quotationId: string, data: unknown) => run((u) => po.savePoTemplate(u, quotationId, data));
+/** R48: the private link to a proforma, challan or credit note PDF, for WhatsApp (read only). */
+export const docShareLink = async (kind: ShareKind, id: string): Promise<ActionResult<string>> => {
+  const u = await requireUser();
+  try {
+    return { ok: true, data: await shareLinkFor(u, kind, id) };
+  } catch (e) {
+    return { ok: false, error: e instanceof DomainError ? e.message : "Couldn't make the link. Please try again." };
+  }
+};
 export const createDispatch = async (salesOrderId: string, data: unknown) => run((u) => dispatch.createDispatch(u, salesOrderId, data));
 export const markDispatchReceived = async (id: string, date: string) => run((u) => dispatch.markDispatchReceived(u, id, date));
 export const deleteDispatch = async (id: string) => run((u) => dispatch.deleteDispatch(u, id));
@@ -300,6 +312,7 @@ export const addState = async (data: unknown) => run((u) => settings.addState(u,
 export const setStateActive = async (id: string, active: boolean) => run((u) => settings.setStateActive(u, id, active));
 export const addCity = async (data: unknown) => run((u) => settings.addCity(u, data));
 export const setCityActive = async (id: string, active: boolean) => run((u) => settings.setCityActive(u, id, active));
+export const deleteCity = async (id: string) => run((u) => settings.deleteCity(u, id));
 
 export async function removeClient(id: string, reason: string) {
   return run((u) => clients.removeClient(u, id, reason));

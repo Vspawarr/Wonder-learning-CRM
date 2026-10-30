@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useAction } from "@/components/client";
-import { addCity, addState, setCityActive, setStateActive } from "@/app/actions";
+import { addCity, addState, deleteCity, setCityActive, setStateActive } from "@/app/actions";
 
 export function AddState() {
   const [name, setName] = useState("");
@@ -60,13 +60,26 @@ export function AddCity({ stateName }: { stateName: string }) {
 export function CityChip({ id, name, active }: { id: string; name: string; active: boolean }) {
   const { pending, run } = useAction();
   return (
-    <button
-      className={`chip ${active ? "" : "line-through opacity-60"}`}
-      disabled={pending}
-      title={active ? "Click to hide from the lead form" : "Click to show on the lead form again"}
-      onClick={() => run(() => setCityActive(id, !active), { success: active ? `${name} hidden.` : `${name} restored.` })}
-    >
-      {name}
-    </button>
+    <span className={`chip gap-0 p-0 ${active ? "" : "opacity-60"}`}>
+      <button
+        className={`min-h-[30px] px-2.5 ${active ? "" : "line-through"}`}
+        disabled={pending}
+        title={active ? "Click to hide from the lead form" : "Click to show on the lead form again"}
+        onClick={() => run(() => setCityActive(id, !active), { success: active ? `${name} hidden.` : `${name} restored.` })}
+      >
+        {name}
+      </button>
+      <button
+        className="min-h-[30px] border-l border-line px-2 text-coral"
+        disabled={pending}
+        aria-label={`Delete ${name}`}
+        title={`Delete ${name}`}
+        onClick={() =>
+          confirm(`Delete ${name} from the list? Leads and clients already in ${name} keep it.`) && run(() => deleteCity(id), { success: `${name} deleted.` })
+        }
+      >
+        ×
+      </button>
+    </span>
   );
 }

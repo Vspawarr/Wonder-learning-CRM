@@ -1,6 +1,6 @@
 # Current status
 
-_Last updated: 26 Oct 2026. Update this page whenever the situation changes._
+_Last updated: 30 Oct 2026. Update this page whenever the situation changes._
 
 ## Where things stand
 

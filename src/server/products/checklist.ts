@@ -40,16 +40,22 @@ export async function quotationChecklistKits(quotationId: string): Promise<Check
   return quoted;
 }
 
-/** What the PO's "Material Exclude" box says: per kit line, the items taken out for this school. */
-export async function quotationExclusions(quotationId: string): Promise<string[]> {
+/**
+ * R48: each quotation line as a kit checklist (as changed for this school), or null for a line that
+ * isn't a kit. Lines keep the quotation's order, so they match the PO template's kit quantities.
+ */
+export async function quotationKitLines(quotationId: string): Promise<({ kit: ChecklistKit; removed: string[] } | null)[]> {
   const items = await db.quotationItem.findMany({
-    where: { quotationId, productId: { not: null } },
+    where: { quotationId },
     orderBy: { sortOrder: "asc" },
-    select: { kit: true, product: { select: { name: true } } },
+    select: { kit: true, product: { select: { name: true, color: true, contents: true } } },
   });
-  return items.flatMap((i) => {
-    const c = i.kit as KitCustom | null;
-    return isCustomised(c) && c.removed.length ? [`${i.product!.name}: ${c.removed.join(", ")}`] : [];
+  return items.map((i) => {
+    if (!i.product) return null;
+    const custom = i.kit as KitCustom | null;
+    const contents = asSections(i.product.contents);
+    const kit = { name: i.product.name, color: i.product.color, contents: isCustomised(custom) ? customSections(contents, custom) : contents };
+    return kit.contents.length ? { kit, removed: isCustomised(custom) ? custom.removed : [] } : null;
   });
 }
 

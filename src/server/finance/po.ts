@@ -1,7 +1,8 @@
 // Purchase orders: the PO template we hand to schools (pre-filled from a sent
 // quotation, to sign, seal and send back), and the signed PO they return,
 // stored on the sales order with its PO number.
-import { quotationChecklistKits, quotationExclusions } from "../products/checklist";
+import { quotationKitLines } from "../products/checklist";
+import type { ChecklistKit } from "../products/checklist-pdf";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { fromDbDate, isDateStr, toDbDate, todayIST } from "@/lib/dates";
@@ -88,6 +89,14 @@ export const poDetailsInput = z.object({
   shipVia: z.string().trim().max(80).default(""),
   shippingTerms: z.string().trim().max(80).default(""),
   remarks: z.array(z.string().trim().max(200)).max(8).default([]),
+  /**
+   * R48: per quotation line, the kit checklist printed from page 2: whether the kit is selected (on)
+   * and the items unticked (off). Missing = the default (see poPages).
+   */
+  pages: z
+    .array(z.object({ on: z.boolean(), off: z.array(z.string().trim().max(200)).max(300).default([]) }).nullable())
+    .max(50)
+    .default([]),
   /** YES / NO per customisation line, in the order of Settings → Documents. */
   customise: z.array(z.boolean()).max(10).default([]),
   cheques: z
@@ -111,6 +120,34 @@ const readDetails = (v: unknown): PoDetails => {
   const r = poDetailsInput.safeParse(v ?? {});
   return r.success ? r.data : poDetailsInput.parse({});
 };
+
+/**
+ * R48: the kits and items the PO prints from page 2. A kit is selected when ticked; by default the kits
+ * with a quantity (or every kit when no quantity is filled in yet). Unticked items are left off its
+ * checklist and listed under "Material Exclude", with the items taken out on the quotation.
+ */
+export function poPages(lines: ({ kit: ChecklistKit; removed: string[] } | null)[], d: Pick<PoDetails, "kits" | "pages">) {
+  const anyQty = d.kits.some((k) => k != null);
+  const checklist: ChecklistKit[] = [];
+  const exclude: string[] = [];
+  lines.forEach((line, i) => {
+    if (!line) return;
+    const page = d.pages[i];
+    if (!(page ? page.on : !anyQty || d.kits[i] != null)) return;
+    const off = new Set(page?.off ?? []);
+    const contents = line.kit.contents.map((g) => ({ ...g, items: g.items.filter((it) => !off.has(it)) })).filter((g) => g.items.length);
+    if (contents.length) checklist.push({ ...line.kit, contents });
+    const out = [...line.removed, ...line.kit.contents.flatMap((g) => g.items.filter((it) => off.has(it)))];
+    if (out.length) exclude.push(`${line.kit.name}: ${[...new Set(out)].join(", ")}`);
+  });
+  return { checklist, exclude };
+}
+
+/** For the PO template window: each quotation line's kit checklist (null = not a kit). */
+export async function poTemplateKits(user: SessionUser, quotationId: string) {
+  const q = await loadQuotation(user, quotationId);
+  return (await quotationKitLines(q.id)).map((l) => (l ? { name: l.kit.name, color: l.kit.color, sections: l.kit.contents.map((g) => ({ title: g.title, items: g.items })) } : null));
+}
 
 const ddmmyyyy = (iso: string) => iso.split("-").reverse().join("-");
 const ddmmyy = (iso: string) => {
@@ -167,6 +204,7 @@ type QuoteForPo = {
 
 async function templateFor(q: QuoteForPo) {
   const [docs, d] = [await getDocumentSettings(), readDetails(q.poDetails)];
+  const pages = poPages(await quotationKitLines(q.id), d);
   // The school's phone and email: from the client, else from the deal's lead.
   const contact = q.clientId
     ? await db.client.findUnique({ where: { id: q.clientId }, select: { mobile: true, email: true, contactName: true } })
@@ -206,8 +244,8 @@ async function templateFor(q: QuoteForPo) {
     customise: docs.poCustomise.map((label, i) => ({ label, yes: d.customise[i] ?? true })),
     bankLines: docs.bankLines,
     executive: { name: q.preparedBy.name, mobile: q.preparedBy.mobile, email: q.preparedBy.email },
-    exclude: await quotationExclusions(q.id),
-    checklist: await quotationChecklistKits(q.id),
+    exclude: pages.exclude,
+    checklist: pages.checklist,
   });
 }
 

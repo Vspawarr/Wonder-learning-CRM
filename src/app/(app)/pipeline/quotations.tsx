@@ -16,6 +16,7 @@ import {
   quotationForEdit,
   reviseQuotation,
   updateQuotation,
+  poTemplateKits,
   poTemplateSetup,
   savePoTemplate,
 } from "@/app/actions";
@@ -647,6 +648,8 @@ export function PoTemplateModal({ q, target, me, onClose }: { q: Q; target: Quot
       amount: c.amount == null ? "" : String(c.amount),
     })),
   }));
+  const [pages, setPages] = useState<({ on: boolean; off: string[] } | null)[]>(() => q.itemNames.map((_, i) => d0?.pages?.[i] ?? null));
+  const [kitLines, setKitLines] = useState<Awaited<ReturnType<typeof poTemplateKits>> | null>(null);
   const [poNumber, setPoNumber] = useState(q.poNumber);
   const [saved, setSaved] = useState(!!q.poNumber);
   const { pending, run } = useAction();
@@ -661,10 +664,13 @@ export function PoTemplateModal({ q, target, me, onClose }: { q: Q; target: Quot
         customise: x.customise.map((_, i) => cur.customise[i] ?? true),
       }));
     });
+    poTemplateKits(q.id)
+      .then((x) => live && setKitLines(x))
+      .catch(() => live && setKitLines([]));
     return () => {
       live = false;
     };
-  }, []);
+  }, [q.id]);
   const edit = (patch: Partial<typeof v>) => {
     setV({ ...v, ...patch });
     setSaved(false);
@@ -680,6 +686,7 @@ export function PoTemplateModal({ q, target, me, onClose }: { q: Q; target: Quot
           shippingTerms: v.shippingTerms,
           remarks: v.remarks.split("\n").map((r) => r.trim()).filter(Boolean),
           customise: v.customise,
+          pages,
           cheques: v.cheques.filter((c) => c.mode || c.date || c.amount).map((c) => ({ mode: c.mode, date: c.date || null, amount: c.amount ? c.amount : null })),
         }),
       {
@@ -697,7 +704,7 @@ export function PoTemplateModal({ q, target, me, onClose }: { q: Q; target: Quot
   const waPo = useWhatsAppPdf(saved ? `${pdf}?v=${encodeURIComponent(poNumber ?? "")}` : null, `PO ${poNumber ?? q.number} ${target.schoolName}`);
   const whatsapp = () => {
     const base = `${window.location.origin}/q/${q.shareToken}`;
-    const text = `Dear Sir/Madam,\nAs discussed, here is purchase order ${poNumber ?? ""} for ${target.schoolName} against our quotation ${q.number}. Please check the quantities, sign, put the school stamp and send it back to us. The kit checklist (every item in each kit) is attached from page 2:\n${base}/po\n\nKit checklist on its own:\n${base}/checklist\n\nRegards,\n${me.name}\nWonder Learning`;
+    const text = `Dear Sir/Madam,\nAs discussed, here is purchase order ${poNumber ?? ""} for ${target.schoolName} against our quotation ${q.number}. Please check the quantities, sign, put the school stamp and send it back to us. The checklist of the kits you are ordering (every item, ticked) is from page 2. PDF attached; also here:\n${base}/po\n\nRegards,\n${me.name}\nWonder Learning`;
     toast(WHATSAPP_DONE[waPo.send(mobile, text)]);
   };
   const setCheque = (i: number, patch: Partial<(typeof v.cheques)[number]>) => edit({ cheques: v.cheques.map((c, j) => (j === i ? { ...c, ...patch } : c)) });
@@ -737,6 +744,17 @@ export function PoTemplateModal({ q, target, me, onClose }: { q: Q; target: Quot
           </div>
         ))}
       </div>
+      {kitLines?.some(Boolean) ? (
+        <PoChecklistPicker
+          lines={kitLines}
+          kits={v.kits}
+          pages={pages}
+          onChange={(next) => {
+            setPages(next);
+            setSaved(false);
+          }}
+        />
+      ) : null}
       <h3 className="mt-4">Order details</h3>
       <div className="fg2 mt-2">
         <Field label="Requisitioner" htmlFor="pot-req">
@@ -814,8 +832,104 @@ export function PoTemplateModal({ q, target, me, onClose }: { q: Q; target: Quot
       </div>
       <p className="small muted mt-3">
         {saved ? "Saved. " : "Save first, then preview or send. "}
-        The PO lists any items taken out of a kit under &quot;Material Exclude&quot;, and the kit checklist is attached from page 2. When the signed PO comes back, use Upload signed PO: the PO number is filled in for you.
+        The PO lists any items taken out or unticked under &quot;Material Exclude&quot;, and the checklist of the selected kits is attached from page 2. When the signed PO comes back, use Upload signed PO: the PO number is filled in for you.
       </p>
     </Modal>
+  );
+}
+
+type KitLine = { name: string; color: string | null; sections: { title: string; items: string[] }[] } | null;
+
+/** Round tick: green with a check when selected, empty when not. */
+function TickButton({ on, label, onClick }: { on: boolean; label: string; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      role="checkbox"
+      aria-checked={on}
+      aria-label={label}
+      onClick={onClick}
+      className={`inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-2 ${on ? "border-mint bg-mint text-white" : "border-line bg-surf text-transparent"}`}
+    >
+      <Icon name="check" size={15} />
+    </button>
+  );
+}
+
+/**
+ * R48: which kits, and which of their items, the PO prints from page 2. Kits with a quantity are
+ * selected by default (every kit while no quantity is filled in); untick an item to leave it out.
+ */
+function PoChecklistPicker({
+  lines,
+  kits,
+  pages,
+  onChange,
+}: {
+  lines: KitLine[];
+  kits: string[];
+  pages: ({ on: boolean; off: string[] } | null)[];
+  onChange: (next: ({ on: boolean; off: string[] } | null)[]) => void;
+}) {
+  const anyQty = kits.some((k) => k.trim());
+  const isOn = (i: number) => pages[i]?.on ?? (!anyQty || !!kits[i]?.trim());
+  const set = (i: number, patch: Partial<{ on: boolean; off: string[] }>) =>
+    onChange(lines.map((_, j) => (j === i ? { on: isOn(i), off: pages[i]?.off ?? [], ...patch } : (pages[j] ?? null))));
+  return (
+    <>
+      <h3 className="mt-4">Kit checklist (from page 2)</h3>
+      <p className="small muted">Tick the kits the school is ordering, then open a kit to untick any item it doesn&apos;t want. Unticked items are listed under &quot;Material Exclude&quot;.</p>
+      <div className="mt-2 flex flex-col gap-2">
+        {lines.map((l, i) => {
+          if (!l) return null;
+          const on = isOn(i);
+          const off = new Set(pages[i]?.off ?? []);
+          const total = l.sections.reduce((t, g) => t + g.items.length, 0);
+          const kept = l.sections.reduce((t, g) => t + g.items.filter((it) => !off.has(it)).length, 0);
+          return (
+            <div key={i} className="rounded-lg border border-line" style={{ borderLeft: `4px solid ${l.color ?? "var(--brand)"}` }}>
+              <div className="flex items-center gap-2.5 px-2.5 py-2">
+                <TickButton on={on} label={`Include ${l.name}`} onClick={() => set(i, { on: !on })} />
+                <span className="min-w-0 flex-1">
+                  <b className={on ? "" : "faint line-through"}>{l.name}</b>
+                  <span className="small muted block">{on ? `${kept} of ${total} items ticked` : "Not on the PO's checklist pages"}</span>
+                </span>
+              </div>
+              {on ? (
+                <details className="border-t border-line px-2.5 py-1.5">
+                  <summary className="small cursor-pointer py-1 font-semibold">Items in this kit</summary>
+                  <div className="mb-1 flex gap-2">
+                    <button type="button" className="btn sm" onClick={() => set(i, { off: [] })}>
+                      Tick all
+                    </button>
+                    <button type="button" className="btn sm" onClick={() => set(i, { off: l.sections.flatMap((g) => g.items) })}>
+                      Untick all
+                    </button>
+                  </div>
+                  {l.sections.map((g, gi) => (
+                    <div key={gi} className="mt-1.5">
+                      <div className="small muted font-semibold">{g.title.split(" | ")[0]}</div>
+                      {g.items.map((it) => {
+                        const ticked = !off.has(it);
+                        return (
+                          <div key={it} className="flex items-center gap-2.5 border-b border-line py-1 last:border-0">
+                            <TickButton
+                              on={ticked}
+                              label={it}
+                              onClick={() => set(i, { off: ticked ? [...off, it] : [...off].filter((x) => x !== it) })}
+                            />
+                            <span className={`min-w-0 ${ticked ? "" : "faint line-through"}`}>{it}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ))}
+                </details>
+              ) : null}
+            </div>
+          );
+        })}
+      </div>
+    </>
   );
 }

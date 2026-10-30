@@ -84,7 +84,7 @@ Director, Admin and Sales Head.
 - **+ Add → New lead**, or Leads → **New lead**.
 - Mobile number: 10 digits only (the box stops at 10; a pasted +91 is removed).
 - Required (*): School name, Owner / contact person, Mobile number, State, City, Assigned to, Next follow-up date.
-  **Lead source is optional** (R46; "Not specified" if left empty). Lead source includes **Social Media** (Facebook, Instagram etc.); "Reference name" appears for
+  **Lead source is optional** (R46; "Not specified" if left empty). Lead source includes **Social Media** (Facebook, Instagram etc.) and **Direct School Visit**; "Reference name" appears for
   reference sources.
 - If the same mobile, or the same school name in the same city, already exists, a **possible duplicate** warning
   shows who has it. You can still save if it really is a different school.
@@ -185,17 +185,20 @@ After its validity date a sent quotation shows **Expired** (feature switch "Quot
 
 On a **sent** quotation: **Send PO template**.
 1. **Quantities (kits demanded)**: number of kits per line (or leave blank for the school to fill in).
-2. **Order details**: requisitioner, expected delivery date, ship via, shipping terms, remarks.
-3. **Customised with school name & logo**: YES / NO per item.
-4. **Advance cheque / DD details**: up to 4 cheques (CDC, PDC, DD, NEFT) with dates and amounts.
-5. **Save**: the CRM gives the **PO number** (PO/2627/1, running through the financial year) and fills the deal
+2. **Kit checklist (from page 2)**: a round tick per kit and, under "Items in this kit", per item (Tick all /
+   Untick all). Kits with a quantity are ticked for you (all kits while no quantity is typed). Untick a kit the
+   school isn't ordering, or an item it doesn't want.
+3. **Order details**: requisitioner, expected delivery date, ship via, shipping terms, remarks.
+4. **Customised with school name & logo**: YES / NO per item.
+5. **Advance cheque / DD details**: up to 4 cheques (CDC, PDC, DD, NEFT) with dates and amounts.
+6. **Save**: the CRM gives the **PO number** (PO/2627/1, running through the financial year) and fills the deal
    value. Then **Preview**, **Download** or **WhatsApp** it to the school.
 
 **What the school receives:** the PO in your format with their name, kits, rates (transport already inside),
-terms, bank details and signature boxes. The **Material Exclude** box lists any items taken out of a kit (e.g.
-"Nursery Kit: Shape kit"), or "Nothing excluded". **The kit checklist is attached from page 2**: every item in
-each kit, with removed items left out and added items listed under "Added for this school". The WhatsApp message
-also carries a separate checklist link.
+terms, bank details and signature boxes. The **Material Exclude** box lists any items taken out of a kit on the
+quotation or unticked here (e.g. "Nursery Kit: Shape kit, Bag"), or "Nothing excluded". **From page 2: one
+checklist page per selected kit**, with a green ✓ beside every ticked item; unticked and removed items are left
+out and added items are listed under "Added for this school". The WhatsApp message carries the PDF and its link.
 
 ## 9. Clients
 
@@ -233,8 +236,8 @@ who gets payment messages).
 |---|---|
 | **View signed PO** / **PO** | See or add the school's PO |
 | **Take advance** | Money received before invoicing; gets a receipt and comes off the invoice later |
-| **Proforma invoice** | Printable proforma (PI/…) |
-| **Dispatch kits** | Send a lot: date, kits per line, transporter, docket / LR, vehicle → **Challan PDF** to go with the kits |
+| **Proforma invoice** | Printable proforma (PI/…). **Send proforma** sends it on WhatsApp: the PDF with the message and a private link |
+| **Dispatch kits** | Send a lot: date, kits per line, transporter, docket / LR, vehicle → **Challan PDF** to go with the kits; **WhatsApp** beside it sends the challan PDF and link to the school |
 | **Mark received** / **Upload proof** | When the school gets the kits; attach proof of delivery |
 | **Mark delivered** | The whole order is delivered |
 | **Create invoice** | Raise the invoice for the order |
@@ -248,7 +251,7 @@ who gets payment messages).
 | **Record payment** | Amount, date, mode (NEFT/RTGS, UPI, Cheque, CDC, PDC, Cash, Other), reference. **Part payment** asks for the **next promised date** → a collection follow-up on that date. **Cheques** start **In hand** and get a "Deposit cheque" reminder on the cheque date |
 | **Send reminder** | WhatsApp or email reminder with a link to the invoice |
 | **Send invoice** | Share the invoice on WhatsApp / email |
-| **Credit note** | Reduce the invoice (return, discount, write-off) — finance roles |
+| **Credit note** | Reduce the invoice (return, discount, write-off) — finance roles. Each credit note has **PDF** and **WhatsApp** (PDF + link) |
 | Cancel invoice | Finance roles; the order can then be invoiced again |
 
 Payments received: a payment recorded by a salesperson first shows **Awaiting approval** (no receipt yet) until
@@ -418,7 +421,7 @@ decisions; PDF / Excel. Switch: Settings → Features → "Lead / client transfe
 |---|---|
 | **Users** | **Add user** (name, email, mobile, role, password), **Edit** (role, active; type a new password to reset it), **Hand over work** (move a leaving person's open leads, deals, clients and to-dos to someone else). Deactivated users can't sign in; their records stay |
 | **Products** | Kits and optional items with school price, MRP, GST. A kit's contents: "## Group" lines and one item per line, optionally with its price: `Book 1 to 9 \| 1792 \| 2688` (item prices let quotations take items out). **Kit checklist (PDF)** |
-| **Locations** | States and their cities (used by the lead form and the Excel template) |
+| **Locations** | States and their cities (used by the lead form and the Excel template). Click a city to hide / show it; **×** deletes it (leads keep their city). A new city in a lead Excel upload is added here by itself |
 | **Documents** | **Quotation** text (3 pages), **Preview sample quotation**; **PO template, receipt & numbering**: addresses, bank, terms, customisation list, signatory, next receipt / PO number |
 | **Targets** | Monthly sales and collection targets per salesperson (dashboard shows progress) |
 | **Features** | Switch optional parts on or off (advance & proforma, cheques, credit notes, dispatch, renewals, ageing, targets, contacts, documents, quotation validity, this guide). Data already entered is kept |

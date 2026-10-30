@@ -98,11 +98,13 @@ export async function buildLeadTemplate(live: LiveLists): Promise<Buffer> {
     } else if (c.list === "city") {
       validations.add(range, {
         ...STOP,
+        // R48: a city not in the list may be typed in; the upload adds it to Settings → Locations.
+        errorStyle: "warning",
         type: "list",
         // Relative to the first cell of the range: each row looks up its own State.
         formulae: [`INDIRECT(VLOOKUP($${stateCol}2,L_StateMap,2,FALSE))`],
-        errorTitle: "Choose a listed city",
-        error: "Pick the State first, then a city from the list. New cities are added in the CRM under Settings → Locations.",
+        errorTitle: "City not in the list",
+        error: "Pick the State first, then a city from the list. To use a new city, choose Yes: the upload adds it to Settings → Locations.",
       });
     } else if (c.list) {
       validations.add(range, {
@@ -152,7 +154,7 @@ export async function buildLeadTemplate(live: LiveLists): Promise<Buffer> {
     [""],
     [`1. Enter one lead per row on the "${DATA_SHEET}" tab, starting on row 3. Row 2 is a grey example — delete it.`],
     ["2. Columns with * are required: School Name, Owner/Contact Person Name, Mobile Number, State, City, Assigned To, Next Follow-up Date. Lead Source is optional."],
-    ["3. Columns with a dropdown only accept values from their list. Choose the State before the City — the City list follows the State on that row."],
+    ["3. Columns with a dropdown only accept values from their list. Choose the State before the City — the City list follows the State on that row. A city that is not in the list can be typed in: the upload adds it to the CRM's locations."],
     ["4. Dates must be DD/MM/YYYY (for example 25/12/2026)."],
     ["5. Lead Status blank = New. Choosing Qualified turns the lead into an opportunity straight away, so a Qualified row also needs its Opportunity Category (Hot or Warm). Leave the category blank for New or Contacted leads."],
     ["6. Assigned To is the salesperson who will work the lead (not the school's owner). Sales Executives and Managers can only assign leads to themselves."],

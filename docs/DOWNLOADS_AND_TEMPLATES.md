@@ -22,15 +22,18 @@ the Android APK and the logo.)
   Area/Location · Address · Current Publication/Curriculum · Current Student Strength · Number of Branches ·
   Lead Source (optional, R46) · Reference Name · Lead Status · **Opportunity Category (if Qualified)** · Assigned To* ·
   Next Follow-up Date* · Follow-up Type · Follow-up Remark
-- **Dropdowns (hard, "stop" style):** Designation, State, City (follows the row's State), Lead Source (incl. "Social Media"; Facebook/Instagram are refused), Lead
+- **Dropdowns (hard, "stop" style):** Designation, State, Lead Source (incl. "Social Media" and "Direct School Visit"; Facebook/Instagram are refused), Lead
   Status (New / Contacted / Qualified), Opportunity Category (Hot / Warm; R34), Assigned To (active
-  sales people at download time), Follow-up Type. Dates DD/MM/YYYY. Whole numbers for strength and branches.
+  sales people at download time), Follow-up Type. **City** follows the row's State but is a "warning" dropdown: a city
+  not in the list can be typed (choose Yes) and the upload adds it to Settings → Locations (R48). Dates DD/MM/YYYY.
+  Whole numbers for strength and branches.
 - **Where the lists come from:** `src/lib/constants.ts` (designations, sources, statuses, categories,
   follow-up types) and the database (states and cities from Settings → Locations; people from Settings → Users).
   The form, the template and the upload all read these same lists; never type a second copy.
 - **Rules the upload enforces** (`import.ts`), the same as the New lead form:
   - header row must match exactly (an old template is refused, naming the changed column);
-  - required fields; values must be in the lists; City must belong to State; 10-digit mobile (+91 / 0 in front removed); valid date;
+  - required fields; values must be in the lists; a City not yet listed under the State is **added to Locations**
+    (case is matched to an existing name; the result names the new cities, R48); 10-digit mobile (+91 / 0 in front removed); valid date;
   - **Qualified rows need an Opportunity Category**; the category is ignored on other rows (it belongs to the opportunity);
   - Reference Name kept only for Reference / Existing School Reference;
   - Sales Executives / Managers can only assign leads to themselves;
@@ -77,14 +80,14 @@ and PO numbers run per financial year with starting-number settings.
 |---|---|---|---|---|
 | Quotation (3 pages, client's format) | QUO/YYYY/MM/NNN | Lead, opportunity or client (price per kit includes the hidden transport; transport is never printed) | `/api/quotations/<id>/pdf`; public link `/q/<token>` | `src/server/quotation/pdf.tsx`, text in Settings → Quotation (`content.ts`) |
 | Sample quotation (to check Settings text) | QUO/…/000 | Settings → Quotation | `/api/quotations/sample` (Admin) | same |
-| PO template (client's PO format; school signs and stamps; Material Exclude lists removed kit items; kit checklist attached from page 2) | PO/2627/N, given on first save | Sent quotation + details saved in "Send PO template" (`Quotation.poDetails`) | `/api/quotations/<id>/po-template`; public `/q/<token>/po` | `src/server/finance/po-pdf.tsx`, `po.ts`; texts in Settings → Documents |
+| PO template (client's PO format; school signs and stamps; Material Exclude lists removed and unticked kit items; checklist of the selected kits, ticked items with ✓, from page 2, R48) | PO/2627/N, given on first save | Sent quotation + details saved in "Send PO template" (`Quotation.poDetails`) | `/api/quotations/<id>/po-template`; public `/q/<token>/po` | `src/server/finance/po-pdf.tsx`, `po.ts`; texts in Settings → Documents |
 | Kit checklist (client's checklist layout, one coloured page per class; since R47 the kits' four modules: Class Connect, Home Connect, Skill Booster, Essential Kit) | — | Products with contents (no prices printed); for a quotation, the kits as changed for that school | `/api/products/checklist[?ids=]`; public `/q/<token>/checklist` (the quotation's kits) | `src/server/products/checklist-pdf.tsx`, `checklist.ts` |
 | Signed PO (uploaded file) | school's PO No. | Upload signed PO | `/api/sales-orders/<id>/po` | `src/server/finance/po.ts` (PDF or photo, max 4 MB) |
-| Proforma invoice | PI/YYYY/MM/NNN | Sales order | `/api/sales-orders/<id>/proforma` | `invoice-pdf.tsx` (proforma title) |
+| Proforma invoice | PI/YYYY/MM/NNN | Sales order | `/api/sales-orders/<id>/proforma`; public signed `/d/<token>` (R48) | `invoice-pdf.tsx` (proforma title) |
 | Invoice 🟡 | INV/YYYY/MM/NNN | Sales order | `/api/invoices/<id>/pdf`; public `/i/<token>` | `src/server/finance/invoice-pdf.tsx`. **Provisional layout until the client's invoice sample arrives** |
 | Payment receipt (client's receipt format; only after Accounts approval) | N/26-27 (financial year), given on approval | Payment / advance | `/api/payments/<id>/receipt`; public `/r/<token>` | `receipt-pdf.tsx`; address and signatory in Settings → Documents |
-| Credit note | CN/YYYY/MM/NNN | Invoice | `/api/credit-notes/<id>/pdf` | `credit-note-pdf.tsx` |
-| Delivery challan | DC/YYYY/MM/NNN | Dispatch | `/api/dispatches/<id>/challan` | `challan-pdf.tsx` |
+| Credit note | CN/YYYY/MM/NNN | Invoice | `/api/credit-notes/<id>/pdf`; public signed `/d/<token>` (R48) | `credit-note-pdf.tsx` |
+| Delivery challan | DC/YYYY/MM/NNN | Dispatch | `/api/dispatches/<id>/challan`; public signed `/d/<token>` (R48) | `challan-pdf.tsx` |
 
 Sales orders are SO/YYYY/MM/NNN (on screen; the number prints on proforma and invoice together with the PO No.).
 

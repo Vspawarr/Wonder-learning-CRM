@@ -8,6 +8,7 @@ import { Icon } from "@/components/icons";
 type Result = {
   created: { row: number; school: string }[];
   skipped: { row: number; school: string; reason: string }[];
+  newCities?: string[];
 };
 
 export function BulkLeadButtons() {
@@ -135,7 +136,7 @@ export function BulkLeadButtons() {
 }
 
 function UploadSummary({ result }: { result: Result }) {
-  const { created, skipped } = result;
+  const { created, skipped, newCities = [] } = result;
   return (
     <div role="status">
       <div className="grid grid-cols-2 gap-3">
@@ -148,6 +149,11 @@ function UploadSummary({ result }: { result: Result }) {
           <div className="v">{skipped.length}</div>
         </div>
       </div>
+      {newCities.length ? (
+        <div className="note mt-4">
+          New {newCities.length > 1 ? "cities" : "city"} added to Settings → Locations: <b>{newCities.join("; ")}</b>.
+        </div>
+      ) : null}
       {skipped.length ? (
         <>
           <h3 className="mt-4">Skipped rows: fix these in the sheet and upload them again</h3>

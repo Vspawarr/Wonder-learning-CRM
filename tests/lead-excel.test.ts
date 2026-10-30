@@ -86,7 +86,7 @@ describe("template", () => {
     expect(ws.getRow(2).font?.italic).toBe(true);
   });
 
-  it("dropdowns are hard (stop) and read the live lists", async () => {
+  it("dropdowns are hard (stop), except City (a new city may be typed, R48), and read the live lists", async () => {
     const wb = await template();
     const ws = wb.getWorksheet(DATA_SHEET)! as unknown as { dataValidations: { model: Record<string, ExcelJS.DataValidation> } };
     const col = (key: string) => String.fromCharCode(65 + COLUMNS.findIndex((c) => c.key === key));
@@ -94,7 +94,7 @@ describe("template", () => {
       const v = ws.dataValidations.model[`${col(key)}500`];
       expect(v, key).toBeTruthy();
       expect(v.type).toBe("list");
-      expect(v.errorStyle).toBe("stop");
+      expect(v.errorStyle, key).toBe(key === "city" ? "warning" : "stop");
     }
     expect(ws.dataValidations.model[`${col("city")}2`].formulae[0]).toBe("INDIRECT(VLOOKUP($F2,L_StateMap,2,FALSE))");
     expect(ws.dataValidations.model[`${col("nextFollowUpDate")}2`].type).toBe("date");
@@ -137,6 +137,18 @@ describe("upload", () => {
     expect(lead.tasks[0]).toMatchObject({ type: "Email", title: "Send deck", isAuto: true, assigneeId: exA.id });
   });
 
+  it("adds a city that is not yet listed to the state's locations (R48)", async () => {
+    const r = await importLeads(
+      head,
+      await filled([good({ city: "Nashik" }), good({ schoolName: "Second", mobile: "90000 22222", city: "nashik" }), good({ schoolName: "Third", mobile: "90000 33333", city: "pune" })]),
+    );
+    expect(r.skipped).toEqual([]);
+    expect(r.newCities).toEqual(["Nashik, Maharashtra"]);
+    expect(await db.city.count({ where: { stateName: "Maharashtra", name: "Nashik", active: true } })).toBe(1);
+    const leads = await db.lead.findMany({ orderBy: { number: "asc" }, select: { city: true } });
+    expect(leads.map((l) => l.city)).toEqual(["Nashik", "Nashik", "Pune"]);
+  });
+
   it("accepts dates typed as DD/MM/YYYY text", async () => {
     const [y, m, d] = addDays(today, 5).split("-");
     const r = await importLeads(head, await filled([good({ nextFollowUpDate: `${d}/${m}/${y}` })]));
@@ -150,7 +162,7 @@ describe("upload", () => {
       head,
       await filled([
         good({ schoolName: "A", source: "Facebok" }),
-        good({ schoolName: "B", city: "Indore" }),
+        good({ schoolName: "B", city: "" }),
         good({ schoolName: "C", state: "Kerala", city: "Kochi" }),
         good({ schoolName: "D", assignedTo: "Nobody" }),
         good({ schoolName: "E", nextFollowUpDate: "31/02/2026" }),
@@ -163,7 +175,7 @@ describe("upload", () => {
     expect(r.created).toEqual([]);
     const reasons = Object.fromEntries(r.skipped.map((s) => [s.school, s.reason]));
     expect(reasons.A).toMatch(/"Lead Source": "Facebok" is not an allowed value/);
-    expect(reasons.B).toMatch(/"City": "Indore" is not a listed city of Maharashtra/);
+    expect(reasons.B).toMatch(/"City\*?" is required/);
     expect(reasons.C).toMatch(/"State": "Kerala" is not an allowed value/);
     expect(reasons.D).toMatch(/"Assigned To": "Nobody" is not an allowed value/);
     expect(reasons.E).toMatch(/"Next Follow-up Date": "31\/02\/2026" is not a valid date/);

@@ -217,7 +217,7 @@ export function PoTemplateDocument({ d }: { d: PoTemplateData }) {
               )}
               {d.checklist.length ? (
                 <Text style={{ color: "#555555", fontSize: 7.6, marginTop: 2 }}>
-                  Kit checklist (every item in each kit{d.exclude.length ? ", after the exclusions" : ""}) is attached from page 2.
+                  Checklist of the selected kits (every item ordered, ticked{d.exclude.length ? ", after the exclusions" : ""}) is attached from page 2.
                 </Text>
               ) : null}
             </View>
@@ -284,7 +284,7 @@ export function PoTemplateDocument({ d }: { d: PoTemplateData }) {
         </Text>
       </Page>
       {d.checklist.map((k, i) => (
-        <KitPage key={i} kit={k} />
+        <KitPage key={i} kit={k} ticks />
       ))}
     </Document>
   );

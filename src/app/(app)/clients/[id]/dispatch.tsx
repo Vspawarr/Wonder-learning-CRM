@@ -8,6 +8,7 @@ import { Field, Modal, useAction } from "@/components/client";
 import { DateInput } from "@/components/date-input";
 import { Icon } from "@/components/icons";
 import { Pill } from "@/components/ui";
+import { SendDocButton } from "@/components/send-doc";
 import { createDispatch, deleteDispatch, markDispatchReceived } from "@/app/actions";
 import { todayIST } from "@/lib/dates";
 import { dmy } from "@/lib/format";
@@ -28,7 +29,15 @@ export async function uploadClientFile(clientId: string, file: File, fields: Rec
   }
 }
 
-export function DispatchSection({ so, clientId }: { so: SO; clientId: string }) {
+export function DispatchSection({
+  so,
+  clientId,
+  share,
+}: {
+  so: SO;
+  clientId: string;
+  share: { schoolName: string; mobile: string | null; me: { name: string } };
+}) {
   const [sending, setSending] = useState(false);
   const [receiving, setReceiving] = useState<SO["dispatches"][number] | null>(null);
   const { pending, run } = useAction();
@@ -60,6 +69,16 @@ export function DispatchSection({ so, clientId }: { so: SO; clientId: string }) 
             <a className="btn sm" href={`/api/dispatches/${d.id}/challan`} target="_blank" rel="noreferrer">
               Challan PDF
             </a>
+            <SendDocButton
+              kind="challan"
+              id={d.id}
+              pdf={`/api/dispatches/${d.id}/challan`}
+              title={`Challan ${d.number}`}
+              schoolName={share.schoolName}
+              mobile={share.mobile}
+              body={`Your kits are on the way: delivery challan ${d.number} for ${d.kits} kits (order ${so.number})${d.transporter ? `, sent by ${d.transporter}${d.docketNo ? ` (docket ${d.docketNo})` : ""}` : ""}.`}
+              me={share.me}
+            />
             {d.pod ? (
               <a className="btn sm" href={`/api/files/${d.pod.id}`} target="_blank" rel="noreferrer">
                 Proof of delivery

@@ -47,7 +47,7 @@ export default async function LocationsPage() {
           </Card>
         ))}
       </div>
-      <p className="small muted mt-4">Click a city to hide it (or show it again). Hidden states and cities stay on existing leads but can&apos;t be chosen for new ones.</p>
+      <p className="small muted mt-4">Click a city to hide it (or show it again); click × to delete it. Hidden or deleted states and cities stay on existing leads but can&apos;t be chosen for new ones.</p>
     </>
   );
 }

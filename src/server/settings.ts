@@ -168,6 +168,12 @@ export async function setCityActive(actor: SessionUser, id: string, active: bool
   await db.city.update({ where: { id }, data: { active } });
 }
 
+/** R48: removes a city from the list. Leads and clients keep the city name they already have. */
+export async function deleteCity(actor: SessionUser, id: string) {
+  assertSettings(actor);
+  await db.city.deleteMany({ where: { id } });
+}
+
 /** What a person currently has open, for the hand-over screen. */
 export async function openWorkOf(userId: string) {
   const [leads, opportunities, clients, tasks] = await Promise.all([

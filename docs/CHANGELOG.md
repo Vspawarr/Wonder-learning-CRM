@@ -5,6 +5,14 @@ wonder-learning-crm.vercel.app automatically). Newest first. **Add an entry with
 commit id, what changed in plain words, and the requirement it answers (R… in `REQUIREMENTS.md`).
 `git log --oneline` shows the full list.
 
+## 30 Oct 2026
+
+- `PENDING` **WhatsApp with PDF for every document, PO checklist ticks, cities, new lead source.** Proforma invoice,
+  delivery challan and credit note now have a WhatsApp button that sends the PDF with a private link (like quotations,
+  invoices and receipts). Send PO template: tick the kits and items to print from page 2 (kits with a quantity by
+  default); unticked items go under Material Exclude; the checklist pages show ✓. Settings → Locations: delete a city.
+  Lead Excel upload adds a new city to Locations by itself. Lead source "Direct School Visit". (R48)
+
 ## 26 Oct 2026
 
 - `900c425` **New price list.** The client's "Kit Cost" Excel replaces all products: Play Group, Nursery, LKG and UKG kits

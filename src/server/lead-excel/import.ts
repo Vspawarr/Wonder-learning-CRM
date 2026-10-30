@@ -8,7 +8,7 @@ import { fromDbDate, isDateStr } from "@/lib/dates";
 import { SALES_ROLES, type SessionUser } from "@/lib/permissions";
 import { DomainError } from "../errors";
 import { createLead } from "../leads";
-import { getLocations, locationProblem } from "../locations";
+import { ensureCity, getLocations } from "../locations";
 import { MOBILE_RE, normalizeMobile } from "@/lib/phone";
 import {
   CATEGORY_BY_LABEL,
@@ -26,6 +26,8 @@ import {
 export type ImportResult = {
   created: { row: number; school: string }[];
   skipped: { row: number; school: string; reason: string }[];
+  /** R48: cities that were not in Settings → Locations and were added by this upload ("City, State"). */
+  newCities: string[];
 };
 
 /** Plain text of any cell value exceljs can return. */
@@ -106,7 +108,7 @@ export async function importLeads(user: SessionUser, file: ArrayBuffer | Buffer)
   const allowed = allowedValues({ ...locations, assignees: people.map((p) => p.name) });
   const seen = new Set(existing.map((l) => dupKey(l.schoolName, l.mobile)));
 
-  const result: ImportResult = { created: [], skipped: [] };
+  const result: ImportResult = { created: [], skipped: [], newCities: [] };
   for (const { row, values } of rows) {
     const text = Object.fromEntries(COLUMNS.map((c) => [c.key, cellText(values[c.key])])) as Record<ColumnKey, string>;
     const school = text.schoolName || "(no school name)";
@@ -126,10 +128,7 @@ export async function importLeads(user: SessionUser, file: ArrayBuffer | Buffer)
       if (c.list === "category" && !qualified) continue;
       if (!allowed[c.list].includes(text[c.key])) problems.push(`"${label(c)}": "${text[c.key]}" is not an allowed value`);
     }
-    if (text.state && text.city && allowed.state.includes(text.state)) {
-      const p = locationProblem(locations, text.state, text.city);
-      if (p) problems.push(`"City": ${p.replace(/\.$/, "")}`);
-    }
+    // A city not yet listed under a listed state is fine: it is added to Settings → Locations below (R48).
     if (text.mobile && !MOBILE_RE.test(normalizeMobile(text.mobile))) problems.push(`"Mobile Number": "${text.mobile}" is not a 10-digit mobile number`);
     for (const c of COLUMNS.filter((c) => c.kind === "int"))
       if (text[c.key] && !(/^\d+$/.test(text[c.key]) && Number(text[c.key]) >= (c.min ?? 0)))
@@ -152,6 +151,11 @@ export async function importLeads(user: SessionUser, file: ArrayBuffer | Buffer)
     }
 
     try {
+      const city = await ensureCity(db, text.state, text.city);
+      if (city.added) {
+        result.newCities.push(`${city.name}, ${text.state}`);
+        locations.cities[text.state]?.push(city.name);
+      }
       await createLead(user, {
         schoolName: text.schoolName,
         contactName: text.contactName,
@@ -159,7 +163,7 @@ export async function importLeads(user: SessionUser, file: ArrayBuffer | Buffer)
         mobile: text.mobile,
         email: text.email || null,
         state: text.state,
-        city: text.city,
+        city: city.name,
         area: text.area || null,
         address: text.address || null,
         currentCurriculum: text.currentCurriculum || null,

@@ -1,7 +1,7 @@
 // Kit checklist PDF in the layout of the client's "WLI Checklist": one A4 page per kit,
 // framed in the kit's colour, with Sr. No. / Item Description / Kit Contents, where the
 // last column names each group ("Common Kit · 19 objects") beside its items.
-import { Document, Page, StyleSheet, Text, View, renderToBuffer } from "@react-pdf/renderer";
+import { Document, Page, Polyline, StyleSheet, Svg, Text, View, renderToBuffer } from "@react-pdf/renderer";
 import { splitKitTitle } from "@/lib/kits";
 import type { KitSection } from "@/lib/quotation-text";
 
@@ -35,7 +35,16 @@ function tint(hex: string, amount = 0.72) {
   return `#${((1 << 24) | (r << 16) | (g << 8) | b).toString(16).slice(1)}`;
 }
 
-export function KitPage({ kit }: { kit: ChecklistKit }) {
+/** A green tick beside each item on the PO's checklist pages (R48): these items are ordered. */
+function Tick({ color }: { color: string }) {
+  return (
+    <Svg width={9} height={9} viewBox="0 0 10 10" style={{ marginRight: 5 }}>
+      <Polyline points="1.5,5.5 4,8 8.5,2" stroke={color} strokeWidth={1.6} fill="none" />
+    </Svg>
+  );
+}
+
+export function KitPage({ kit, ticks }: { kit: ChecklistKit; ticks?: boolean }) {
   const color = kit.color ?? "#3D3BA8";
   let sr = 0;
   return (
@@ -58,7 +67,14 @@ export function KitPage({ kit }: { kit: ChecklistKit }) {
                   {g.items.map((item, i) => (
                     <View key={i} style={[s.row, i === g.items.length - 1 ? s.rowLast : {}]}>
                       <Text style={s.no}>{++sr}</Text>
-                      <Text style={[s.desc, { borderRightWidth: 0 }]}>{item}</Text>
+                      {ticks ? (
+                        <View style={[s.desc, { borderRightWidth: 0, flexDirection: "row", alignItems: "center" }]}>
+                          <Tick color="#0E8F79" />
+                          <Text style={{ flexGrow: 1, flexBasis: 0 }}>{item}</Text>
+                        </View>
+                      ) : (
+                        <Text style={[s.desc, { borderRightWidth: 0 }]}>{item}</Text>
+                      )}
                     </View>
                   ))}
                 </View>

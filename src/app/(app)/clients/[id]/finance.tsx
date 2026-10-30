@@ -43,6 +43,7 @@ import type { InvoiceRow } from "@/server/finance/service";
 import type { ClientDetail, ProductOption } from "@/server/queries";
 import { PoTemplateModal, type QuoteTarget } from "../../pipeline/quotations";
 import { DispatchSection } from "./dispatch";
+import { SendDocButton } from "@/components/send-doc";
 import { WHATSAPP_DONE, useWhatsAppPdf } from "@/components/whatsapp-share";
 
 const money = inrExact;
@@ -345,7 +346,7 @@ export function SalesOrdersPanel({
                     </div>
                   ) : null}
                   {features.dispatch && so.items.length ? (
-                    <DispatchSection so={so} clientId={client.id} />
+                    <DispatchSection so={so} clientId={client.id} share={{ schoolName: client.schoolName, mobile: client.mobile, me }} />
                   ) : null}
                 </div>
                 {so.status !== "CANCELLED" ? (
@@ -378,6 +379,17 @@ export function SalesOrdersPanel({
                         >
                           Proforma invoice
                         </a>
+                        <SendDocButton
+                          kind="proforma"
+                          id={so.id}
+                          pdf={`/api/sales-orders/${so.id}/proforma`}
+                          title={so.proformaNumber ? `Proforma ${so.proformaNumber}` : "Proforma invoice"}
+                          schoolName={client.schoolName}
+                          mobile={client.mobile}
+                          body={`Please find our proforma invoice for order ${so.number} (${money(so.total)})${so.poNumber ? ` against your PO ${so.poNumber}` : ""}.`}
+                          me={me}
+                          label="Send proforma"
+                        />
                         {so.total - so.advanceReceived - so.advancePending - so.advanceAwaiting >
                         0 ? (
                           <button
@@ -1806,6 +1818,16 @@ export function PaymentsPanel({
                 >
                   PDF
                 </a>
+                <SendDocButton
+                  kind="credit-note"
+                  id={n.id}
+                  pdf={`/api/credit-notes/${n.id}/pdf`}
+                  title={`Credit note ${n.number}`}
+                  schoolName={client.schoolName}
+                  mobile={client.mobile}
+                  body={`Please find credit note ${n.number} for ${money(n.amount)} against invoice ${n.invoiceNumber}.`}
+                  me={me}
+                />
                 {canFinance ? (
                   <button
                     className="btn sm ghost"

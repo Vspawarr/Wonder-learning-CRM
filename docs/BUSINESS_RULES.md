@@ -83,8 +83,10 @@ client shows a warning (the user may still save). The Excel upload skips same sc
 - Drafts and **sent quotations can be edited** (same number; editing a sent one is noted on the timeline and it should be sent again), until a **sales order is made from it**; then it is fixed and **Revise** makes a new version (R46). Only drafts can be deleted.
 - **PO flow:** send the school a **PO template** in the client's PO format, made from the sent quotation and
   the details typed in "Send PO template" (kits, requisitioner, expected delivery, ship via, shipping terms,
-  remarks, customisation YES/NO, advance cheque/DD plan). "Material Exclude" lists items taken out of the kits and
-  the kit checklist (as changed for the school) is attached from page 2; saving fills the deal's expected value
+  remarks, customisation YES/NO, advance cheque/DD plan). From page 2 it carries the checklist of the **selected kits
+  only** (R48): a kit is selected by its tick, by default the kits with a quantity (every kit while no quantity is
+  typed); each item has a tick too, and the pages print only the ticked items with a ✓. "Material Exclude" lists
+  items taken out on the quotation and items unticked on the PO; saving fills the deal's expected value
   (kits × rate) when it's empty (R33) → the school signs, stamps and sends it back → **Upload signed PO** with its PO number → this creates the **sales order**. The PO number
   shows on the sales order, proforma and invoice. The sales order shows the quotation's creation time
   (date + H:M:S AM/PM) (R16.10, R17).
@@ -199,8 +201,10 @@ client shows a warning (the user may still save). The Excel upload skips same sc
 ## Reminders and messages
 
 - WhatsApp buttons open WhatsApp with a ready message and a private link to the PDF (`/q/`, `/i/`, `/r/`
-  links work without logging in, but only with the secret token).
-- **The document goes with the message (R43):** quotation, PO template, invoice / reminder and receipt. Phones: the
+  links work without logging in, but only with the secret token; `/d/` links for proforma, challan and credit note
+  are signed with the app's secret, so a changed link is refused, R48).
+- **The document goes with the message (R43, R48):** quotation, PO template, invoice / reminder, receipt, proforma
+  invoice, delivery challan and credit note. Phones: the
   share screen opens with the PDF and the message (pick WhatsApp and the chat); the Android app (version 1.3) hands
   them straight to WhatsApp. Computers: WhatsApp Web opens with the message and link, and the PDF is saved to the
   computer to attach with 📎, because no website can attach a file inside WhatsApp Web by itself.
@@ -268,7 +272,10 @@ targets · several contacts · client documents · quotation validity. New optio
 Fixed lists live only in `src/lib/constants.ts`: lead sources (Facebook and Instagram are merged into **Social Media**, R28), designations, follow-up types, own to-do
 types, competitors (choosing **Other** asks which one, R41), lost reasons, stages + probabilities, payment modes, document categories, contact roles.
 States and cities live in the database (Settings → Locations). The form, the Excel template and the upload
-read the same lists, so they can't drift apart (R9, R10).
+read the same lists, so they can't drift apart (R9, R10). An admin can hide or **delete** a city; leads and
+clients keep the city they have (R48). The lead **Excel upload adds a city it doesn't know** under a listed state
+to Locations by itself (an unknown state is still refused); the lead form still offers only listed cities (R48).
+Lead sources include **Direct School Visit** (R48).
 
 ## Look and devices
 

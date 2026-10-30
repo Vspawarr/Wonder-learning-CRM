@@ -591,3 +591,20 @@ reference keep old items and list somewhere in your memory; if they ask for this
 | **All old products removed** | ✅ | Nursery Core / Focus / Plus kits, the 33 optional items and any other product; old quotations / orders / invoices keep their lines (text and prices) |
 | **Old list kept for reference** | ✅ | `docs/OLD_PRICE_LIST.md` (readable) and `src/lib/kits-old.ts` (code); CLAUDE.md points to it |
 
+## R48. PDF with every WhatsApp, PO checklist ticks, delete / auto-add cities, new lead source (30 Oct)
+
+"1. While sending quotation/SO/any doc to client with link downloadable PDF should be send. 2. While sending PO template
+only selected kit/items should be shown from page 2. 3. In location admin should able to delete city. 4. PO template
+checklist should be editable and should have check icons to select and unselect. 5. If user fill the another city in
+while uploading leads then city should automatically to added to locations. 6. In lead source "direct school visit"
+option should be added."
+
+| Change | Status | Notes |
+|---|---|---|
+| **PDF + link on every WhatsApp send** | ✅ | Already for quotation, PO template, invoice / reminder and receipt; now also **proforma invoice** (sales order: "Send proforma"), **delivery challan** and **credit note** (WhatsApp button beside each PDF). Each message has a private link to the PDF that opens without logging in |
+| **PO template: only the selected kits / items from page 2** | ✅ | Kits with a quantity are selected by default (every kit while no quantity is typed); only selected kits get a checklist page, and only their ticked items |
+| **PO checklist editable with check icons** | ✅ | In "Send PO template": a round tick per kit and per item (Tick all / Untick all). Unticked items are left off the checklist and listed under "Material Exclude". The PDF's checklist pages show a green ✓ beside every item |
+| **Admin can delete a city** | ✅ | Settings → Locations: × on each city (asks first). Leads and clients already in that city keep it. Clicking the name still hides / shows it |
+| **New city in the lead upload added automatically** | ✅ | A city not listed under a listed state is added to Settings → Locations (the result says which). The Excel's City dropdown now warns instead of refusing, so a new city can be typed. An unknown **state** is still refused |
+| **Lead source "Direct School Visit"** | ✅ | Lead form, filters and the Excel template's dropdown |
+
