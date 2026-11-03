@@ -12,6 +12,7 @@ import { getDocumentSettings, startingNumber } from "../documents";
 import type { SessionUser } from "@/lib/permissions";
 import { DomainError } from "../errors";
 import { loadQuotation } from "../quotation/service";
+import { logoForQuotation } from "../school-logo";
 import { parse } from "../validation";
 import { renderPoTemplatePdf } from "./po-pdf";
 import { loadOrder } from "./service";
@@ -275,6 +276,7 @@ async function templateFor(q: QuoteForPo) {
   const issued = fromDbDate(q.sentAt ?? q.date);
   const fy = financialYear(issued);
   return renderPoTemplatePdf({
+    logo: await logoForQuotation(q),
     poNumber: q.poNumber ?? "",
     issueDate: ddmmyyyy(issued),
     academicYear: `${fy.start} - ${String((fy.start + 1) % 100).padStart(2, "0")}`,

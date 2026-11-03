@@ -1,7 +1,7 @@
 // Purchase order template in the client's own PO format (their PO/2526/92 for Caring Hood
 // Preschool): Wonder Learning prepares it from a sent quotation, the school checks it,
 // signs, stamps and sends it back. Layout follows the original, section by section.
-import { Document, Font, Page, StyleSheet, Text, View, renderToBuffer } from "@react-pdf/renderer";
+import { Document, Font, Image, Page, StyleSheet, Text, View, renderToBuffer } from "@react-pdf/renderer";
 import "../quotation/pdf"; // registers the Rupee font
 import { KitPage, type ChecklistKit } from "../products/checklist-pdf";
 
@@ -9,6 +9,8 @@ import { KitPage, type ChecklistKit } from "../products/checklist-pdf";
 Font.registerHyphenationCallback((word) => [word]);
 
 export type PoTemplateData = {
+  /** R51: the school's own logo, top left of the PO (none = no logo). */
+  logo?: { data: Buffer; format: "png" | "jpg" } | null;
   poNumber: string;
   issueDate: string; // DD-MM-YYYY
   academicYear: string; // "2026 - 27"
@@ -38,6 +40,7 @@ const LINE = "#555555";
 const s = StyleSheet.create({
   page: { fontFamily: "Helvetica", fontSize: 8.6, color: "#111111", paddingTop: 28, paddingHorizontal: 50, paddingBottom: 22 },
   bold: { fontFamily: "Helvetica-Bold" },
+  logo: { position: "absolute", top: 16, left: 50, width: 110, height: 46, objectFit: "contain", objectPosition: "left center" },
   title: { fontFamily: "Helvetica-Bold", fontSize: 17, color: "#1F6FB5", textAlign: "center", textDecoration: "underline" },
   ay: { textAlign: "center", marginTop: 3, fontSize: 9 },
   two: { flexDirection: "row", justifyContent: "space-between", marginTop: 10 },
@@ -109,6 +112,10 @@ export function PoTemplateDocument({ d }: { d: PoTemplateData }) {
   return (
     <Document title={`Purchase order ${d.poNumber} · ${d.buyer.name}`} author="Wonder Learning India Pvt. Ltd." creator="Wonder Learning CRM">
       <Page size="LETTER" style={s.page}>
+        {d.logo ? (
+          // eslint-disable-next-line jsx-a11y/alt-text -- react-pdf Image has no alt
+          <Image src={d.logo} style={s.logo} />
+        ) : null}
         <Text style={s.title}>PURCHASE ORDER</Text>
         <Text style={s.ay}>Academic Year {d.academicYear}</Text>
 

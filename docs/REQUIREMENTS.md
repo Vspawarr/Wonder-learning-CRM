@@ -625,3 +625,11 @@ uploaded. 2. After selecting sales order only converted PO options should be dis
 |---|---|---|
 | **"Convert to PO" on a sent quotation** | ✅ | Two choices: **Send PO template** (as before) or **Upload received PO**: school's PO number (required), PO date, signed PO file. The quotation then shows "PO received" and "View PO"; the button becomes "PO" to correct it. Same on the client page (PO steps 1–3) |
 | **New sales order lists only converted POs** | ✅ | Only sent quotations with a PO received are offered; "Blank order" removed. The order is filled with the kits, PO number and date; the PO file goes onto the order by itself |
+
+## R51. School's logo on its PO template (3 Nov)
+
+"If school or client send us their logo then in their PO template their should be there logo in PO template."
+
+| Change | Status | Notes |
+|---|---|---|
+| **School logo on the PO template** | ✅ | "Send PO template" → School logo: Upload logo (PNG or JPG, up to 2 MB), Replace logo, Remove. Printed top left on page 1 of the PO template (download, preview and the WhatsApp link). One logo per school, kept on the lead and the client, so later PO templates have it. Schools without a logo: PO as before |

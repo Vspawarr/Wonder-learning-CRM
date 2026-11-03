@@ -190,6 +190,8 @@ After its validity date a sent quotation shows **Expired** (feature switch "Quot
 ## 8. The PO template (purchase order for the school to sign)
 
 On a **sent** quotation: **Convert to PO → Send PO template**.
+- **School logo** (optional, at the top): if the school sent its logo, **Upload logo** (PNG or JPG, up to 2 MB). It
+  prints at the top of their PO template and is kept for the school's later POs (**Replace logo** / **Remove**).
 1. **Quantities (kits demanded)**: number of kits per line (or leave blank for the school to fill in).
 2. **Kit checklist (from page 2)**: a round tick per kit and, under "Items in this kit", per item (Tick all /
    Untick all). Kits with a quantity are ticked for you (all kits while no quantity is typed). Untick a kit the

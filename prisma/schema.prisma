@@ -58,6 +58,7 @@ model User {
   invoicesCreated    Invoice[]
   paymentsRecorded   Payment[]                @relation("PaymentRecordedBy")
   poFilesUploaded    PurchaseOrderFile[]
+  logosUploaded      SchoolLogo[]
   creditNotesCreated CreditNote[]
   activities         Activity[]
   stageChanges       OpportunityStageChange[]
@@ -206,6 +207,7 @@ model Lead {
   updatedAt DateTime @updatedAt
 
   interests     LeadInterest[]
+  logo          SchoolLogo?
   opportunities Opportunity[]
   tasks         Task[]
   activities    Activity[]
@@ -456,6 +458,7 @@ model Client {
   creditNotes CreditNote[]
   dispatches  Dispatch[]
   files       ClientFile[]
+  logo        SchoolLogo?
   expenses    Expense[]
   contacts    ClientContact[]
   renewals    Opportunity[]   @relation("Renewals")
@@ -672,6 +675,23 @@ model DispatchItem {
 }
 
 /// Files kept on a client: documents (agreement, GST certificate…) and proof of delivery.
+/// R51: the school's own logo (sent by the school), printed on its PO template. Kept on the lead and, once
+/// the school is a client, on the client too, so every later PO template for the school has it.
+model SchoolLogo {
+  id           String   @id @default(cuid())
+  leadId       String?  @unique
+  lead         Lead?    @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  clientId     String?  @unique
+  client       Client?  @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  fileName     String
+  contentType  String
+  size         Int
+  data         Bytes
+  uploadedById String
+  uploadedBy   User     @relation(fields: [uploadedById], references: [id])
+  uploadedAt   DateTime @default(now())
+}
+
 model ClientFile {
   id           String    @id @default(cuid())
   clientId     String

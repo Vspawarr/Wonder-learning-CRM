@@ -758,6 +758,69 @@ export function ReceivedPoModal({ q, onBack, onClose }: { q: Q; onBack?: () => v
   );
 }
 
+/** R51: the school's own logo (if they sent one), printed top left on its PO template. Kept for the school. */
+function SchoolLogoField({ quotationId, version, onChange }: { quotationId: string; version: number; onChange: () => void }) {
+  const [has, setHas] = useState<boolean | null>(null);
+  const [busy, setBusy] = useState(false);
+  const toast = useToast();
+  const src = `/api/quotations/${quotationId}/school-logo?v=${version}`;
+  const send = async (init: RequestInit, done: string) => {
+    setBusy(true);
+    try {
+      const r = (await (await fetch(`/api/quotations/${quotationId}/school-logo`, init)).json()) as { ok: boolean; error?: string };
+      toast(r.ok ? done : (r.error ?? "That didn't work. Please try again."), !r.ok);
+      if (r.ok) {
+        setHas(null);
+        onChange();
+      }
+    } catch {
+      toast("The upload failed. Check your internet connection and try again.", true);
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <>
+      <h3>School logo</h3>
+      <p className="small muted">If the school sent its logo, upload it (PNG or JPG, up to 2 MB); it prints at the top of their PO template and is kept for the school.</p>
+      <div className="mt-2 flex flex-wrap items-center gap-3">
+        {/* eslint-disable-next-line @next/next/no-img-element -- a private, signed-in image */}
+        <img
+          key={src}
+          src={src}
+          alt="School logo"
+          className={has ? "h-14 max-w-[160px] rounded border border-line bg-white object-contain p-1" : "hidden"}
+          onLoad={() => setHas(true)}
+          onError={() => setHas(false)}
+        />
+        <label className={`btn sm ${busy ? "pointer-events-none opacity-45" : ""}`}>
+          <Icon name="upload" size={14} /> {has ? "Replace logo" : "Upload logo"}
+          <input
+            className="sr-only"
+            type="file"
+            accept="image/png,image/jpeg"
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              e.target.value = "";
+              if (!f) return;
+              const body = new FormData();
+              body.append("file", f);
+              send({ method: "POST", body }, "Logo saved. It is on the PO template now.");
+            }}
+          />
+        </label>
+        {has ? (
+          <button className="btn sm ghost" disabled={busy} onClick={() => confirm("Remove the school's logo?") && send({ method: "DELETE" }, "Logo removed.")}>
+            Remove
+          </button>
+        ) : has === false ? (
+          <span className="small faint">No logo yet</span>
+        ) : null}
+      </div>
+    </>
+  );
+}
+
 /** The PO template in Wonder Learning's PO format, pre-filled from the quotation for the school to sign and stamp. */
 export function PoTemplateModal({ q, target, me, onClose }: { q: Q; target: QuoteTarget; me: { name: string }; onClose: () => void }) {
   const router = useRouter();
@@ -830,7 +893,8 @@ export function PoTemplateModal({ q, target, me, onClose }: { q: Q; target: Quot
   const pdf = `/api/quotations/${q.id}/po-template`;
   const mobile = (target.mobile ?? "").replace(/\D/g, "").replace(/^(\d{10})$/, "91$1");
   const toast = useToast();
-  const waPo = useWhatsAppPdf(saved ? `${pdf}?v=${encodeURIComponent(poNumber ?? "")}` : null, `PO ${poNumber ?? q.number} ${target.schoolName}`);
+  const [logoV, setLogoV] = useState(0);
+  const waPo = useWhatsAppPdf(saved ? `${pdf}?v=${encodeURIComponent(poNumber ?? "")}&l=${logoV}` : null, `PO ${poNumber ?? q.number} ${target.schoolName}`);
   const whatsapp = () => {
     const base = `${window.location.origin}/q/${q.shareToken}`;
     const text = `Dear Sir/Madam,\nAs discussed, here is purchase order ${poNumber ?? ""} for ${target.schoolName} against our quotation ${q.number}. Please check the quantities, sign, put the school stamp and send it back to us. The checklist of the kits you are ordering (every item, ticked) is from page 2. PDF attached; also here:\n${base}/po\n\nRegards,\n${me.name}\nWonder Learning`;
@@ -854,7 +918,8 @@ export function PoTemplateModal({ q, target, me, onClose }: { q: Q; target: Quot
         </>
       }
     >
-      <h3>Quantities (kits demanded)</h3>
+      <SchoolLogoField quotationId={q.id} version={logoV} onChange={() => setLogoV((n) => n + 1)} />
+      <h3 className="mt-4">Quantities (kits demanded)</h3>
       <p className="small muted">Leave blank for the school to fill in by hand.</p>
       <div className="mt-2 flex flex-col gap-2">
         {q.itemNames.map((name, i) => (

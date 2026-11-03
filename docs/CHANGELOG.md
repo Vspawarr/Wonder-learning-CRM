@@ -7,6 +7,9 @@ commit id, what changed in plain words, and the requirement it answers (R… in 
 
 ## 3 Nov 2026
 
+- `pending` **School logo on the PO template.** In "Send PO template", upload the logo the school sent (PNG or JPG); it
+  prints at the top of their PO template and is kept for the school's later POs. (R51)
+
 - `b63191e` **Convert to PO.** A sent quotation has a "Convert to PO" button: send the PO template, or upload the PO
   received from the school (PO number, date, file). The quotation then shows "PO received". New sales order lists only
   quotations converted to a PO (no blank orders); the PO number, date and file go onto the order. (R50)

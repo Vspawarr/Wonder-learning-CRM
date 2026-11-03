@@ -90,7 +90,9 @@ client shows a warning (the user may still save). The Excel upload skips same sc
   only** (R48): a kit is selected by its tick, by default the kits with a quantity (every kit while no quantity is
   typed); each item has a tick too, and the pages print only the ticked items with a ✓. "Material Exclude" lists
   items taken out on the quotation and items unticked on the PO; saving fills the deal's expected value
-  (kits × rate) when it's empty (R33) → the school signs, stamps and sends it back (or sends its own PO) →
+  (kits × rate) when it's empty (R33). **School logo** (R51): if the school sent its logo, upload it in "Send PO
+  template" (PNG or JPG, up to 2 MB); it prints top left on page 1 of its PO template. One logo per school, kept on
+  the lead and the client, so later PO templates (repeat orders, renewals) have it too; Replace / Remove there → the school signs, stamps and sends it back (or sends its own PO) →
   **Convert to PO → Upload received PO** on the quotation (R50): the school's PO number (required), date and file
   are stored on the quotation, which then shows **PO received** → **New sales order** lists **only quotations
   converted to a PO** (no blank orders): the order is filled with the kits, PO number and date, and the PO file
