@@ -7,7 +7,7 @@ commit id, what changed in plain words, and the requirement it answers (R… in 
 
 ## 3 Nov 2026
 
-- `pending` **Quotation page 2 shows only the selected kits.** Instead of the fixed list from Settings, page 2 now
+- `aeecea4` **Quotation page 2 shows only the selected kits.** Instead of the fixed list from Settings, page 2 now
   lists each quoted kit with its own items (items taken out for the school left off, added ones listed), two kits
   per page, then the other quoted lines. (R49)
 
