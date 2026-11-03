@@ -41,7 +41,7 @@ import { dmy, inrExact } from "@/lib/format";
 import type { InvoiceState } from "@/server/finance/money";
 import type { InvoiceRow } from "@/server/finance/service";
 import type { ClientDetail, ProductOption } from "@/server/queries";
-import { PoTemplateModal, type QuoteTarget } from "../../pipeline/quotations";
+import { PoTemplateModal, ReceivedPoModal, type QuoteTarget } from "../../pipeline/quotations";
 import { DispatchSection } from "./dispatch";
 import { SendDocButton } from "@/components/send-doc";
 import { WHATSAPP_DONE, useWhatsAppPdf } from "@/components/whatsapp-share";
@@ -95,6 +95,8 @@ type OrderDraft = {
   poDate: string;
   quotationId: string;
   quotationLabel: string;
+  /** R50: the PO file received on the quotation; it goes onto the new order by itself. */
+  poFileName?: string;
   items: OrderLine[];
 };
 
@@ -163,6 +165,9 @@ export function SalesOrdersPanel({
 }) {
   const { pending, run } = useAction();
   const [poTemplate, setPoTemplate] = useState<
+    "choose" | ClientDetail["quotations"][number] | null
+  >(null);
+  const [received, setReceived] = useState<
     "choose" | ClientDetail["quotations"][number] | null
   >(null);
   const sentQuotes = client.quotations.filter((q) => q.status === "SENT");
@@ -247,11 +252,26 @@ export function SalesOrdersPanel({
           ) : null}
           <li className="flex flex-wrap items-center justify-between gap-2">
             <span className="min-w-0">
-              <b>2.</b> Got the signed PO back? Upload it with its PO number;
-              this creates the sales order.
+              <b>2.</b> Got the signed PO back? Upload it against its quotation,
+              with the school&apos;s PO number.
+            </span>
+            <button
+              className="btn sm pri"
+              disabled={!sentQuotes.length}
+              title={sentQuotes.length ? "" : "Send a quotation first"}
+              onClick={() =>
+                setReceived(sentQuotes.length === 1 ? sentQuotes[0] : "choose")
+              }
+            >
+              <Icon name="upload" size={14} /> Upload received PO
+            </button>
+          </li>
+          <li className="flex flex-wrap items-center justify-between gap-2">
+            <span className="min-w-0">
+              <b>3.</b> Make the sales order from the received PO.
             </span>
             <button className="btn sm pri" disabled={pending} onClick={start}>
-              <Icon name="upload" size={14} /> Upload signed PO
+              <Icon name="plus" size={14} /> New sales order
             </button>
           </li>
         </ol>
@@ -440,7 +460,7 @@ export function SalesOrdersPanel({
       {choosing ? (
         <Modal
           title="New sales order"
-          sub="Start from a quotation the school accepted, or a blank order."
+          sub="Choose the school's PO. Only quotations converted to a PO (PO received) are listed."
           onClose={() => setChoosing(null)}
           footer={
             <button className="btn" onClick={() => setChoosing(null)}>
@@ -456,21 +476,16 @@ export function SalesOrdersPanel({
                 disabled={pending}
                 onClick={() => fromQuotation(q.id)}
               >
-                <Icon name="doc" size={16} /> From quotation {q.label}
+                <Icon name="doc" size={16} /> {q.label}
               </button>
             ))}
             {!choosing.length ? (
               <div className="small muted">
-                No sent quotations yet. You can still make a blank order.
+                No PO received yet. On a sent quotation, use{" "}
+                <b>Convert to PO → Upload received PO</b> (or step 2 above)
+                first.
               </div>
             ) : null}
-            <button
-              className="btn justify-start"
-              disabled={pending}
-              onClick={() => fromQuotation(null)}
-            >
-              <Icon name="plus" size={16} /> Blank order
-            </button>
           </div>
         </Modal>
       ) : null}
@@ -554,6 +569,33 @@ export function SalesOrdersPanel({
           me={me}
           onClose={() => setPoTemplate(null)}
         />
+      ) : null}
+      {received === "choose" ? (
+        <Modal
+          title="Upload received PO"
+          sub="Which quotation is the school's PO against?"
+          onClose={() => setReceived(null)}
+          footer={
+            <button className="btn" onClick={() => setReceived(null)}>
+              Cancel
+            </button>
+          }
+        >
+          <div className="flex flex-col gap-2">
+            {sentQuotes.map((q) => (
+              <button
+                key={q.id}
+                className="btn justify-start"
+                onClick={() => setReceived(q)}
+              >
+                <Icon name="doc" size={16} /> {q.number} · created {q.createdAt}
+                {q.schoolPo ? ` · PO ${q.schoolPo.number}` : ""}
+              </button>
+            ))}
+          </div>
+        </Modal>
+      ) : received ? (
+        <ReceivedPoModal q={received} onClose={() => setReceived(null)} />
       ) : null}
 
       {invoicing ? (
@@ -723,13 +765,22 @@ function OrderEditor({
             onChange={(poDate) => setD({ ...d, poDate })}
           />
         </Field>
-        <Field label="Signed PO (PDF or photo, up to 4 MB)" htmlFor="so-pofile">
-          <PoFileInput id="so-pofile" onChange={setPoFile} />
-        </Field>
-        <div className="small muted self-center">
-          No PO yet? Save the order now and add the PO later with the <b>PO</b>{" "}
-          button. The PO number prints on the invoice.
-        </div>
+        {d.poFileName ? (
+          <div className="small self-center min-[501px]:col-span-2">
+            Signed PO <b>{d.poFileName}</b>, received on the quotation, goes
+            onto this order. The PO number prints on the invoice.
+          </div>
+        ) : (
+          <>
+            <Field label="Signed PO (PDF or photo, up to 4 MB)" htmlFor="so-pofile">
+              <PoFileInput id="so-pofile" onChange={setPoFile} />
+            </Field>
+            <div className="small muted self-center">
+              No PO file yet? Save the order now and add it later with the{" "}
+              <b>PO</b> button. The PO number prints on the invoice.
+            </div>
+          </>
+        )}
         <Field label="Order date" htmlFor="so-date">
           <DateInput
             id="so-date"

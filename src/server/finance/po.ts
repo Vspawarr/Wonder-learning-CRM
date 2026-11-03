@@ -75,6 +75,65 @@ export async function poFile(user: SessionUser, salesOrderId: string) {
   return f;
 }
 
+/* ---------- R50: the school's PO received against a quotation ("Convert to PO") ---------- */
+
+/** Records the school's PO number / date on a sent quotation; it can then be made into a sales order. */
+export async function receivePo(user: SessionUser, quotationId: string, raw: unknown) {
+  const d = parse(poInput, raw);
+  const q = await loadQuotation(user, quotationId);
+  if (q.status !== "SENT") throw new DomainError("Send the quotation first.");
+  await db.$transaction([
+    db.quotation.update({
+      where: { id: q.id },
+      data: { schoolPoNumber: d.poNumber, schoolPoDate: d.poDate ? toDbDate(d.poDate) : null, poReceivedAt: q.poReceivedAt ?? new Date() },
+    }),
+    ...(q.schoolPoNumber !== d.poNumber
+      ? [
+          db.activity.create({
+            data: {
+              type: "SYSTEM",
+              subject: `PO ${d.poNumber} received against quotation ${q.number}`,
+              byId: user.id,
+              opportunityId: q.opportunityId,
+              clientId: q.clientId,
+              leadId: q.opportunity?.leadId ?? q.leadId ?? null,
+            },
+          }),
+        ]
+      : []),
+  ]);
+}
+
+/** Stores (or replaces) the received PO file on a quotation; an order already made from it gets it too if it has none. */
+export async function saveQuotationPoFile(user: SessionUser, quotationId: string, file: { name: string; type: string; bytes: Uint8Array }) {
+  const q = await loadQuotation(user, quotationId);
+  if (!q.poReceivedAt) throw new DomainError("Enter the school's PO number first.");
+  if (!PO_TYPES[file.type]) throw new DomainError("Upload the PO as a PDF or a photo (JPG or PNG).");
+  if (!file.bytes.length) throw new DomainError("The file is empty.");
+  if (file.bytes.length > PO_MAX_BYTES) throw new DomainError("The file is larger than 4 MB. Please upload a smaller PDF or photo.");
+  const data = {
+    fileName: file.name.slice(0, 200) || "purchase-order",
+    contentType: file.type,
+    size: file.bytes.length,
+    data: Buffer.from(file.bytes),
+    uploadedById: user.id,
+    uploadedAt: new Date(),
+  };
+  const existing = await db.purchaseOrderFile.findUnique({ where: { quotationId: q.id }, select: { id: true } });
+  if (existing) await db.purchaseOrderFile.update({ where: { id: existing.id }, data });
+  else await db.purchaseOrderFile.create({ data: { quotationId: q.id, salesOrderId: await orderWithoutPoFile(q.id), ...data } });
+}
+
+const orderWithoutPoFile = async (quotationId: string) =>
+  (await db.salesOrder.findFirst({ where: { quotationId, status: { not: "CANCELLED" }, poFile: null }, orderBy: { createdAt: "asc" }, select: { id: true } }))?.id ?? null;
+
+export async function quotationPoFile(user: SessionUser, quotationId: string) {
+  const q = await loadQuotation(user, quotationId);
+  const f = await db.purchaseOrderFile.findUnique({ where: { quotationId: q.id } });
+  if (!f) throw new DomainError("No PO file has been uploaded for this quotation.");
+  return f;
+}
+
 /* ---------- PO template (the client's PO format) ---------- */
 
 export const poDetailsInput = z.object({

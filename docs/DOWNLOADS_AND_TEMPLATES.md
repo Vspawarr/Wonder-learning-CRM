@@ -82,7 +82,7 @@ and PO numbers run per financial year with starting-number settings.
 | Sample quotation (to check Settings text) | QUO/…/000 | Settings → Quotation | `/api/quotations/sample` (Admin) | same |
 | PO template (client's PO format; school signs and stamps; Material Exclude lists removed and unticked kit items; checklist of the selected kits, ticked items with ✓, from page 2, R48) | PO/2627/N, given on first save | Sent quotation + details saved in "Send PO template" (`Quotation.poDetails`) | `/api/quotations/<id>/po-template`; public `/q/<token>/po` | `src/server/finance/po-pdf.tsx`, `po.ts`; texts in Settings → Documents |
 | Kit checklist (client's checklist layout, one coloured page per class; since R47 the kits' four modules: Class Connect, Home Connect, Skill Booster, Essential Kit) | — | Products with contents (no prices printed); for a quotation, the kits as changed for that school | `/api/products/checklist[?ids=]`; public `/q/<token>/checklist` (the quotation's kits) | `src/server/products/checklist-pdf.tsx`, `checklist.ts` |
-| Signed PO (uploaded file) | school's PO No. | Upload signed PO | `/api/sales-orders/<id>/po` | `src/server/finance/po.ts` (PDF or photo, max 4 MB) |
+| Signed PO (uploaded file) | school's PO No. | Convert to PO → Upload received PO (on the quotation, R50; goes onto the order made from it), or the order's PO button | `/api/quotations/<id>/received-po`; `/api/sales-orders/<id>/po` | `src/server/finance/po.ts` (PDF or photo, max 4 MB) |
 | Proforma invoice | PI/YYYY/MM/NNN | Sales order | `/api/sales-orders/<id>/proforma`; public signed `/d/<token>` (R48) | `invoice-pdf.tsx` (proforma title) |
 | Invoice 🟡 | INV/YYYY/MM/NNN | Sales order | `/api/invoices/<id>/pdf`; public `/i/<token>` | `src/server/finance/invoice-pdf.tsx`. **Provisional layout until the client's invoice sample arrives** |
 | Payment receipt (client's receipt format; only after Accounts approval) | N/26-27 (financial year), given on approval | Payment / advance | `/api/payments/<id>/receipt`; public `/r/<token>` | `receipt-pdf.tsx`; address and signatory in Settings → Documents |
@@ -99,7 +99,7 @@ Sales orders are SO/YYYY/MM/NNN (on screen; the number prints on proforma and in
 | Expense bills | My expenses / Accounts → Expenses → Add expense | Photos (shrunk in the browser) or PDF, up to 4 per expense, 4 MB each | `/api/expenses`, `src/server/expenses.ts`; viewed at `/api/expenses/files/<id>` |
 | Supplier bill photo / PDF | Accounts → Bills to pay → Add bill | One photo (shrunk) or PDF, 4 MB | `/api/company/bills`, `src/server/company.ts`; viewed at `/api/company/files/bill/<id>` |
 | Voucher for other money in / out | Accounts → Account books → Other money in / Other payment | One photo (shrunk) or PDF, 4 MB (optional) | `/api/company/entries`; viewed at `/api/company/files/entry/<id>` |
-| Signed PO | Client → Purchase orders → Upload signed PO | PDF or photo, max 4 MB | `src/server/finance/po.ts` |
+| Signed PO | Quotation → Convert to PO → Upload received PO (or Client → Purchase orders → Upload received PO; on an order: PO) | PDF or photo, max 4 MB | `src/server/finance/po.ts` |
 | Client documents, proof of delivery | Client → Documents tab; Dispatch → Mark received | PDF or photo, max 4 MB | `/api/clients/<id>/files`, `src/server/files.ts` |
 
 Files are stored inside the database (no separate file storage to set up).

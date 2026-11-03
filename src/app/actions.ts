@@ -255,6 +255,7 @@ export const poTemplateSetup = async () => {
 };
 /** The quoted kits' checklists for the PO template window (read only). */
 export const poTemplateKits = async (quotationId: string) => po.poTemplateKits(await requireUser(), quotationId);
+export const receivePo = async (quotationId: string, data: unknown) => run((u) => po.receivePo(u, quotationId, data));
 export const savePoTemplate = async (quotationId: string, data: unknown) => run((u) => po.savePoTemplate(u, quotationId, data));
 /** R48: the private link to a proforma, challan or credit note PDF, for WhatsApp (read only). */
 export const docShareLink = async (kind: ShareKind, id: string): Promise<ActionResult<string>> => {

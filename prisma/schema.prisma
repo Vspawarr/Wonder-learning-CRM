@@ -505,6 +505,13 @@ model Quotation {
   /// customisation and the cheque plan (see src/server/finance/po.ts → PoDetails).
   poDetails Json?
 
+  /// R50: the school's own PO received against this quotation ("Convert to PO" → upload received PO).
+  /// Only quotations with a received PO are offered when making a sales order.
+  schoolPoNumber String?
+  schoolPoDate   DateTime?          @db.Date
+  poReceivedAt   DateTime?
+  schoolPoFile   PurchaseOrderFile? @relation("QuotationPoFile")
+
   preparedById String
   preparedBy   User   @relation(fields: [preparedById], references: [id])
 
@@ -595,16 +602,20 @@ model SalesOrder {
 
 /// The signed PO the school sent back (PDF or photo), kept apart so order lists don't load it.
 model PurchaseOrderFile {
-  id           String     @id @default(cuid())
-  salesOrderId String     @unique
-  salesOrder   SalesOrder @relation(fields: [salesOrderId], references: [id], onDelete: Cascade)
+  id           String      @id @default(cuid())
+  /// Set when the order is made (or the PO uploaded on the order).
+  salesOrderId String?     @unique
+  salesOrder   SalesOrder? @relation(fields: [salesOrderId], references: [id], onDelete: Cascade)
+  /// R50: the PO received against a quotation, before any order; the same file then goes onto the order.
+  quotationId  String?     @unique
+  quotation    Quotation?  @relation("QuotationPoFile", fields: [quotationId], references: [id], onDelete: SetNull)
   fileName     String
   contentType  String
   size         Int
   data         Bytes
   uploadedById String
-  uploadedBy   User       @relation(fields: [uploadedById], references: [id])
-  uploadedAt   DateTime   @default(now())
+  uploadedBy   User        @relation(fields: [uploadedById], references: [id])
+  uploadedAt   DateTime    @default(now())
 }
 
 model SalesOrderItem {

@@ -25,6 +25,7 @@ import {
   salesOrderDefaults,
   updateSalesOrder,
 } from "@/server/finance/service";
+import { poFile, receivePo, saveQuotationPoFile } from "@/server/finance/po";
 import { leadData, makeUser, resetData } from "./helpers";
 
 const today = todayIST();
@@ -116,7 +117,7 @@ describe("sales orders", () => {
     ).rejects.toThrow(/number of kits/);
   });
 
-  it("can start from a sent quotation of the deal or the client", async () => {
+  it("can start only from a quotation (of the deal or the client) converted to a PO", async () => {
     // (made on the client, then moved onto the deal as if quoted before it was won)
     const q1 = await createQuotation(
       exA,
@@ -134,6 +135,9 @@ describe("sales orders", () => {
       data: { clientId: null, opportunityId: oppId },
     });
     await markQuotationSent(exA, q1, "download");
+    // R50: only quotations with the school's PO received are offered.
+    expect(await orderableQuotations(exA, clientId)).toHaveLength(0);
+    await receivePo(exA, q1, { poNumber: "SCH-11" });
     const q2 = await createQuotation(
       exA,
       { clientId },
@@ -147,8 +151,13 @@ describe("sales orders", () => {
     );
     expect((await orderableQuotations(exA, clientId)).map((q) => q.id)).toEqual([q1]);
     await markQuotationSent(exA, q2, "whatsapp");
+    expect(await orderableQuotations(exA, clientId)).toHaveLength(1);
+    await expect(saveQuotationPoFile(exA, q2, { name: "po.pdf", type: "application/pdf", bytes: new Uint8Array([1]) })).rejects.toThrow(/PO number first/);
+    await receivePo(exA, q2, { poNumber: "SCH-12", poDate: today });
+    await saveQuotationPoFile(exA, q2, { name: "po.pdf", type: "application/pdf", bytes: new Uint8Array([1, 2]) });
     expect(await orderableQuotations(exA, clientId)).toHaveLength(2);
     const d = await salesOrderDefaults(exA, clientId, q2);
+    expect([d.poNumber, d.poDate, d.poFileName]).toEqual(["SCH-12", today, "po.pdf"]);
     expect(d.items).toEqual([
       {
         productId: null,
@@ -163,6 +172,8 @@ describe("sales orders", () => {
       items: [{ ...d.items[0], qty: 10 }],
     });
     expect((await db.salesOrder.findUniqueOrThrow({ where: { id } })).quotationId).toBe(q2);
+    // The PO file received on the quotation is now the order's signed PO.
+    expect((await poFile(exA, id)).fileName).toBe("po.pdf");
   });
 
   it("is limited to the client's owner and the sales head", async () => {

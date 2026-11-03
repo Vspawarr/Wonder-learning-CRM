@@ -224,20 +224,22 @@ async function assertFeature(key: "advance" | "cheques" | "creditNotes") {
 
 /* ---------- sales orders ---------- */
 
-/** Quotations this client's orders can be made from (repeat-order ones and the original deal's). */
+/** Quotations this client's orders can be made from (repeat-order ones and the original deal's):
+ * only those converted to a PO, i.e. with the school's PO received (R50). */
 export async function orderableQuotations(user: SessionUser, clientId: string) {
   const c = await loadClient(user, clientId);
   const rows = await db.quotation.findMany({
     where: {
       status: "SENT",
+      poReceivedAt: { not: null },
       OR: [{ clientId: c.id }, { opportunityId: c.opportunityId }, { opportunity: { renewalOfId: c.id } }],
     },
     orderBy: { createdAt: "desc" },
-    select: { id: true, number: true, createdAt: true },
+    select: { id: true, number: true, createdAt: true, schoolPoNumber: true },
   });
   return rows.map((q) => ({
     id: q.id,
-    label: `${q.number} · created ${fmtDateTimeIST(q.createdAt)}`,
+    label: `PO ${q.schoolPoNumber} · quotation ${q.number} · created ${fmtDateTimeIST(q.createdAt)}`,
   }));
 }
 
@@ -247,7 +249,7 @@ export async function salesOrderDefaults(user: SessionUser, clientId: string, qu
   const q = quotationId
     ? await db.quotation.findFirst({
         where: { id: quotationId, OR: [{ clientId }, { opportunity: { client: { id: clientId } } }, { opportunity: { renewalOfId: clientId } }] },
-        select: { number: true, createdAt: true, poNumber: true, poDetails: true },
+        select: { number: true, createdAt: true, poNumber: true, poDetails: true, schoolPoNumber: true, schoolPoDate: true, schoolPoFile: { select: { fileName: true } } },
       })
     : null;
   // What the PO template already said: our PO number, kits per line and delivery date.
@@ -275,8 +277,11 @@ export async function salesOrderDefaults(user: SessionUser, clientId: string, qu
     date: todayIST(),
     expectedDelivery: po.deliveryDate ?? "",
     notes: "",
-    poNumber: q?.poNumber ?? "",
-    poDate: "",
+    // The school's PO received on the quotation (R50), else our PO template's number.
+    poNumber: q?.schoolPoNumber ?? q?.poNumber ?? "",
+    poDate: q?.schoolPoDate ? fromDbDate(q.schoolPoDate) : "",
+    /** The received PO file, which goes onto the new order by itself. */
+    poFileName: q?.schoolPoFile?.fileName ?? "",
     quotationId: quotationId ?? "",
     quotationLabel: q ? `${q.number} · created ${fmtDateTimeIST(q.createdAt)}` : "",
     items,
@@ -310,6 +315,8 @@ export async function createSalesOrder(user: SessionUser, clientId: string, raw:
         items: { create: d.items.map((it, i) => ({ ...it, sortOrder: i })) },
       },
     });
+    // R50: the PO file received on the quotation goes onto its first order.
+    if (d.quotationId) await tx.purchaseOrderFile.updateMany({ where: { quotationId: d.quotationId, salesOrderId: null }, data: { salesOrderId: so.id } });
     await tx.activity.create({
       data: {
         type: "SYSTEM",

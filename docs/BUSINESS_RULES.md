@@ -90,7 +90,11 @@ client shows a warning (the user may still save). The Excel upload skips same sc
   only** (R48): a kit is selected by its tick, by default the kits with a quantity (every kit while no quantity is
   typed); each item has a tick too, and the pages print only the ticked items with a ✓. "Material Exclude" lists
   items taken out on the quotation and items unticked on the PO; saving fills the deal's expected value
-  (kits × rate) when it's empty (R33) → the school signs, stamps and sends it back → **Upload signed PO** with its PO number → this creates the **sales order**. The PO number
+  (kits × rate) when it's empty (R33) → the school signs, stamps and sends it back (or sends its own PO) →
+  **Convert to PO → Upload received PO** on the quotation (R50): the school's PO number (required), date and file
+  are stored on the quotation, which then shows **PO received** → **New sales order** lists **only quotations
+  converted to a PO** (no blank orders): the order is filled with the kits, PO number and date, and the PO file
+  goes onto the order by itself. The PO number
   shows on the sales order, proforma and invoice. The sales order shows the quotation's creation time
   (date + H:M:S AM/PM) (R16.10, R17).
 - **Dispatch** in one or more lots with transporter/docket, a challan PDF, and **Mark received** with proof.

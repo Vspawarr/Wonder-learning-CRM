@@ -600,6 +600,7 @@ const quoteInclude = {
   _count: { select: { items: true, salesOrders: true } },
   preparedBy: { select: { name: true } },
   items: { select: { description: true }, orderBy: { sortOrder: "asc" } },
+  schoolPoFile: { select: { fileName: true } },
 } as const;
 
 function quoteSummary(q: Prisma.QuotationGetPayload<{ include: typeof quoteInclude }>) {
@@ -619,6 +620,10 @@ function quoteSummary(q: Prisma.QuotationGetPayload<{ include: typeof quoteInclu
     shareToken: q.shareToken,
     poNumber: q.poNumber,
     poDetails: (q.poDetails ?? null) as PoDetails | null,
+    /** R50: the school's PO received against it ("Convert to PO"); only these can become sales orders. */
+    schoolPo: q.poReceivedAt
+      ? { number: q.schoolPoNumber ?? "", date: q.schoolPoDate ? fromDbDate(q.schoolPoDate) : "", fileName: q.schoolPoFile?.fileName ?? null }
+      : null,
     /** A sales order was made from it: it is then fixed (R46). */
     ordered: q._count.salesOrders > 0,
   };

@@ -615,3 +615,13 @@ option should be added."
 | Change | Status | Notes |
 |---|---|---|
 | **Quotation page 2 lists only the quoted kits and their components** | ✅ | Each quoted kit gets a coloured heading and its groups / items as changed for this school (removed items left off, added items under "Added for this school"); two kits per page, more pages if needed; other quoted lines under "Also quoted". The fixed Settings → Quotation page 2 text (incl. Support & Services) now prints only when a quotation has no lines |
+
+## R50. Convert to PO; sales orders only from received POs (3 Nov)
+
+"1. After send quotation there should be button of convert to PO where PO template will be sent or recieved PO will be
+uploaded. 2. After selecting sales order only converted PO options should be displayed."
+
+| Change | Status | Notes |
+|---|---|---|
+| **"Convert to PO" on a sent quotation** | ✅ | Two choices: **Send PO template** (as before) or **Upload received PO**: school's PO number (required), PO date, signed PO file. The quotation then shows "PO received" and "View PO"; the button becomes "PO" to correct it. Same on the client page (PO steps 1–3) |
+| **New sales order lists only converted POs** | ✅ | Only sent quotations with a PO received are offered; "Blank order" removed. The order is filled with the kits, PO number and date; the PO file goes onto the order by itself |

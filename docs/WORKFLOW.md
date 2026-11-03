@@ -19,7 +19,7 @@ button on the way. It is written for everyone at Wonder Learning: salespeople, m
 | 5 | **Work the deal** | Opportunities / Pipeline | Move it through the stages; send / revise quotations | Sets the chance % per stage; books follow-ups |
 | 6 | **PO template** | Quotation → **Send PO template** | Type the kits per class and order details, **Save**, send on WhatsApp | Gives a PO number (PO/2627/1), attaches the kit checklist, fills the deal value |
 | 7 | **Client** | Opportunity → **Convert to client** | One tap from any open stage (it marks the deal Won) | Creates the client (C-101…) in Onboarding with an onboarding follow-up |
-| 8 | **Signed PO → sales order** | Client → **Upload signed PO** | Upload the school's signed PO | Creates the sales order (SO/…) with the kits and PO number |
+| 8 | **Received PO → sales order** | Quotation → **Convert to PO → Upload received PO**, then Client → **New sales order** | Record the school's PO (number, date, file) on its quotation, then make the order from it | Only quotations with a PO received can become a sales order (SO/…), filled with the kits, PO number and file |
 | 9 | **Kits** | Sales order → **Dispatch kits** | Send kits in one or more lots | Makes the delivery challan; you mark it received |
 | 10 | **Invoice** | Sales order → **Create invoice** | Raise the invoice (due in 45 days by default) | Numbers it (INV/…); shows it on Outstanding |
 | 11 | **Payments** | Invoice → **Record payment** | Record each instalment (cash, UPI, NEFT, cheque…) | Sends it to **Accounts for approval**; books the next collection call on the promised date |
@@ -158,6 +158,7 @@ and payment schedule.
 | **Edit** | Correct it (prices, kits, lines, dates); it keeps its number. Then **Send again** so the school has the latest (the timeline notes the change). Not possible once a sales order was made from it (R46) |
 | **Send again** | Share the same quotation again |
 | **Revise** | A new draft copied from it (new number), e.g. for a new version alongside the old one |
+| **Convert to PO** | Two choices: **Send PO template** (section 8) or **Upload received PO**: the school's PO number (required), PO date and the signed PO (PDF or photo, up to 4 MB). The quotation then shows **PO received** with **View PO**, and the button becomes **PO** (to correct it). Only these quotations can be made into a sales order (R50) |
 | **Send PO template** | See §8 |
 
 After its validity date a sent quotation shows **Expired** (feature switch "Quotation validity").
@@ -188,7 +189,7 @@ After its validity date a sent quotation shows **Expired** (feature switch "Quot
 
 ## 8. The PO template (purchase order for the school to sign)
 
-On a **sent** quotation: **Send PO template**.
+On a **sent** quotation: **Convert to PO → Send PO template**.
 1. **Quantities (kits demanded)**: number of kits per line (or leave blank for the school to fill in).
 2. **Kit checklist (from page 2)**: a round tick per kit and, under "Items in this kit", per item (Tick all /
    Untick all). Kits with a quantity are ticked for you (all kits while no quantity is typed). Untick a kit the
@@ -231,10 +232,11 @@ who gets payment messages).
 
 **Quotations & orders**
 - Quotations card (as §6).
-- **Purchase order (PO):** step 1 **Send PO template**; step 2 **Upload signed PO**.
-- **Upload signed PO** / **New sales order** → **From quotation …** (kits and PO number already filled from the PO
-  template) or **Blank order**. Check kits, price, expected delivery, the school's PO number and date, attach the
-  signed PO (PDF or photo, up to 4 MB) → **Create order**.
+- **Purchase order (PO):** step 1 **Send PO template**; step 2 **Upload received PO** (against its quotation, same as
+  Convert to PO on the quotation); step 3 **New sales order**.
+- **New sales order** lists **only the received POs** ("PO SCH/123 · quotation QUO/…"); with none yet it says to upload
+  the PO first. Kits, the school's PO number and date and the PO file are already filled in. Check kits, price and
+  expected delivery → **Create order** (R50).
 - On each sales order:
 
 | Button | What it does |
@@ -439,7 +441,7 @@ decisions; PDF / Excel. Switch: Settings → Features → "Lead / client transfe
 | Send a quotation | A draft with at least one product, MRP and price |
 | Send a PO template | A **sent** quotation |
 | Convert to client | An open (or won) opportunity made from a lead |
-| Upload signed PO / create a sales order | A **client** (a quotation is optional but fills everything in) |
+| Create a sales order | A **client** and a sent quotation with the school's **PO received** (Convert to PO) |
 | Dispatch kits, take advance, proforma | A sales order |
 | Raise an invoice | A sales order |
 | Record a payment | An invoice (or a sales order for an advance) |

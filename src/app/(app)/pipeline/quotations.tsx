@@ -19,6 +19,7 @@ import {
   poTemplateKits,
   poTemplateSetup,
   savePoTemplate,
+  receivePo,
 } from "@/app/actions";
 import { fmtDate, istDate, todayIST } from "@/lib/dates";
 import { customDelta, customLabel, isCustomised, type KitCustom } from "@/lib/kit-custom";
@@ -83,6 +84,7 @@ export function QuotationsPanel({
   } | null>(null);
   const [sending, setSending] = useState<Q | null>(null);
   const [poFor, setPoFor] = useState<Q | null>(null);
+  const [converting, setConverting] = useState<Q | null>(null);
   const { pending, run } = useAction();
   const today = todayIST();
   const { features } = useApp();
@@ -126,13 +128,30 @@ export function QuotationsPanel({
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="min-w-0">
                   <b>{q.number}</b> <Pill tone={q.status === "SENT" ? "ok" : "mute"}>{q.status === "SENT" ? "Sent" : "Draft"}</Pill>{" "}
-                  {features.quoteExpiry && q.expired ? <Pill tone="bad">Expired</Pill> : null}
+                  {features.quoteExpiry && q.expired && !q.schoolPo ? <Pill tone="bad">Expired</Pill> : null}
+                  {q.schoolPo ? <Pill tone="info">PO received</Pill> : null}
                   <div className="small muted">
                     Created {q.createdAt} · {q.lines} product
                     {q.lines === 1 ? "" : "s"} · {q.preparedBy}
                     {features.quoteExpiry ? ` · valid till ${q.validUntil.split("-").reverse().join("/")}` : ""}
                     {q.sentAt ? ` · sent ${fmtDate(istDate(q.sentAt), today)} by ${VIA[q.sentVia ?? ""] ?? q.sentVia}` : ""}
                   </div>
+                  {q.schoolPo ? (
+                    <div className="small">
+                      School&apos;s PO <b>{q.schoolPo.number}</b>
+                      {q.schoolPo.date ? ` dated ${q.schoolPo.date.split("-").reverse().join("/")}` : ""}
+                      {q.schoolPo.fileName ? (
+                        <>
+                          {" · "}
+                          <a href={`/api/quotations/${q.id}/received-po`} target="_blank" rel="noreferrer">
+                            View PO
+                          </a>
+                        </>
+                      ) : (
+                        <span className="text-sun"> · file not uploaded</span>
+                      )}
+                    </div>
+                  ) : null}
                 </div>
                 <div className="flex flex-wrap gap-1.5">
                   <a className="btn sm" href={`/api/quotations/${q.id}/pdf`} target="_blank" rel="noreferrer">
@@ -169,8 +188,8 @@ export function QuotationsPanel({
                       <button className="btn sm" onClick={() => setSending(q)}>
                         Send again
                       </button>
-                      <button className="btn sm pri" onClick={() => setPoFor(q)}>
-                        Send PO template
+                      <button className={`btn sm ${q.schoolPo ? "" : "pri"}`} onClick={() => setConverting(q)}>
+                        {q.schoolPo ? "PO" : "Convert to PO"}
                       </button>
                       {!opp.closed ? (
                         <button
@@ -200,6 +219,16 @@ export function QuotationsPanel({
         <QuotationEditor parent={opp.parent} id={editing.id} sent={!!editing.sent} initial={editing.draft} products={products} me={me} onClose={() => setEditing(null)} />
       ) : null}
       {poFor ? <PoTemplateModal q={poFor} target={opp} me={me} onClose={() => setPoFor(null)} /> : null}
+      {converting ? (
+        <ConvertToPoModal
+          q={converting}
+          onTemplate={() => {
+            setPoFor(converting);
+            setConverting(null);
+          }}
+          onClose={() => setConverting(null)}
+        />
+      ) : null}
       {sending ? <SendQuotation q={sending} opp={opp} emailReady={emailReady} me={me} onClose={() => setSending(null)} /> : null}
     </div>
   );
@@ -625,6 +654,106 @@ function SendQuotation({
           quotation from here. Until then, use Download or WhatsApp above.
         </div>
       )}
+    </Modal>
+  );
+}
+
+/** R50: "Convert to PO" on a sent quotation: send our PO template, or record the PO the school sent. */
+export function ConvertToPoModal({ q, onTemplate, onClose }: { q: Q; onTemplate: () => void; onClose: () => void }) {
+  const [upload, setUpload] = useState(!!q.schoolPo);
+  if (upload) return <ReceivedPoModal q={q} onBack={q.schoolPo ? undefined : () => setUpload(false)} onClose={onClose} />;
+  return (
+    <Modal
+      title={`Convert to PO · ${q.number}`}
+      sub="Send the school our PO template to sign and stamp, or upload the PO they sent. A sales order can be made once the PO is received."
+      onClose={onClose}
+      footer={
+        <button className="btn" onClick={onClose}>
+          Cancel
+        </button>
+      }
+    >
+      <div className="flex flex-col gap-2">
+        <button className="btn justify-start" onClick={onTemplate}>
+          <Icon name="doc" size={16} /> Send PO template
+        </button>
+        <button className="btn pri justify-start" onClick={() => setUpload(true)}>
+          <Icon name="upload" size={16} /> Upload received PO
+        </button>
+      </div>
+    </Modal>
+  );
+}
+
+/** Uploads the received PO file for a quotation. */
+async function uploadReceivedPo(quotationId: string, file: File): Promise<{ ok: true } | { ok: false; error: string }> {
+  const body = new FormData();
+  body.append("file", file);
+  try {
+    const r = await fetch(`/api/quotations/${quotationId}/received-po`, { method: "POST", body });
+    return (await r.json()) as { ok: true } | { ok: false; error: string };
+  } catch {
+    return { ok: false, error: "The upload failed. Check your internet connection and try again." };
+  }
+}
+
+/** R50: the school's PO received against a quotation: number, date and the signed file. */
+export function ReceivedPoModal({ q, onBack, onClose }: { q: Q; onBack?: () => void; onClose: () => void }) {
+  const [v, setV] = useState({ poNumber: q.schoolPo?.number ?? "", poDate: q.schoolPo?.date ?? "" });
+  const [file, setFile] = useState<File | null>(null);
+  const { pending, run } = useAction();
+  const router = useRouter();
+  return (
+    <Modal
+      title={`Received PO · ${q.number}`}
+      sub="The school's purchase order against this quotation. Once saved, the quotation can be made into a sales order."
+      onClose={onClose}
+      footer={
+        <>
+          <button className="btn" onClick={onBack ?? onClose}>
+            {onBack ? "Back" : "Cancel"}
+          </button>
+          <button
+            className="btn pri"
+            disabled={pending}
+            onClick={() =>
+              run(
+                async () => {
+                  const r = await receivePo(q.id, v);
+                  if (!r.ok || !file) return r;
+                  return uploadReceivedPo(q.id, file);
+                },
+                {
+                  success: file ? "PO saved and file uploaded." : "PO saved.",
+                  onDone: () => {
+                    onClose();
+                    router.refresh();
+                  },
+                },
+              )
+            }
+          >
+            {pending ? "Saving…" : "Save PO"}
+          </button>
+        </>
+      }
+    >
+      <div className="grid grid-cols-1 gap-3 min-[501px]:grid-cols-2">
+        <Field label="School's PO number *" htmlFor="rpo-no">
+          <input className="in" id="rpo-no" value={v.poNumber} onChange={(e) => setV({ ...v, poNumber: e.target.value })} />
+        </Field>
+        <Field label="PO date" htmlFor="rpo-date">
+          <DateInput id="rpo-date" value={v.poDate} onChange={(poDate) => setV({ ...v, poDate })} />
+        </Field>
+      </div>
+      <Field label={q.schoolPo?.fileName ? `Replace signed PO (now: ${q.schoolPo.fileName})` : "Signed PO (PDF or photo, up to 4 MB)"} htmlFor="rpo-file">
+        <input className="in" id="rpo-file" type="file" accept="application/pdf,image/jpeg,image/png,image/webp" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
+      </Field>
+      {q.schoolPo?.fileName ? (
+        <a className="small" href={`/api/quotations/${q.id}/received-po`} target="_blank" rel="noreferrer">
+          View the uploaded PO
+        </a>
+      ) : null}
     </Modal>
   );
 }
