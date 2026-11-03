@@ -608,3 +608,10 @@ option should be added."
 | **New city in the lead upload added automatically** | ✅ | A city not listed under a listed state is added to Settings → Locations (the result says which). The Excel's City dropdown now warns instead of refusing, so a new city can be typed. An unknown **state** is still refused |
 | **Lead source "Direct School Visit"** | ✅ | Lead form, filters and the Excel template's dropdown |
 
+## R49. Quotation page 2: only the selected kits (3 Nov)
+
+"In quotation second page only selected kits and componenets should be displayed not everything."
+
+| Change | Status | Notes |
+|---|---|---|
+| **Quotation page 2 lists only the quoted kits and their components** | ✅ | Each quoted kit gets a coloured heading and its groups / items as changed for this school (removed items left off, added items under "Added for this school"); two kits per page, more pages if needed; other quoted lines under "Also quoted". The fixed Settings → Quotation page 2 text (incl. Support & Services) now prints only when a quotation has no lines |

@@ -65,6 +65,10 @@ export function QuotationSettingsForm({ initial }: { initial: QuotationContent }
         {area("footerLines", "Footer address (also at the top of page 3)", "One line each, up to 6 lines.", 4)}
       </Card>
       <Card title="Page 2 · Kit Components & Services">
+        <p className="text-sm text-ink2">
+          Each quotation&apos;s page 2 now lists only the kits it quotes (their items, as changed for the school) and its other lines.
+          This text is used only when a quotation has no lines (e.g. the sample PDF).
+        </p>
         <div className="grid grid-cols-1 gap-4 min-[901px]:grid-cols-2">
           {area("kitLeft", "Left column", "Start each heading with ## (e.g. ## Study Kit), then one item per line.", 18)}
           {area("kitRight", "Right column", "Start each heading with ## (e.g. ## Common Kit), then one item per line.", 18)}

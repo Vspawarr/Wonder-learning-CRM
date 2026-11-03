@@ -77,6 +77,9 @@ client shows a warning (the user may still save). The Excel upload skips same sc
   add optional items. MRP and price go down/up by those items' prices (a hand-typed price keeps its difference);
   the line text says "without …; with …"; the kit checklist sent with the PO leaves the removed items out and
   lists the added ones under "Added for this school".
+- **Quotation page 2** (R49) lists **only what is quoted**: each quoted kit with its groups and items (removed items
+  left out, added items under "Added for this school"), two kits per page, then the other quoted lines under
+  "Also quoted". The Settings → Quotation page 2 text prints only when a quotation has no lines.
 - Quotation lines: products from the list; **MRP and Price typed by hand**,
   no discount column, GST % per line; validity days (default from Settings → Quotation). After the
   validity date it shows **Expired**, and a follow-up is booked the day before.

@@ -1,6 +1,8 @@
 // The quotation PDF, laid out to match Wonder Learning's quotation format
 // (US Letter; positions measured from the original). Page 1: quotation;
-// page 2: kit components & services; page 3: terms & payment schedule.
+// page 2: only the quoted kits' components and other quoted lines (R49; the Settings text
+// only when there are no lines, e.g. the sample);
+// page 3: terms & payment schedule.
 import { Document, Font, Image, Page, StyleSheet, Text, View, renderToBuffer } from "@react-pdf/renderer";
 import type { Style } from "@react-pdf/types";
 import { FOOTER_JPG, HEADER_JPG } from "./brand-images";
@@ -20,6 +22,10 @@ export type QuotationPdfData = {
   preparedByMobile: string | null;
   items: { description: string; mrp: number; price: number }[];
   content: QuotationContent;
+  /** R49: the kits this quotation quotes, as changed for the school (removed items left out). */
+  kits?: { name: string; color: string | null; contents: KitSection[] }[];
+  /** R49: the other quoted lines (not kits), listed after the kits. */
+  others?: string[];
 };
 
 const PURPLE = "#6C2D91";
@@ -64,6 +70,7 @@ const s = StyleSheet.create({
   kitColRight: { width: 237, marginLeft: 2, alignItems: "flex-end" },
   pillL: { backgroundColor: PURPLE, color: "#FFFFFF", fontFamily: "Helvetica-Bold", fontSize: 10, paddingVertical: 5, paddingLeft: 10, paddingRight: 14, borderTopRightRadius: 12, borderBottomRightRadius: 12, marginTop: 10, marginBottom: 8 },
   pillR: { backgroundColor: PURPLE, color: "#FFFFFF", fontFamily: "Helvetica-Bold", fontSize: 10, paddingVertical: 5, paddingLeft: 14, paddingRight: 10, borderTopLeftRadius: 12, borderBottomLeftRadius: 12, marginTop: 10, marginBottom: 8 },
+  kitBar: { color: "#FFFFFF", fontFamily: "Helvetica-Bold", fontSize: 12, paddingVertical: 6, paddingHorizontal: 12, borderRadius: 14, marginTop: 14 },
   bullet: { flexDirection: "row", marginBottom: 5.5 },
   bulletDot: { width: 12, paddingLeft: 3 },
   // page 3
@@ -123,11 +130,11 @@ export function Money({ n }: { n: number }) {
   );
 }
 
-function Bullets({ items, style }: { items: string[]; style?: Style }) {
+function Bullets({ items, style, compact }: { items: string[]; style?: Style; compact?: boolean }) {
   return (
     <View style={style}>
       {items.map((t, i) => (
-        <View key={i} style={s.bullet} wrap={false}>
+        <View key={i} style={[s.bullet, compact ? { marginBottom: 3 } : {}]} wrap={false}>
           <Text style={s.bulletDot}>•</Text>
           <Text style={{ flex: 1 }}>{t}</Text>
         </View>
@@ -136,17 +143,54 @@ function Bullets({ items, style }: { items: string[]; style?: Style }) {
   );
 }
 
-function KitColumn({ sections, right }: { sections: KitSection[]; right?: boolean }) {
+function KitColumn({ sections, right, compact }: { sections: KitSection[]; right?: boolean; compact?: boolean }) {
   return (
     <View style={right ? s.kitColRight : s.kitCol}>
       {sections.map((sec, i) => (
         <View key={i} style={{ width: "100%", alignItems: right ? "flex-end" : "flex-start" }} wrap={false}>
-          <Text style={right ? s.pillR : s.pillL}>{sec.title}</Text>
-          <Bullets items={sec.items} style={{ width: right ? 205 : "100%", alignSelf: right ? "flex-end" : "flex-start" }} />
+          <Text style={[right ? s.pillR : s.pillL, compact ? { marginTop: 7, marginBottom: 5 } : {}]}>{sec.title}</Text>
+          <Bullets items={sec.items} compact={compact} style={{ width: right ? 205 : "100%", alignSelf: right ? "flex-end" : "flex-start" }} />
         </View>
       ))}
     </View>
   );
+}
+
+type KitBlock =
+  | { kind: "kit"; name: string; color: string | null; left: KitSection[]; right: KitSection[] }
+  | { kind: "others"; items: string[] };
+
+// Rough heights in points, enough to keep each kit whole on a page.
+const groupH = (g: KitSection) => 29 + g.items.length * 15.5;
+const PAGE_ROOM = 590;
+
+/** Each quoted kit split into two balanced columns, packed onto as many page-2 pages as needed. */
+export function kitPages(kits: NonNullable<QuotationPdfData["kits"]>, others: string[]): KitBlock[][] {
+  const blocks: { b: KitBlock; h: number }[] = kits.map((k) => {
+    const total = k.contents.reduce((t, g) => t + groupH(g), 0);
+    const left: KitSection[] = [];
+    const right: KitSection[] = [];
+    let lh = 0;
+    for (const g of k.contents) {
+      if (lh < total / 2) {
+        left.push(g);
+        lh += groupH(g);
+      } else right.push(g);
+    }
+    return { b: { kind: "kit", name: k.name, color: k.color, left, right }, h: 44 + Math.max(lh, total - lh) };
+  });
+  if (others.length) blocks.push({ b: { kind: "others", items: others }, h: 37 + others.length * 15.5 });
+  const pages: KitBlock[][] = [];
+  let room = 0;
+  for (const { b, h } of blocks) {
+    if (!pages.length || h > room) {
+      pages.push([]);
+      room = PAGE_ROOM;
+    }
+    pages[pages.length - 1].push(b);
+    room -= h;
+  }
+  return pages;
 }
 
 export function QuotationDocument({ d }: { d: QuotationPdfData }) {
@@ -222,14 +266,39 @@ export function QuotationDocument({ d }: { d: QuotationPdfData }) {
         <FooterBand lines={c.footerLines} />
       </Page>
 
-      {/* Page 2 — kit components & services */}
-      <Page size="LETTER" style={s.pagePlain}>
-        <Header title={"KIT COMPONENTS\n&\nSERVICES"} align="center" />
-        <View style={s.kitCols}>
-          <KitColumn sections={c.kitLeft} />
-          <KitColumn sections={c.kitRight} right />
-        </View>
-      </Page>
+      {/* Page 2 — only what is quoted (R49), else the Settings text */}
+      {d.kits?.length || d.others?.length ? (
+        kitPages(d.kits ?? [], d.others ?? []).map((pg, i) => (
+          <Page key={i} size="LETTER" style={s.pagePlain}>
+            <Header title={"KIT COMPONENTS\n&\nSERVICES"} align="center" />
+            <View style={{ marginTop: 12 }}>
+              {pg.map((b, j) =>
+                b.kind === "kit" ? (
+                  <View key={j} wrap={false}>
+                    <Text style={[s.kitBar, { backgroundColor: b.color ?? PURPLE }, { marginHorizontal: 69 }]}>{b.name}</Text>
+                    <View style={[s.kitCols, { marginTop: 0 }]}>
+                      <KitColumn sections={b.left} compact />
+                      <KitColumn sections={b.right} right compact />
+                    </View>
+                  </View>
+                ) : (
+                  <View key={j} style={[s.kitCols, { marginTop: 8 }]} wrap={false}>
+                    <KitColumn sections={[{ title: d.kits?.length ? "Also quoted" : "Quoted items", items: b.items }]} compact />
+                  </View>
+                ),
+              )}
+            </View>
+          </Page>
+        ))
+      ) : (
+        <Page size="LETTER" style={s.pagePlain}>
+          <Header title={"KIT COMPONENTS\n&\nSERVICES"} align="center" />
+          <View style={s.kitCols}>
+            <KitColumn sections={c.kitLeft} />
+            <KitColumn sections={c.kitRight} right />
+          </View>
+        </Page>
+      )}
 
       {/* Page 3 — terms & payment schedule */}
       <Page size="LETTER" style={s.page}>

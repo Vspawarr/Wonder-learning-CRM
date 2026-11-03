@@ -140,6 +140,11 @@ same buttons everywhere.
    - **Remove**: drops the line.
 4. **Create draft.** Drafts can be **Edit**ed or **Delete**d.
 
+### What the PDF shows
+Page 1: the quoted lines and prices. **Page 2: only the kits on this quotation**, each with its items (items you
+unticked under "Change kit items" are left out; added ones are listed), then any other quoted lines. Page 3: terms
+and payment schedule.
+
 ### Sending it: **Send quotation**
 - **Preview PDF**, **Download PDF** (to attach yourself), **Share on WhatsApp** (a private link to the PDF), or
   **Email from the CRM** (once email is set up).

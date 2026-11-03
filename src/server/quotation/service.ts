@@ -12,6 +12,7 @@ import { isEmailConfigured, sendMail } from "../mailer";
 import { moveOpportunity } from "../opportunities";
 import { parse } from "../validation";
 import type { KitCustom } from "@/lib/kit-custom";
+import { quotationKitLines } from "@/server/products/checklist";
 import { getQuotationContent } from "./content";
 import { renderQuotationPdf, type QuotationPdfData } from "./pdf";
 
@@ -435,9 +436,14 @@ export async function markQuotationSent(user: SessionUser, id: string, via: Sent
   }
 }
 
-function pdfData(q: Awaited<ReturnType<typeof loadQuotation>>, content: Awaited<ReturnType<typeof getQuotationContent>>): QuotationPdfData {
+async function pdfData(q: Awaited<ReturnType<typeof loadQuotation>>, content: Awaited<ReturnType<typeof getQuotationContent>>): Promise<QuotationPdfData> {
   const [y, m, d] = fromDbDate(q.date).split("-");
+  // R49: page 2 shows only the quoted kits (as changed for this school) and the other quoted lines.
+  const lines = await quotationKitLines(q.id);
+  const kits = lines.flatMap((l) => (l ? [l.kit] : []));
   return {
+    kits,
+    others: q.items.filter((_, i) => !lines[i]).map((i) => i.description),
     number: q.number,
     date: `${d}-${m}-${y}`,
     validityDays: q.validityDays,
@@ -461,7 +467,7 @@ export async function quotationPdf(user: SessionUser, id: string) {
   const q = await loadQuotation(user, id);
   return {
     number: q.number,
-    pdf: await renderQuotationPdf(pdfData(q, await getQuotationContent())),
+    pdf: await renderQuotationPdf(await pdfData(q, await getQuotationContent())),
   };
 }
 
@@ -480,7 +486,7 @@ export async function quotationPdfByToken(token: string) {
   if (!q || q.status !== "SENT") return null;
   return {
     number: q.number,
-    pdf: await renderQuotationPdf(pdfData(q, await getQuotationContent())),
+    pdf: await renderQuotationPdf(await pdfData(q, await getQuotationContent())),
   };
 }
 
@@ -488,7 +494,7 @@ export async function emailQuotation(user: SessionUser, id: string, raw: unknown
   if (!isEmailConfigured()) throw new DomainError("Email sending isn't set up yet. Download or share on WhatsApp instead.");
   const d = parse(emailInput, raw);
   const q = await loadQuotation(user, id);
-  const pdf = await renderQuotationPdf(pdfData(q, await getQuotationContent()));
+  const pdf = await renderQuotationPdf(await pdfData(q, await getQuotationContent()));
   try {
     await sendMail({
       to: d.to,
