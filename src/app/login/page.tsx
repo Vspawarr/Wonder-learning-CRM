@@ -11,19 +11,20 @@ import { LoginForm } from "./login-form";
 export const metadata = { title: "Sign in" };
 
 // R52: brand look: a purple welcome panel with the logo's puzzle pieces beside the sign-in card (above it on phones).
-// The Canva illustration (children with puzzle pieces), once saved as public/brand/login-art.png; else the puzzle art.
-const ART = "public/brand/login-art.png";
+// The Canva illustration (children with puzzle pieces), once saved as public/brand/login-art (.png, .jpg or .jpeg);
+// else the puzzle art.
+const ART = ["login-art.png", "login-art.jpg", "login-art.jpeg", "login-art.JPG", "login-art.PNG"];
 
 export default async function LoginPage() {
   if (await currentUser()) redirect("/dashboard");
-  const photo = existsSync(path.join(process.cwd(), ART));
+  const photo = ART.find((f) => existsSync(path.join(process.cwd(), "public/brand", f)));
   return (
     <main className="grid min-h-full bg-bg min-[901px]:grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)]">
       <section className="login-hero relative flex flex-col justify-center overflow-hidden px-6 pt-[calc(22px+env(safe-area-inset-top,0px))] pb-8 text-white min-[901px]:px-14 min-[901px]:py-12">
         <div className="rainbow absolute inset-x-0 top-0" />
         {photo ? (
           <Image
-            src="/brand/login-art.png"
+            src={`/brand/${photo}`}
             alt="Children learning with colourful puzzle pieces"
             width={1136}
             height={1408}

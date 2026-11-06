@@ -7,6 +7,8 @@ commit id, what changed in plain words, and the requirement it answers (R… in 
 
 ## 6 Nov 2026
 
+- `pending` Sign-in illustration may be a JPG as well as a PNG (`public/brand/login-art.jpg`). (R52)
+
 - `45d1fba` **New look in the Wonder Learning brand.** Purple from the logo with its six puzzle-piece colours (a colour
   band on the side menu and on phones), rounded friendly headings (Quicksand, picked with Adobe's type palettes),
   rounder cards and buttons, new sign-in page with a purple welcome panel and the WONDER puzzle pieces (or the Canva
