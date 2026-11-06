@@ -7,7 +7,7 @@ commit id, what changed in plain words, and the requirement it answers (R… in 
 
 ## 6 Nov 2026
 
-- `pending` **Wonder Learning look on every screen** (design only): puzzle-coloured menu icons, colour band on page titles,
+- `529c3f9` **Wonder Learning look on every screen** (design only): puzzle-coloured menu icons, colour band on page titles,
   pop-ups and tabs, a purple welcome banner with the W O N D E R children on the dashboard, faint puzzle pieces in the
   background, coloured dots on card titles, lavender table headings, puzzle piece on empty lists. (R52)
 
