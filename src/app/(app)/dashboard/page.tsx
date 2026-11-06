@@ -1,10 +1,11 @@
 import { ExportButtons } from "@/components/export-buttons";
+import { PuzzleArt } from "@/components/puzzle-art";
 import Link from "next/link";
 import { STAGE_COLOR, STAGE_LABEL } from "@/lib/constants";
 import { fmtDate, todayIST } from "@/lib/dates";
 import { inrS } from "@/lib/format";
 import { canApprovePayments, canManageCompanyAccounts, seesAllSales } from "@/lib/permissions";
-import { AvatarName, Card, DueTag, Empty, HBars, Kpi, PageHeader, Ribbon, Table, VBars } from "@/components/ui";
+import { AvatarName, Card, DueTag, Empty, HBars, Kpi, Ribbon, Table, VBars } from "@/components/ui";
 import { requireUser } from "@/server/session";
 import { expenseTotal } from "@/server/expenses";
 import { companySnapshot } from "@/server/company-books";
@@ -74,9 +75,17 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
 
   return (
     <>
-      <PageHeader title={`Hello, ${first}`} sub={`${all ? (execName ? `${execName}'s numbers` : "The whole business") : "Your numbers"} · ${period}. Tap any number to see the records behind it.`}>
-        <ExportButtons report="dashboard" />
-      </PageHeader>
+      {/* R52: a Wonder Learning welcome banner (same greeting, line and export buttons as before) */}
+      <div className="hello">
+        <div className="hello-txt">
+          <h1>Hello, {first}</h1>
+          <p>{`${all ? (execName ? `${execName}'s numbers` : "The whole business") : "Your numbers"} · ${period}. Tap any number to see the records behind it.`}</p>
+          <div className="mt-3 flex flex-wrap gap-2.5">
+            <ExportButtons report="dashboard" />
+          </div>
+        </div>
+        <PuzzleArt className="hello-art" />
+      </div>
       <Ribbon
         steps={[
           { label: "Active leads", value: life.leads, color: "#1C86C4", href: "/leads?status=Active" },

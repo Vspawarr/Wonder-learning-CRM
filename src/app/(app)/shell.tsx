@@ -10,6 +10,9 @@ import { logout } from "@/app/actions";
 import { PasswordButton } from "./password-button";
 import { TopBarTools } from "./top-bar";
 
+
+/** The logo's puzzle colours, left to right (R52). */
+const PUZZLE = ["#E3262C", "#F28C1E", "#6CB33F", "#F7C820", "#1FA5DE", "#9B4FC9"];
 export type NavGroup = { group: string; items: { href: string; label: string; icon: IconName; badge?: number }[] };
 
 export function Shell({
@@ -45,17 +48,20 @@ export function Shell({
           <BrandLogo width={176} priority />
           <span className="mt-1 block pl-1 text-[11.5px] text-[#c4aedb]">Sales CRM</span>
         </div>
-        {nav.map((g) => (
+        {nav.map((g, gi) => (
           <div key={g.group}>
             <div className="ngroup">{g.group}</div>
-            {g.items.map((i) => (
+            {g.items.map((i, ii) => (
               <Link
                 key={i.href}
                 href={i.href}
                 className={`nav ${current?.href === i.href ? "on" : ""}`}
                 onClick={() => setOpen(false)}
               >
-                <Icon name={i.icon} />
+                {/* R52: icons sit on tiles in the logo's puzzle colours, in turn */}
+                <span className="nic" style={{ "--c": PUZZLE[(nav.slice(0, gi).reduce((n, x) => n + x.items.length, 0) + ii) % PUZZLE.length] } as React.CSSProperties}>
+                  <Icon name={i.icon} size={16} />
+                </span>
                 <span>{i.label}</span>
                 {i.badge ? <span className="badge">{i.badge}</span> : null}
               </Link>

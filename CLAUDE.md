@@ -41,6 +41,7 @@ roles and the code map. You should not need old chat history.
 - No fictional sample data in seeds. No pull requests unless the owner asks. Only push to `claude/kind-pasteur-jpzqm5`.
 - The look follows the client's prototype (top bar search/Add/bell, coloured strips, cards, tabs) in the Wonder
   Learning brand theme (R52): purple `--brand` #6C2D91, the logo's six puzzle colours (`--pz-*`, `.rainbow` band),
-  Quicksand headings + Figtree body, rounded cards. Use the tokens in `globals.css`; keep new screens consistent with it. On phones, pop-ups are bottom sheets and the page itself scrolls.
+  Quicksand headings + Figtree body, rounded cards, puzzle-coloured menu tiles (`.nic`), dashboard `.hello` banner
+  with `PuzzleArt`; design-only classes at the end of `globals.css`. Use the tokens in `globals.css`; keep new screens consistent with it. On phones, pop-ups are bottom sheets and the page itself scrolls.
 - Dashboard sections (Sales, Finance, Team & management, Service & delivery) are listed in
   `src/lib/dashboard-sections.ts`; new dashboard content goes in one of them, and in the dashboard export too.

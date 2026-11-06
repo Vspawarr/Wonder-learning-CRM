@@ -7,6 +7,10 @@ commit id, what changed in plain words, and the requirement it answers (R… in 
 
 ## 6 Nov 2026
 
+- `pending` **Wonder Learning look on every screen** (design only): puzzle-coloured menu icons, colour band on page titles,
+  pop-ups and tabs, a purple welcome banner with the W O N D E R children on the dashboard, faint puzzle pieces in the
+  background, coloured dots on card titles, lavender table headings, puzzle piece on empty lists. (R52)
+
 - `57814a7` **Sign-in artwork: children holding the letters.** Six children each hold up a puzzle piece with one letter,
   spelling W O N D E R in the logo's colours. (R52)
 
