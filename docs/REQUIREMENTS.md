@@ -641,5 +641,5 @@ uploaded. 2. After selecting sales order only converted PO options should be dis
 | Change | Status | Notes |
 |---|---|---|
 | **Brand colours and fonts** | ✅ | Purple #6C2D91 (the logo's purple, also on the quotation PDF) as the main colour; the logo's six puzzle colours (red, orange, green, yellow, blue, purple) as a colour band on the side menu (and the top bar on phones); headings in Quicksand, the rounded, friendly font Adobe's type-palette tool suggested for an educational brand; rounder cards, buttons and fields; dark mode re-tuned to match. Screens and layouts are unchanged |
-| **New sign-in page** | ✅ | Purple welcome panel with the WONDER puzzle pieces, "Empowering Child Education" and the sign-in card (stacked on phones) |
+| **New sign-in page** | ✅ | Purple welcome panel: six children each holding up a puzzle piece with a letter, spelling W O N D E R in the logo's colours (owner's idea, 6 Nov), "Empowering Child Education" and the sign-in card (stacked on phones) |
 | **Canva illustration (children with puzzle pieces)** | ✖ Not used | Owner's decision (6 Nov): keep the WONDER puzzle pieces on the sign-in page |

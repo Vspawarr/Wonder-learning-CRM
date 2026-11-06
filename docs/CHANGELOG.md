@@ -7,6 +7,9 @@ commit id, what changed in plain words, and the requirement it answers (R… in 
 
 ## 6 Nov 2026
 
+- `pending` **Sign-in artwork: children holding the letters.** Six children each hold up a puzzle piece with one letter,
+  spelling W O N D E R in the logo's colours. (R52)
+
 - `6f82067` Sign-in page keeps the WONDER puzzle pieces; the option for the Canva illustration is removed (owner's decision). (R52)
 
 - `659b19a` Sign-in illustration may be a JPG as well as a PNG (`public/brand/login-art.jpg`). (R52)

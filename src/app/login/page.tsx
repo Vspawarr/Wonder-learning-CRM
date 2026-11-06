@@ -14,7 +14,7 @@ export default async function LoginPage() {
     <main className="grid min-h-full bg-bg min-[901px]:grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)]">
       <section className="login-hero relative flex flex-col justify-center overflow-hidden px-6 pt-[calc(22px+env(safe-area-inset-top,0px))] pb-8 text-white min-[901px]:px-14 min-[901px]:py-12">
         <div className="rainbow absolute inset-x-0 top-0" />
-        <PuzzleArt className="mx-auto w-[min(250px,70vw)] min-[901px]:w-[min(420px,80%)]" />
+        <PuzzleArt className="mx-auto w-[min(340px,88vw)] min-[901px]:w-[min(560px,94%)]" />
         <div className="mx-auto mt-4 max-w-[460px] text-center min-[901px]:mt-8">
           <h1 className="text-[24px] leading-tight text-white min-[901px]:text-[34px]">Empowering Child Education</h1>
           <p className="mt-2 text-[14.5px] text-[#eadcf5] max-[900px]:hidden">
