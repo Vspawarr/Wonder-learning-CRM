@@ -1,17 +1,18 @@
 @import "tailwindcss";
 
-/* Design tokens from the Wonder Learning prototype. */
+/* Design tokens: the Wonder Learning brand (R52). Purple and the logo's six puzzle-piece colours
+   (red, orange, green, yellow, blue, purple), on a soft lavender page. */
 :root {
-  --bg: #f4f2fa;
+  --bg: #f7f3fb;
   --surf: #fff;
-  --surf2: #f9f8fd;
-  --ink: #1d1a3b;
-  --ink2: #5d5a7a;
-  --ink3: #8b88a6;
-  --line: #e5e2f0;
-  --brand: #3d3ba8;
-  --brand2: #5654d4;
-  --brandsoft: #ecebfb;
+  --surf2: #faf7fd;
+  --ink: #24123a;
+  --ink2: #5f4f72;
+  --ink3: #8e80a0;
+  --line: #ebe2f3;
+  --brand: #6c2d91;
+  --brand2: #8a45b5;
+  --brandsoft: #f3e9f9;
   --onbrand: #fff;
   --sun: #e8930c;
   --sunsoft: #fef1da;
@@ -21,24 +22,32 @@
   --coralsoft: #fce6e2;
   --sky: #1c86c4;
   --skysoft: #dff0fa;
-  --grape: #7a48b8;
-  --grapesoft: #efe6fa;
-  --side: #1b1840;
-  --shadow: 0 1px 2px rgba(29, 26, 59, 0.06), 0 6px 18px rgba(29, 26, 59, 0.05);
+  --grape: #9b3fb5;
+  --grapesoft: #f5e8fa;
+  --side: #2b1544;
+  --shadow: 0 1px 2px rgba(60, 20, 90, 0.06), 0 8px 22px rgba(60, 20, 90, 0.06);
+  /* The logo's puzzle pieces, left to right. */
+  --pz-red: #e3262c;
+  --pz-orange: #f28c1e;
+  --pz-green: #6cb33f;
+  --pz-yellow: #f7c820;
+  --pz-blue: #1fa5de;
+  --pz-purple: #6c2d91;
+  --rainbow: linear-gradient(90deg, var(--pz-red) 0 16.66%, var(--pz-orange) 0 33.33%, var(--pz-green) 0 50%, var(--pz-yellow) 0 66.66%, var(--pz-blue) 0 83.33%, var(--pz-purple) 0);
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #100e24;
-    --surf: #1a1738;
-    --surf2: #211e44;
-    --ink: #eeedfb;
-    --ink2: #b4b1d3;
-    --ink3: #8b88b0;
-    --line: #302c5a;
-    --brand: #9c9aff;
-    --brand2: #b4b2ff;
-    --brandsoft: #2a2762;
-    --onbrand: #14113a;
+    --bg: #140b20;
+    --surf: #1e1230;
+    --surf2: #26173b;
+    --ink: #f3ecfa;
+    --ink2: #c3b3d6;
+    --ink3: #9886ad;
+    --line: #3a2654;
+    --brand: #c99be8;
+    --brand2: #dbb7f2;
+    --brandsoft: #3a1f55;
+    --onbrand: #1e0d30;
     --sun: #f4a62a;
     --sunsoft: #3a2e12;
     --mint: #38d3b5;
@@ -47,23 +56,23 @@
     --coralsoft: #432320;
     --sky: #66bff2;
     --skysoft: #0f3450;
-    --grape: #be95f5;
-    --grapesoft: #33245a;
+    --grape: #e09af5;
+    --grapesoft: #3f1f4f;
     --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 6px 18px rgba(0, 0, 0, 0.25);
   }
 }
 :root[data-theme="dark"] {
-  --bg: #100e24;
-  --surf: #1a1738;
-  --surf2: #211e44;
-  --ink: #eeedfb;
-  --ink2: #b4b1d3;
-  --ink3: #8b88b0;
-  --line: #302c5a;
-  --brand: #9c9aff;
-  --brand2: #b4b2ff;
-  --brandsoft: #2a2762;
-  --onbrand: #14113a;
+  --bg: #140b20;
+  --surf: #1e1230;
+  --surf2: #26173b;
+  --ink: #f3ecfa;
+  --ink2: #c3b3d6;
+  --ink3: #9886ad;
+  --line: #3a2654;
+  --brand: #c99be8;
+  --brand2: #dbb7f2;
+  --brandsoft: #3a1f55;
+  --onbrand: #1e0d30;
   --sun: #f4a62a;
   --sunsoft: #3a2e12;
   --mint: #38d3b5;
@@ -72,8 +81,8 @@
   --coralsoft: #432320;
   --sky: #66bff2;
   --skysoft: #0f3450;
-  --grape: #be95f5;
-  --grapesoft: #33245a;
+  --grape: #e09af5;
+  --grapesoft: #3f1f4f;
   --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 6px 18px rgba(0, 0, 0, 0.25);
 }
 
@@ -101,7 +110,7 @@
   --color-grape: var(--grape);
   --color-grapesoft: var(--grapesoft);
   --color-side: var(--side);
-  --font-head: var(--font-bricolage), "Segoe UI", system-ui, sans-serif;
+  --font-head: var(--font-quicksand), "Segoe UI", system-ui, sans-serif;
   --font-body: var(--font-figtree), "Segoe UI", system-ui, sans-serif;
   --shadow-card: var(--shadow);
 }
@@ -142,12 +151,12 @@
     font-weight: 700;
   }
   h2 {
-    font-size: 16px;
-    font-weight: 650;
+    font-size: 16.5px;
+    font-weight: 700;
   }
   h3 {
-    font-size: 14px;
-    font-weight: 650;
+    font-size: 14.5px;
+    font-weight: 700;
   }
   input[type="date"] {
     color-scheme: light dark;
@@ -163,22 +172,30 @@
   .today { color: var(--sun); font-weight: 650; }
 
   /* shell */
-  .side { background: var(--side); color: #c9c7ec; }
-  .nav {
-    display: flex; align-items: center; gap: 10px; width: 100%; padding: 8px 10px; border-radius: 8px;
-    color: #cfcdf2; font-size: 14px; text-decoration: none;
+  .side {
+    background: radial-gradient(120% 60% at 0% 0%, #3d1c5e 0%, transparent 60%), var(--side); color: #dccbea;
+    border-top: 5px solid transparent; border-image: var(--rainbow) 1;
   }
-  .nav:hover { background: rgba(255, 255, 255, 0.07); }
-  .nav.on { background: #fff; color: var(--side); font-weight: 650; }
+  .nav {
+    display: flex; align-items: center; gap: 10px; width: 100%; padding: 8px 10px; border-radius: 10px;
+    color: #e2d5ee; font-size: 14px; text-decoration: none; position: relative;
+  }
+  .nav:hover { background: rgba(255, 255, 255, 0.08); }
+  .nav.on { background: #fff; color: var(--side); font-weight: 700; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18); }
+  .nav.on::before {
+    content: ""; position: absolute; left: -12px; top: 8px; bottom: 8px; width: 5px; border-radius: 0 4px 4px 0; background: var(--pz-yellow);
+  }
+  /* the logo's six puzzle colours as a thin band (under the top bar, on cards' tops) */
+  .rainbow { height: 4px; background: var(--rainbow); }
   .nav .badge {
     margin-left: auto; background: var(--coral); color: #fff; border-radius: 99px; font-size: 11px;
     padding: 0 7px; line-height: 18px; font-weight: 650;
   }
-  .ngroup { margin-top: 12px; padding: 0 10px 4px; font-size: 12px; color: #8582ba; font-weight: 600; }
+  .ngroup { margin-top: 12px; padding: 0 10px 4px; font-size: 11.5px; color: #b195cc; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
 
   /* cards */
   .card {
-    background: var(--surf); border: 1px solid var(--line); border-radius: 12px; padding: 16px; box-shadow: var(--shadow);
+    background: var(--surf); border: 1px solid var(--line); border-radius: 16px; padding: 16px; box-shadow: var(--shadow);
   }
   .card > h2 { margin-bottom: 12px; }
   /* lifecycle strip (prototype "ribbon") */
@@ -207,8 +224,10 @@
   .kgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(178px, 1fr)); gap: 12px; }
   .kpi {
     display: block; background: var(--surf); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px;
-    text-align: left; box-shadow: var(--shadow); border-left: 4px solid var(--c, var(--brand)); color: inherit; text-decoration: none;
+    text-align: left; box-shadow: var(--shadow); border-left: 5px solid var(--c, var(--brand)); color: inherit; text-decoration: none;
+    border-radius: 14px; transition: transform 0.15s, box-shadow 0.15s;
   }
+  a.kpi:hover { transform: translateY(-2px); }
   a.kpi:hover { border-color: var(--c, var(--brand)); }
   .kpi .l { font-size: 12.5px; color: var(--ink2); }
   .kpi .v { font-family: var(--font-head); font-size: 25px; font-weight: 700; line-height: 1.15; margin: 2px 0; }
@@ -343,11 +362,11 @@
   /* buttons */
   .btn {
     display: inline-flex; align-items: center; gap: 6px; background: var(--surf); border: 1px solid var(--line);
-    border-radius: 8px; padding: 7px 12px; cursor: pointer; font-weight: 600; white-space: nowrap; color: var(--ink);
-    text-decoration: none;
+    border-radius: 10px; padding: 7px 13px; cursor: pointer; font-weight: 650; white-space: nowrap; color: var(--ink);
+    text-decoration: none; transition: background 0.15s, border-color 0.15s, color 0.15s;
   }
   .btn:hover { border-color: var(--brand2); color: var(--brand); }
-  .btn.pri { background: var(--brand); border-color: var(--brand); color: var(--onbrand); }
+  .btn.pri { background: var(--brand); border-color: var(--brand); color: var(--onbrand); box-shadow: 0 3px 10px color-mix(in srgb, var(--brand) 28%, transparent); }
   .btn.pri:hover { background: var(--brand2); color: var(--onbrand); }
   .btn.bad { background: var(--coral); border-color: var(--coral); color: #fff; }
   .btn.ghost { background: none; border-color: transparent; color: var(--ink2); }
@@ -359,8 +378,9 @@
 
   /* form fields */
   .in, .sel, .ta {
-    width: 100%; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--surf); color: var(--ink);
+    width: 100%; padding: 8px 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--surf); color: var(--ink);
   }
+  .in:focus, .sel:focus, .ta:focus { border-color: var(--brand2); box-shadow: 0 0 0 3px var(--brandsoft); outline: none; }
   .in:disabled, .sel:disabled, .ta:disabled { background: var(--surf2); color: var(--ink2); }
   .ta { min-height: 70px; resize: vertical; }
   /* iPhones zoom the whole page into any field smaller than 16px and stay zoomed; avoid that. */
@@ -583,4 +603,12 @@
   body, main { background: #fff !important; }
   main { padding: 0 !important; max-width: none !important; }
   .card { box-shadow: none !important; border: 0 !important; }
+}
+
+/* R52: sign-in welcome panel (purple, with soft light spots like the logo's glow). */
+.login-hero {
+  background:
+    radial-gradient(60% 45% at 85% 15%, rgba(247, 200, 32, 0.22), transparent 70%),
+    radial-gradient(55% 45% at 10% 90%, rgba(31, 165, 222, 0.25), transparent 70%),
+    linear-gradient(160deg, #7b35a5 0%, #6c2d91 45%, #3d1c5e 100%);
 }

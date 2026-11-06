@@ -45,7 +45,7 @@ function Tick({ color }: { color: string }) {
 }
 
 export function KitPage({ kit, ticks }: { kit: ChecklistKit; ticks?: boolean }) {
-  const color = kit.color ?? "#3D3BA8";
+  const color = kit.color ?? "#6C2D91";
   let sr = 0;
   return (
     <Page size="A4" style={s.page}>

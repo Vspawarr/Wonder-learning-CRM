@@ -51,7 +51,7 @@ export default async function FinancePage({ searchParams }: { searchParams: Prom
       <div className="mb-4 grid grid-cols-2 gap-3 min-[901px]:grid-cols-4">
         <Kpi label="Money in" value={inrS(f.moneyIn)} sub="Received in the period" color="#0E8F79" />
         <Kpi label="Money out" value={inrS(f.moneyOut)} sub="Spent in the period" color="#D9412D" />
-        <Kpi label="Net" value={inrS(f.net)} sub={f.net >= 0 ? "More came in than went out" : "More went out than came in"} color="#3D3BA8" />
+        <Kpi label="Net" value={inrS(f.net)} sub={f.net >= 0 ? "More came in than went out" : "More went out than came in"} color="#6C2D91" />
         <Kpi label="In bank & cash now" value={inrS(f.totalBalance)} sub="All accounts except the card" color="#1C86C4" href="/accounts/books" />
       </div>
 

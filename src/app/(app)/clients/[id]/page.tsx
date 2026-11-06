@@ -227,7 +227,7 @@ export default async function ClientPage({ params }: { params: Promise<{ id: str
           { label: "Sales orders", value: liveOrders, color: "#C2417A", href: "?tab=sales" },
           { label: `Invoiced · ${live} invoice(s)`, value: inr(m.invoiced), color: "#1C86C4", href: "?tab=money" },
           { label: `Received · ${c.payments.length} payment(s)`, value: inr(m.received), color: "#0E8F79", href: "?tab=money" },
-          { label: "Outstanding", value: inr(m.outstanding), color: "#3D3BA8", href: "?tab=money" },
+          { label: "Outstanding", value: inr(m.outstanding), color: "#6C2D91", href: "?tab=money" },
           {
             label: m.overdueCount ? `Overdue · ${m.overdueCount} invoice(s)` : "Overdue",
             value: inr(m.overdue),

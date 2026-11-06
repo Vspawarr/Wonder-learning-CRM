@@ -35,7 +35,7 @@ const TYPE_COLOR: Record<string, string> = {
   MEETING: "#7A48B8",
   SITE_VISIT: "#7A48B8",
   NOTE: "#E8930C",
-  SYSTEM: "#3D3BA8",
+  SYSTEM: "#6C2D91",
 };
 
 const when = (iso: string) => {

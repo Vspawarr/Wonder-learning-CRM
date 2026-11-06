@@ -1,8 +1,9 @@
 import type { Metadata, Viewport } from "next";
-import { Bricolage_Grotesque, Figtree } from "next/font/google";
+import { Figtree, Quicksand } from "next/font/google";
 import "./globals.css";
 
-const bricolage = Bricolage_Grotesque({ subsets: ["latin"], variable: "--font-bricolage" });
+// Headings: Quicksand, rounded and friendly (Adobe's type-palette pick for an educational brand, R52); body: Figtree.
+const quicksand = Quicksand({ subsets: ["latin"], weight: ["500", "600", "700"], variable: "--font-quicksand" });
 const figtree = Figtree({ subsets: ["latin"], variable: "--font-figtree" });
 
 export const metadata: Metadata = {
@@ -14,7 +15,7 @@ export const viewport: Viewport = { width: "device-width", initialScale: 1, view
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en-IN" className={`${bricolage.variable} ${figtree.variable}`}>
+    <html lang="en-IN" className={`${quicksand.variable} ${figtree.variable}`}>
       <body>{children}</body>
     </html>
   );

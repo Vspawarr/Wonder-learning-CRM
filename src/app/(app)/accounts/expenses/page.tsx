@@ -52,7 +52,7 @@ export default async function AccountsExpensesPage({ searchParams }: { searchPar
       <div className="mb-4 grid grid-cols-2 gap-3 min-[901px]:grid-cols-4">
         <Kpi label="Waiting for approval" value={String(waiting.length)} sub={inr(waiting.reduce((t, e) => t + e.amount, 0))} color="#E8930C" />
         <Kpi label="To pay back" value={inr(toPay)} sub="Approved own-money spends" color="#0E8F79" />
-        <Kpi label="Advances with employees" value={inr(out)} sub="Not yet spent" color="#3D3BA8" />
+        <Kpi label="Advances with employees" value={inr(out)} sub="Not yet spent" color="#6C2D91" />
         <Kpi label="Approved (list below)" value={inr(approved)} sub="Chosen year and filters" color="#1C86C4" />
       </div>
 

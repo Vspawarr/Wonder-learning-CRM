@@ -22,7 +22,7 @@ export const initials = (name: string) =>
     .join("")
     .toUpperCase();
 
-const AV_COLORS = ["#3D3BA8", "#7A48B8", "#1C86C4", "#D9412D", "#0E8F79", "#C77A00", "#C2417A", "#4A8F3C", "#7A5C3E", "#5B6B8C", "#B0570F"];
+const AV_COLORS = ["#6C2D91", "#7A48B8", "#1C86C4", "#D9412D", "#0E8F79", "#C77A00", "#C2417A", "#4A8F3C", "#7A5C3E", "#5B6B8C", "#B0570F"];
 
 /** Stable avatar colour per user id. */
 export function avatarColor(id: string): string {

@@ -115,7 +115,7 @@ export function ProductButton({ product }: { product?: P }) {
                 type="color"
                 id="p-color"
                 className="h-10 w-14 cursor-pointer rounded-lg border border-line bg-surf"
-                value={v.color || "#3d3ba8"}
+                value={v.color || "#6c2d91"}
                 onChange={(e) => setV({ ...v, color: e.target.value })}
               />
               <span className="small muted">{v.color ? v.color : "Default (purple)"}</span>

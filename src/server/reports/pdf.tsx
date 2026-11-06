@@ -6,7 +6,7 @@ import type { Cell, Report, ReportColumn } from "./types";
 
 Font.register({ family: "Rupee", src: RUPEE_FONT });
 
-const BRAND = "#3D3BA8";
+const BRAND = "#6C2D91";
 const s = StyleSheet.create({
   page: { fontFamily: "Helvetica", fontSize: 8.5, color: "#222222", paddingTop: 28, paddingHorizontal: 28, paddingBottom: 36 },
   top: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-end", borderBottomWidth: 1.5, borderBottomColor: BRAND, paddingBottom: 6 },

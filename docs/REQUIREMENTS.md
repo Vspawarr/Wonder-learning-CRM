@@ -633,3 +633,13 @@ uploaded. 2. After selecting sales order only converted PO options should be dis
 | Change | Status | Notes |
 |---|---|---|
 | **School logo on the PO template** | ✅ | "Send PO template" → School logo: Upload logo (PNG or JPG, up to 2 MB), Replace logo, Remove. Printed top left on page 1 of the PO template (download, preview and the WhatsApp link). One logo per school, kept on the lead and the client, so later PO templates have it. Schools without a logo: PO as before |
+
+## R52. Website design in the theme of the business (6 Nov)
+
+"Use adobe and canva connector and make website design very best as theme of there business."
+
+| Change | Status | Notes |
+|---|---|---|
+| **Brand colours and fonts** | ✅ | Purple #6C2D91 (the logo's purple, also on the quotation PDF) as the main colour; the logo's six puzzle colours (red, orange, green, yellow, blue, purple) as a colour band on the side menu (and the top bar on phones); headings in Quicksand, the rounded, friendly font Adobe's type-palette tool suggested for an educational brand; rounder cards, buttons and fields; dark mode re-tuned to match. Screens and layouts are unchanged |
+| **New sign-in page** | ✅ | Purple welcome panel with the WONDER puzzle pieces, "Empowering Child Education" and the sign-in card (stacked on phones) |
+| **Canva illustration (children with puzzle pieces)** | ⏳ | Made in Canva (in the owner's Canva account); it could not be downloaded into the project from here. Once saved in the code as `public/brand/login-art.png`, the sign-in page shows it in place of the puzzle pieces |

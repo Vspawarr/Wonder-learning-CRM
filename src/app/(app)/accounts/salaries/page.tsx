@@ -33,7 +33,7 @@ export default async function SalariesPage() {
         <AddSalaryButton people={people} accounts={options} month={thisMonth} />
       </PageHeader>
       <div className="mb-4 grid grid-cols-2 gap-3 min-[901px]:grid-cols-4">
-        <Kpi label="This month (take-home)" value={inr(now.reduce((t, s) => t + s.net, 0))} sub={`${now.length} people paid`} color="#3D3BA8" />
+        <Kpi label="This month (take-home)" value={inr(now.reduce((t, s) => t + s.net, 0))} sub={`${now.length} people paid`} color="#6C2D91" />
         <Kpi label="Gross in the year" value={inr(counted.reduce((t, s) => t + s.gross, 0))} sub="Approved salaries" color="#0E8F79" />
         <Kpi label="Deductions in the year" value={inr(counted.reduce((t, s) => t + s.deductions, 0))} sub="PF, TDS, recoveries" color="#1C86C4" />
         <Kpi label="Waiting for approval" value={String(waiting.length)} sub={inr(waiting.reduce((t, s) => t + s.net, 0))} color="#E8930C" />

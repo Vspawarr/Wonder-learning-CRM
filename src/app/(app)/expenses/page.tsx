@@ -39,7 +39,7 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Pro
         <AddExpenseButton accounts={accounts} people={[{ id: user.id, name: user.name }]} targets={targets} me={user.id} />
       </PageHeader>
       <div className="mb-4 grid grid-cols-2 gap-3 min-[901px]:grid-cols-4">
-        <Kpi label="Advance with me" value={inr(bal?.advanceBalance ?? 0)} sub={`Given ${inr(bal?.advanceGiven ?? 0)} · spent ${inr(bal?.spentFromAdvance ?? 0)}`} color="#3D3BA8" />
+        <Kpi label="Advance with me" value={inr(bal?.advanceBalance ?? 0)} sub={`Given ${inr(bal?.advanceGiven ?? 0)} · spent ${inr(bal?.spentFromAdvance ?? 0)}`} color="#6C2D91" />
         <Kpi label="To be paid back to me" value={inr(bal?.toReimburse ?? 0)} sub="Approved, own money" color="#0E8F79" />
         <Kpi label="Waiting for approval" value={inr(bal?.waiting ?? 0)} sub="Sent to Accounts" color="#E8930C" />
         <Kpi label="Approved this year" value={inr(spent)} sub="In the chosen financial year" color="#1C86C4" />

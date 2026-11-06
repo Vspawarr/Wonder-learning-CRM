@@ -43,7 +43,7 @@ export function Shell({
       >
         <div className="px-2 pt-1 pb-4">
           <BrandLogo width={176} priority />
-          <span className="mt-1 block pl-1 text-[11.5px] text-[#9e9bd0]">Sales CRM</span>
+          <span className="mt-1 block pl-1 text-[11.5px] text-[#c4aedb]">Sales CRM</span>
         </div>
         {nav.map((g) => (
           <div key={g.group}>
@@ -63,20 +63,20 @@ export function Shell({
           </div>
         ))}
         <div className="mt-auto px-2 pb-3">
-          <DownloadAppLink className="btn sm w-full justify-center border-[#3a3680] bg-[#26225a] text-white no-underline hover:text-white" />
+          <DownloadAppLink className="btn sm w-full justify-center border-[#5a3580] bg-[#3a1f57] text-white no-underline hover:text-white" />
         </div>
         <div className="border-t border-white/10 px-2 pt-3.5">
           <div className="flex items-center gap-2.5">
             <Avatar id={user.id} name={user.name} size={34} />
             <div className="min-w-0">
               <div className="truncate font-semibold text-white">{user.name}</div>
-              <div className="small text-[#9e9bd0]">{user.role}</div>
+              <div className="small text-[#c4aedb]">{user.role}</div>
             </div>
           </div>
           <div className="mt-2.5 flex gap-2">
             <PasswordButton />
             <form action={logout} className="flex-1">
-              <button className="btn sm w-full justify-center border-[#3a3680] bg-[#26225a] text-white hover:text-white">
+              <button className="btn sm w-full justify-center border-[#5a3580] bg-[#3a1f57] text-white hover:text-white">
                 <Icon name="logout" size={14} /> Sign out
               </button>
             </form>
@@ -85,7 +85,9 @@ export function Shell({
       </aside>
       {/* Phones scroll the whole page (not an inner box) so the browser bars and keyboard behave and taps land where they look. */}
       <div className="relative min-w-0 min-[901px]:overflow-y-auto">
-        <header className="sticky top-0 z-20 flex items-center gap-3 border-b border-line bg-bg px-3.5 py-2.5 min-[901px]:px-7 min-[901px]:py-3">
+        <header className="sticky top-0 z-20 flex items-center gap-3 border-b border-line bg-bg/90 px-3.5 py-2.5 backdrop-blur min-[901px]:px-7 min-[901px]:py-3">
+          {/* R52: brand band on phones (the side menu carries it on computers) */}
+          <div className="rainbow absolute inset-x-0 top-0 h-[3px] min-[901px]:hidden" />
           <button
             className="grid h-[38px] w-[38px] shrink-0 place-items-center rounded-[10px] border border-line bg-surf min-[901px]:hidden"
             aria-label="Open menu"

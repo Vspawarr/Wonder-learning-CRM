@@ -83,7 +83,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
           { label: "Opportunities", value: life.opps, color: "#7A48B8", href: "/pipeline" },
           { label: "Quotations open", value: life.quotes, color: "#C77A00", href: "/pipeline" },
           { label: "Open sales orders", value: life.orders, color: "#C2417A", href: "/clients" },
-          { label: "Clients", value: life.clients, color: "#3D3BA8", href: "/clients" },
+          { label: "Clients", value: life.clients, color: "#6C2D91", href: "/clients" },
           { label: life.overdue ? `Unpaid · ${life.overdue} overdue` : "Unpaid invoices", value: life.unpaid, color: "#D9412D", href: "/outstanding" },
           { label: "To-dos due", value: life.todos, color: "#0E8F79", href: "/tasks" },
         ]}
@@ -216,7 +216,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
             ) : null}
             {books ? (
               <>
-                <Kpi label="In bank & cash" value={inrS(books.cash)} sub="All company accounts today" color="#3D3BA8" href="/accounts/finance" />
+                <Kpi label="In bank & cash" value={inrS(books.cash)} sub="All company accounts today" color="#6C2D91" href="/accounts/finance" />
                 <Kpi label="Bills to pay" value={inrS(books.bills)} sub={`${books.billCount} supplier bill(s) open`} color="#D97706" href="/accounts/bills?show=topay" />
               </>
             ) : null}
@@ -264,7 +264,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
         <>
           <SectionHead id="team" sub={all ? "How each person is doing" : "Your performance"} />
           <div className="kgrid kgrid-2 mb-4">
-            <Kpi label="Win rate" value={k.winRate === null ? "–" : `${k.winRate}%`} sub="Won ÷ (won + lost)" color="#3D3BA8" />
+            <Kpi label="Win rate" value={k.winRate === null ? "–" : `${k.winRate}%`} sub="Won ÷ (won + lost)" color="#6C2D91" />
             <Kpi label="Lost" value={inrS(k.lostValue)} sub={`${k.lostCount} deal(s)`} color="#8B88A6" />
             <Kpi
               label="Interactions logged"
