@@ -7,7 +7,7 @@ commit id, what changed in plain words, and the requirement it answers (R… in 
 
 ## 24 Nov 2026
 
-- `pending` **Outstanding by school pie** on the Finance dashboard: overall outstanding, each school's share in %;
+- `85d330b` **Outstanding by school pie** on the Finance dashboard: overall outstanding, each school's share in %;
   also in the dashboard PDF / Excel. Client meeting points recorded as R53. (R53)
 
 ## 6 Nov 2026
