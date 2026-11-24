@@ -7,7 +7,7 @@ commit id, what changed in plain words, and the requirement it answers (R… in 
 
 ## 24 Nov 2026
 
-- `pending` **Mandatory client documents.** Settings → Documents lists the documents every client must give; each
+- `aa49275` **Mandatory client documents.** Settings → Documents lists the documents every client must give; each
   client shows "x of y received" with ticks and Upload buttons; Clients list tag + "Documents pending" filter;
   dashboard count. Starting list until the client sends theirs. (R53)
 
