@@ -7,7 +7,7 @@ commit id, what changed in plain words, and the requirement it answers (R… in 
 
 ## 24 Nov 2026
 
-- `pending` **All states, union territories and districts.** Settings → Locations now has all 28 states and 8 union
+- `9525501` **All states, union territories and districts.** Settings → Locations now has all 28 states and 8 union
   territories with their 782 districts; pick a state and its districts appear (lead form, filters, Excel template).
   Existing cities kept. (R53)
 
