@@ -644,3 +644,30 @@ uploaded. 2. After selecting sales order only converted PO options should be dis
 | **New sign-in page** | ✅ | Purple welcome panel: six children each holding up a puzzle piece with a letter, spelling W O N D E R in the logo's colours (owner's idea, 6 Nov), "Empowering Child Education" and the sign-in card (stacked on phones) |
 | **The whole CRM in the Wonder Learning look** (owner, 6 Nov: "after sign in everything should feel like Wonder Learning environment… dont touch structure and setup process just design and look") | ✅ | Side menu icons on tiles in the puzzle colours; page titles underlined with the six-colour band; dashboard welcome banner (purple, with the six children holding W O N D E R; same greeting, line and PDF/Excel buttons); faint puzzle pieces in the page background; coloured puzzle dots on card titles; pop-ups, side panels and the chosen tab carry the colour band; lavender table headings; a puzzle piece on empty lists; purple notices. No screen, button, step or data changed |
 | **Canva illustration (children with puzzle pieces)** | ✖ Not used | Owner's decision (6 Nov): keep the WONDER puzzle pieces on the sign-in page |
+
+## R53. Client meeting points (24 Nov)
+
+"Retention clients: existing client, renew client, left client; client should be segmented based on new/retain/carry fwd.
+Slow browsing site on different systems and browsers. Incomplete material received / return material / part delivery
+(how to handle this). WhatsApp reminder (for payments / follow up / delivery notification etc.). State and complete
+cities inside state should be displayed. Marketing material: ppt, videos, animations, HTML files, pdf's etc. for
+presentation to client. After client conversion we will upload some mandatory documents in client profile; status of
+completion should reflect on display so user or admin will get to know how many documents are pending from client.
+Outstanding should be displayed in pie chart for all clients with percentage on finance dashboard."
+
+Owner's answers: no "carried forward" term; instead plan how to bring in the client's **old data**. Returns: handled
+**both ways** (sometimes money returned, sometimes replaced). WhatsApp automatic: **on hold** until the API and client
+approval. Locations: **all states and union territories**, and all **districts** of the selected state. Marketing:
+large files as **Google Drive links**. Mandatory documents: **client will provide the list**. Outstanding pie:
+**overall outstanding**.
+
+| Change | Status | Notes |
+|---|---|---|
+| **Outstanding pie on the finance dashboard** | ✅ | Finance → "Outstanding by school": pie of the overall outstanding, each school's ₹ and %, seven largest by name + "Others"; tap a school to open its invoices; in the dashboard PDF / Excel |
+| **All states + union territories, all districts of a state** | ⏳ | Next |
+| **Incomplete / returned material, part delivery** (replace or refund) | ⏳ | Planned |
+| **Mandatory client documents with completion status** | ⏳ | Checklist + progress can be built; list of documents from the client |
+| **Marketing material library** (small files uploaded, large files as Drive links) | ⏳ | Planned |
+| **Client segments** (new / renewed / not renewed / left) and **old data import** | ⏳ | Needs a sample of the client's old data |
+| **Slow site on some systems / browsers** | ⏳ | Needs which pages, devices and browsers |
+| **WhatsApp automatic reminders** | ⏸ On hold | Until the WhatsApp Business API and client approval |

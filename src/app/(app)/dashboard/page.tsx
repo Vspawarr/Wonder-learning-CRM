@@ -5,7 +5,10 @@ import { STAGE_COLOR, STAGE_LABEL } from "@/lib/constants";
 import { fmtDate, todayIST } from "@/lib/dates";
 import { inrS } from "@/lib/format";
 import { canApprovePayments, canManageCompanyAccounts, seesAllSales } from "@/lib/permissions";
-import { AvatarName, Card, DueTag, Empty, HBars, Kpi, Ribbon, Table, VBars } from "@/components/ui";
+import { AvatarName, Card, DueTag, Empty, HBars, Kpi, Pie, Ribbon, Table, VBars } from "@/components/ui";
+
+/** Pie slices: the logo's puzzle colours first (R53). */
+const PIE_COLORS = ["#6C2D91", "#1FA5DE", "#F28C1E", "#6CB33F", "#E3262C", "#F7C820", "#C2417A", "#0E8F79"];
 import { requireUser } from "@/server/session";
 import { expenseTotal } from "@/server/expenses";
 import { companySnapshot } from "@/server/company-books";
@@ -233,6 +236,23 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
               <Kpi label="Waiting for Accounts" value={inrS(cash.awaiting)} sub="Recorded, not yet approved" color="#E8930C" href={canApprovePayments(user.role) ? "/accounts" : "/outstanding"} />
             ) : null}
           </div>
+          <Card title="Outstanding by school" className="mb-4">
+            {owed.byClient.slices.length ? (
+              <Pie
+                data={owed.byClient.slices.map((s, i) => ({
+                  label: s.name,
+                  value: s.amount,
+                  pct: s.pct,
+                  color: s.id ? PIE_COLORS[i % PIE_COLORS.length] : "#B8AEC6",
+                  href: s.id ? `/clients/${s.id}?tab=money` : "/outstanding",
+                }))}
+                format={inrS}
+                center={{ value: inrS(owed.byClient.total), label: `${owed.byClient.schools} school${owed.byClient.schools === 1 ? "" : "s"}` }}
+              />
+            ) : (
+              <Empty>Nothing owed right now.</Empty>
+            )}
+          </Card>
           <div className="grid grid-cols-1 gap-4 min-[901px]:grid-cols-2">
             <Card title="How late is the money owed">
               {owed.ageing.some((a) => a.amount) ? (

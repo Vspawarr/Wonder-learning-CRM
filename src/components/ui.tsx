@@ -197,6 +197,75 @@ export function HBars({ data, format }: { data: Bar[]; format?: (n: number) => s
   );
 }
 
+/** R53: a donut chart with a legend (name, amount, %); slices link where an href is given. */
+export function Pie({
+  data,
+  format,
+  center,
+}: {
+  data: { label: string; value: number; pct: number; color: string; href?: string }[];
+  format: (n: number) => string;
+  center?: { value: string; label: string };
+}) {
+  const total = data.reduce((t, d) => t + d.value, 0) || 1;
+  const R = 70;
+  const C = 2 * Math.PI * R;
+  let at = 0;
+  return (
+    <div className="pie">
+      <svg viewBox="0 0 180 180" className="pie-svg" role="img" aria-label="Pie chart">
+        <circle cx="90" cy="90" r={R} fill="none" stroke="var(--surf2)" strokeWidth="30" />
+        {data.map((d) => {
+          const len = (d.value / total) * C;
+          const el = (
+            <circle
+              key={d.label}
+              cx="90"
+              cy="90"
+              r={R}
+              fill="none"
+              stroke={d.color}
+              strokeWidth="30"
+              strokeDasharray={`${Math.max(0, len - (data.length > 1 ? 1.5 : 0))} ${C}`}
+              strokeDashoffset={-at}
+              transform="rotate(-90 90 90)"
+            >
+              <title>{`${d.label}: ${format(d.value)} (${d.pct}%)`}</title>
+            </circle>
+          );
+          at += len;
+          return el;
+        })}
+        {center ? (
+          <>
+            <text x="90" y="88" textAnchor="middle" className="pie-c1">
+              {center.value}
+            </text>
+            <text x="90" y="106" textAnchor="middle" className="pie-c2">
+              {center.label}
+            </text>
+          </>
+        ) : null}
+      </svg>
+      <ul className="pie-legend">
+        {data.map((d) => {
+          const row = (
+            <>
+              <i style={{ background: d.color }} />
+              <span className="l" title={d.label}>
+                {d.label}
+              </span>
+              <span className="v">{format(d.value)}</span>
+              <b>{d.pct}%</b>
+            </>
+          );
+          return <li key={d.label}>{d.href ? <Link href={d.href}>{row}</Link> : <div>{row}</div>}</li>;
+        })}
+      </ul>
+    </div>
+  );
+}
+
 export function VBars({ data }: { data: Bar[] }) {
   const max = Math.max(1, ...data.map((d) => d.value));
   return (

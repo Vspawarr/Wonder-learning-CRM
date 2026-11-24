@@ -496,6 +496,15 @@ async function dashboard(user: SessionUser, p: Params): Promise<Report> {
         : []),
     ]);
     sections.push({
+      heading: `Outstanding by school (total ${owed.byClient.total.toLocaleString("en-IN")})`,
+      columns: [
+        { key: "k", header: "School", width: 3 },
+        { key: "v", header: "Outstanding", kind: "money" },
+        { key: "p", header: "Share %", kind: "number" },
+      ],
+      rows: owed.byClient.slices.map((s) => ({ k: s.name, v: s.amount, p: s.pct })),
+    });
+    sections.push({
       heading: "How late is the money owed",
       columns: [
         { key: "k", header: "Age", width: 2 },

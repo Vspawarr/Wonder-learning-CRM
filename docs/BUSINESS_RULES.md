@@ -265,6 +265,8 @@ grey = done/cancelled (R28).
 
 - Top strip: live counts (active leads → opportunities → open quotations → open sales orders → clients →
   unpaid invoices → to-dos due), each a link.
+- **Outstanding by school** (R53, Finance section): open invoice balances added up per school (cancelled invoices
+  left out), shown as a pie with % of the total; up to seven schools by name, the rest as "Others".
 - **Show** buttons: Sales · Finance · Team & management · Service & delivery (one or several; remembered on
   that device; the export follows them). Period buttons and salesperson/state filters apply to all sections.
 - Sales Executives/Managers see only their own numbers.

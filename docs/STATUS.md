@@ -1,6 +1,6 @@
 # Current status
 
-_Last updated: 6 Nov 2026. Update this page whenever the situation changes._
+_Last updated: 24 Nov 2026. Update this page whenever the situation changes._
 
 ## Where things stand
 
@@ -19,6 +19,10 @@ _Last updated: 6 Nov 2026. Update this page whenever the situation changes._
 | Item | Why it matters | Ref |
 |---|---|---|
 | Feedback from the client's testing | Final changes before go-live | — |
+| **List of mandatory client documents** | Document checklist and "pending" count on each client | R53 |
+| **Sample of the client's old data** (a few rows) | Import of old clients / segments (new, renewed, not renewed, left) | R53 |
+| Which pages are slow, on which devices / browsers | Speeding up the site | R53 |
+| WhatsApp Business API + client approval | Automatic WhatsApp reminders (on hold) | R53 |
 | **Staff: reinstall the Android app (version 1.3)** from the "Download app" page, so WhatsApp gets the PDF with the message | Older app versions send only the link | R43 |
 | **Prices (and MRP) for the 10 "Other Note book" items** (O01–O10) from the new "Kit Cost" Excel, and the open points in `docs/PRICING.md` | Settings → Products; until priced they can't be added inside a kit | R47 |
 | **Ask the owner, when we move to the main domain: the company's bank account names, the company card and the office cash, with their opening balances and the date** (owner: "I'll provide, ask me when we deploy on main domain"). Then add them in Accounts → Account books | Company accounts (built 5 Oct) need them for correct balances; until then entries show as "Not assigned" | R39 |

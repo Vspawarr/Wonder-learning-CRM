@@ -1410,7 +1410,33 @@ export async function outstandingList(user: SessionUser, f: OutstandingFilters) 
     shown,
     summary: outstandingSummary(rows),
     ageing: ageing(rows),
+    byClient: outstandingByClient(rows),
     forecast: await collectionForecast(rows),
+  };
+}
+
+/** R53: overall outstanding split by school (biggest first; the rest as "Others"), with each share in %. */
+export function outstandingByClient(rows: InvoiceRow[], top = 7) {
+  const by = new Map<string, { id: string; name: string; amount: number }>();
+  for (const r of rows) {
+    if (r.state === "CANCELLED" || r.balance <= 0) continue;
+    const c = by.get(r.client.id) ?? { id: r.client.id, name: r.client.schoolName, amount: 0 };
+    c.amount += r.balance;
+    by.set(r.client.id, c);
+  }
+  const all = [...by.values()].sort((a, b) => b.amount - a.amount);
+  const total = all.reduce((t, c) => t + c.amount, 0);
+  const shown = all.length > top + 1 ? all.slice(0, top) : all;
+  const rest = all.slice(shown.length);
+  const slices = [
+    ...shown.map((c) => ({ id: c.id as string | null, name: c.name, amount: c.amount, clients: 1 })),
+    ...(rest.length ? [{ id: null, name: `Others (${rest.length} schools)`, amount: rest.reduce((t, c) => t + c.amount, 0), clients: rest.length }] : []),
+  ];
+  const r2 = (n: number) => Math.round(n * 100) / 100;
+  return {
+    total: r2(total),
+    schools: all.length,
+    slices: slices.map((s) => ({ ...s, amount: r2(s.amount), pct: total ? Math.round((s.amount / total) * 1000) / 10 : 0 })),
   };
 }
 

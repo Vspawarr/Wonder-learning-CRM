@@ -408,6 +408,8 @@ decisions; PDF / Excel. Switch: Settings → Features → "Lead / client transfe
   targets, renewals and the PDF / Excel) shows only their numbers; "All salespeople" for everyone. Also a **State**
   filter. In a past year the dashboard opens on the whole year.
 - Salespeople see only their own numbers.
+- **Finance → Outstanding by school** (R53): a pie of the total still owed, each school's share in ₹ and %, the
+  biggest seven named and the rest as "Others"; tap a school to open its invoices. Also in the dashboard PDF / Excel.
 
 ## 13. Year end and renewals
 

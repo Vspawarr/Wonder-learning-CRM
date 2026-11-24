@@ -5,6 +5,11 @@ wonder-learning-crm.vercel.app automatically). Newest first. **Add an entry with
 commit id, what changed in plain words, and the requirement it answers (R… in `REQUIREMENTS.md`).
 `git log --oneline` shows the full list.
 
+## 24 Nov 2026
+
+- `pending` **Outstanding by school pie** on the Finance dashboard: overall outstanding, each school's share in %;
+  also in the dashboard PDF / Excel. Client meeting points recorded as R53. (R53)
+
 ## 6 Nov 2026
 
 - `529c3f9` **Wonder Learning look on every screen** (design only): puzzle-coloured menu icons, colour band on page titles,
