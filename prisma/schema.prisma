@@ -87,6 +87,7 @@ model User {
   salariesDecided    SalaryPayment[]          @relation("SalaryDecidedBy")
   transfers          AccountTransfer[]
   bookMatches        BookMatch[]
+  issuesReported     MaterialIssue[]          @relation("IssueCreatedBy")
 }
 
 // ───────────────────────── Masters ─────────────────────────
@@ -449,20 +450,21 @@ model Client {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  tasks       Task[]
-  activities  Activity[]
-  quotations  Quotation[]
-  salesOrders SalesOrder[]
-  invoices    Invoice[]
-  payments    Payment[]
-  creditNotes CreditNote[]
-  dispatches  Dispatch[]
-  files       ClientFile[]
-  logo        SchoolLogo?
-  expenses    Expense[]
-  contacts    ClientContact[]
-  renewals    Opportunity[]   @relation("Renewals")
-  transfers   OwnerTransfer[]
+  tasks          Task[]
+  activities     Activity[]
+  quotations     Quotation[]
+  salesOrders    SalesOrder[]
+  invoices       Invoice[]
+  payments       Payment[]
+  creditNotes    CreditNote[]
+  dispatches     Dispatch[]
+  files          ClientFile[]
+  logo           SchoolLogo?
+  expenses       Expense[]
+  contacts       ClientContact[]
+  renewals       Opportunity[]   @relation("Renewals")
+  transfers      OwnerTransfer[]
+  materialIssues MaterialIssue[]
 
   @@index([ownerId, status])
 }
@@ -596,8 +598,9 @@ model SalesOrder {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  items    SalesOrderItem[]
-  invoices Invoice[]
+  items          SalesOrderItem[]
+  invoices       Invoice[]
+  materialIssues MaterialIssue[]
 
   @@unique([year, month, seq])
   @@index([clientId])
@@ -633,33 +636,39 @@ model SalesOrderItem {
   gstRate      Decimal    @default(0) @db.Decimal(5, 2) // % (0 for educational material)
   sortOrder    Int
 
-  dispatched DispatchItem[]
+  dispatched     DispatchItem[]
+  materialIssues MaterialIssue[]
 }
 
 /// Kits sent to the school in one lot (an order can go in several lots).
 model Dispatch {
-  id           String     @id @default(cuid())
-  number       String     @unique // DC/2026/10/001 (delivery challan)
-  year         Int
-  month        Int
-  seq          Int
-  salesOrderId String
-  salesOrder   SalesOrder @relation(fields: [salesOrderId], references: [id], onDelete: Cascade)
-  clientId     String
-  client       Client     @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  date         DateTime   @db.Date
-  transporter  String?
-  docketNo     String?
-  vehicleNo    String?
-  notes        String?
+  id            String     @id @default(cuid())
+  number        String     @unique // DC/2026/10/001 (delivery challan)
+  year          Int
+  month         Int
+  seq           Int
+  salesOrderId  String
+  salesOrder    SalesOrder @relation(fields: [salesOrderId], references: [id], onDelete: Cascade)
+  clientId      String
+  client        Client     @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  date          DateTime   @db.Date
+  transporter   String?
+  docketNo      String?
+  vehicleNo     String?
+  notes         String?
   /// When the school confirmed receipt.
-  receivedOn   DateTime?  @db.Date
-  createdById  String
-  createdBy    User       @relation(fields: [createdById], references: [id])
-  createdAt    DateTime   @default(now())
+  receivedOn    DateTime?  @db.Date
+  /// R53: sends replacement items for a material problem; doesn't count against the order's kits.
+  isReplacement Boolean    @default(false)
+  createdById   String
+  createdBy     User       @relation(fields: [createdById], references: [id])
+  createdAt     DateTime   @default(now())
 
-  items DispatchItem[]
-  files ClientFile[]
+  items          DispatchItem[]
+  files          ClientFile[]
+  /// R53: problems reported on this lot (short, damaged, returned).
+  issues         MaterialIssue[] @relation("IssueOnDispatch")
+  replacementFor MaterialIssue?  @relation("IssueReplacement")
 
   @@unique([year, month, seq])
   @@index([salesOrderId])
@@ -672,6 +681,44 @@ model DispatchItem {
   salesOrderItemId String
   salesOrderItem   SalesOrderItem @relation(fields: [salesOrderItemId], references: [id], onDelete: Cascade)
   qty              Int
+  /// R53: what exactly is sent on a replacement challan ("Bag"), printed after the line's description.
+  note             String?
+}
+
+/// R53: material that arrived short or damaged/wrong, or that the school sent back; settled by a replacement
+/// dispatch or by refunding / adjusting the money (credit note or money paid back), or closed with a note.
+model MaterialIssue {
+  id               String         @id @default(cuid())
+  clientId         String
+  client           Client         @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  salesOrderId     String
+  salesOrder       SalesOrder     @relation(fields: [salesOrderId], references: [id], onDelete: Cascade)
+  dispatchId       String?
+  dispatch         Dispatch?      @relation("IssueOnDispatch", fields: [dispatchId], references: [id], onDelete: SetNull)
+  salesOrderItemId String
+  salesOrderItem   SalesOrderItem @relation(fields: [salesOrderItemId], references: [id], onDelete: Cascade)
+  /// SHORT (not received) · DAMAGED (damaged or wrong) · RETURNED (sent back by the school)
+  kind             String
+  /// Kits affected.
+  qty              Int
+  /// What exactly, e.g. "Bags missing", "Book 3 torn".
+  detail           String?
+  date             DateTime       @db.Date
+  /// OPEN · REPLACED · REFUNDED · CLOSED
+  status           String         @default("OPEN")
+  replacementId    String?        @unique
+  replacement      Dispatch?      @relation("IssueReplacement", fields: [replacementId], references: [id], onDelete: SetNull)
+  creditNoteId     String?        @unique
+  creditNote       CreditNote?    @relation(fields: [creditNoteId], references: [id], onDelete: SetNull)
+  refundAmount     Decimal?       @db.Decimal(14, 2)
+  resolvedOn       DateTime?      @db.Date
+  resolvedNote     String?
+  createdById      String
+  createdBy        User           @relation("IssueCreatedBy", fields: [createdById], references: [id])
+  createdAt        DateTime       @default(now())
+
+  @@index([clientId])
+  @@index([salesOrderId])
 }
 
 /// Files kept on a client: documents (agreement, GST certificate…) and proof of delivery.
@@ -863,21 +910,22 @@ enum PaymentStatus {
 
 /// Reduces what a school owes on an invoice (returns, discount, write-off).
 model CreditNote {
-  id          String   @id @default(cuid())
-  number      String   @unique // CN/2026/10/001
-  year        Int
-  month       Int
-  seq         Int
-  clientId    String
-  client      Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  invoiceId   String
-  invoice     Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
-  date        DateTime @db.Date
-  amount      Decimal  @db.Decimal(14, 2)
-  reason      String
-  createdById String
-  createdBy   User     @relation(fields: [createdById], references: [id])
-  createdAt   DateTime @default(now())
+  id            String         @id @default(cuid())
+  number        String         @unique // CN/2026/10/001
+  year          Int
+  month         Int
+  seq           Int
+  clientId      String
+  client        Client         @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  invoiceId     String
+  invoice       Invoice        @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  date          DateTime       @db.Date
+  amount        Decimal        @db.Decimal(14, 2)
+  reason        String
+  createdById   String
+  createdBy     User           @relation(fields: [createdById], references: [id])
+  createdAt     DateTime       @default(now())
+  materialIssue MaterialIssue?
 
   @@unique([year, month, seq])
   @@index([invoiceId])

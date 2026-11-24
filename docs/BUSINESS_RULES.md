@@ -100,6 +100,13 @@ client shows a warning (the user may still save). The Excel upload skips same sc
   shows on the sales order, proforma and invoice. The sales order shows the quotation's creation time
   (date + H:M:S AM/PM) (R16.10, R17).
 - **Dispatch** in one or more lots with transporter/docket, a challan PDF, and **Mark received** with proof.
+- **Material problems** (R53): on an order, **Report problem** (or **Problem?** on a challan): kits **short** (not
+  received), **damaged or wrong**, or **returned by the school**, with the order line, kits affected and what exactly.
+  Settled one of three ways: **Send replacement** (a replacement challan, marked "Replacement", printed with
+  "(replacement: …)"; it doesn't count against the order's kits); **Refund / adjust** (Admin / Sales Head only: a
+  credit note on the order's invoice, or "money paid back" with a note; suggested amount = kits × rate); or **Close**
+  with a note. Deleting the replacement challan or the credit note opens the problem again. Open problems count on
+  the dashboard (Service & delivery → Material problems).
 
 ## Money
 

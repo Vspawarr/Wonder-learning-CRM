@@ -9,12 +9,17 @@ import { DateInput } from "@/components/date-input";
 import { Icon } from "@/components/icons";
 import { Pill } from "@/components/ui";
 import { SendDocButton } from "@/components/send-doc";
-import { createDispatch, deleteDispatch, markDispatchReceived } from "@/app/actions";
+import { closeMaterialIssue, createDispatch, deleteDispatch, markDispatchReceived, refundMaterialIssue, reportMaterialIssue, sendMaterialReplacement } from "@/app/actions";
+import { useApp } from "@/components/app-context";
 import { todayIST } from "@/lib/dates";
 import { dmy } from "@/lib/format";
 import type { ClientDetail } from "@/server/queries";
 
 type SO = ClientDetail["salesOrders"][number];
+type Issue = SO["issues"][number];
+
+const ISSUE_KIND: Record<Issue["kind"], string> = { SHORT: "Short", DAMAGED: "Damaged / wrong", RETURNED: "Returned" };
+const ISSUE_STATUS: Record<Issue["status"], string> = { OPEN: "Open", REPLACED: "Replaced", REFUNDED: "Refunded", CLOSED: "Closed" };
 
 /** Uploads a file to the client's file store (documents, proof of delivery). */
 export async function uploadClientFile(clientId: string, file: File, fields: Record<string, string>) {
@@ -40,6 +45,9 @@ export function DispatchSection({
 }) {
   const [sending, setSending] = useState(false);
   const [receiving, setReceiving] = useState<SO["dispatches"][number] | null>(null);
+  const [reporting, setReporting] = useState<string | null | false>(false);
+  const [settling, setSettling] = useState<{ issue: Issue; how: "replace" | "refund" | "close" } | null>(null);
+  const { canFinance } = useApp();
   const { pending, run } = useAction();
   const ordered = so.items.reduce((t, i) => t + i.qty, 0);
   const sent = so.items.reduce((t, i) => t + i.sent, 0);
@@ -51,15 +59,23 @@ export function DispatchSection({
         <span className="small">
           <b>Dispatch:</b> {sent} of {ordered} kits sent{left > 0 ? ` · ${left} to go` : " · all sent"}
         </span>
-        {left > 0 && so.status !== "CANCELLED" ? (
-          <button className="btn sm" onClick={() => setSending(true)}>
-            <Icon name="briefcase" size={14} /> Dispatch kits
-          </button>
-        ) : null}
+        <span className="flex flex-wrap gap-1.5">
+          {so.dispatches.length ? (
+            <button className="btn sm" onClick={() => setReporting(null)}>
+              Report problem
+            </button>
+          ) : null}
+          {left > 0 && so.status !== "CANCELLED" ? (
+            <button className="btn sm" onClick={() => setSending(true)}>
+              <Icon name="briefcase" size={14} /> Dispatch kits
+            </button>
+          ) : null}
+        </span>
       </div>
       {so.dispatches.map((d) => (
         <div key={d.id} className="small mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 border-t border-line pt-1.5">
           <b>{d.number}</b>
+          {d.isReplacement ? <Pill tone="grape">Replacement</Pill> : null}
           <span className="muted">
             {dmy(d.date)} · {d.kits} kits{d.transporter ? ` · ${d.transporter}` : ""}
             {d.docketNo ? ` ${d.docketNo}` : ""}
@@ -89,6 +105,11 @@ export function DispatchSection({
                 {d.receivedOn ? "Upload proof" : "Mark received"}
               </button>
             ) : null}
+            {!d.isReplacement ? (
+              <button className="btn sm ghost" onClick={() => setReporting(d.id)}>
+                Problem?
+              </button>
+            ) : null}
             {!d.receivedOn ? (
               <button
                 className="btn sm ghost"
@@ -101,7 +122,50 @@ export function DispatchSection({
           </span>
         </div>
       ))}
+      {so.issues.length ? (
+        <div className="mt-2 border-t border-line pt-1.5">
+          <div className="small font-semibold">Material problems</div>
+          {so.issues.map((m) => (
+            <div key={m.id} className="small mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1">
+              <Pill tone={m.status === "OPEN" ? "bad" : m.status === "CLOSED" ? "mute" : "ok"}>{ISSUE_STATUS[m.status]}</Pill>
+              <span className="min-w-0">
+                <b>{ISSUE_KIND[m.kind]}</b> · {m.qty} × {m.item}
+                {m.detail ? ` · ${m.detail}` : ""}
+                <span className="muted">
+                  {" "}
+                  · {dmy(m.date)}
+                  {m.challan ? ` · ${m.challan}` : ""}
+                  {m.replacement ? ` · replaced by ${m.replacement.number}` : ""}
+                  {m.creditNote ? ` · credit note ${m.creditNote}` : ""}
+                  {m.refundAmount !== null && !m.creditNote ? ` · ₹${m.refundAmount.toLocaleString("en-IN")} paid back` : ""}
+                  {m.resolvedNote ? ` · ${m.resolvedNote}` : ""}
+                </span>
+              </span>
+              {m.status === "OPEN" ? (
+                <span className="flex flex-wrap gap-1.5">
+                  <button className="btn sm" onClick={() => setSettling({ issue: m, how: "replace" })}>
+                    Send replacement
+                  </button>
+                  {canFinance ? (
+                    <button className="btn sm" onClick={() => setSettling({ issue: m, how: "refund" })}>
+                      Refund / adjust
+                    </button>
+                  ) : null}
+                  <button className="btn sm ghost" onClick={() => setSettling({ issue: m, how: "close" })}>
+                    Close
+                  </button>
+                </span>
+              ) : null}
+            </div>
+          ))}
+          {!canFinance && so.issues.some((m) => m.status === "OPEN") ? (
+            <div className="small faint mt-1">Refunds and money adjustments are done by an Admin or the Sales Head.</div>
+          ) : null}
+        </div>
+      ) : null}
       {sending ? <DispatchModal so={so} onClose={() => setSending(false)} /> : null}
+      {reporting !== false ? <IssueModal so={so} dispatchId={reporting} onClose={() => setReporting(false)} /> : null}
+      {settling ? <SettleModal so={so} issue={settling.issue} how={settling.how} onClose={() => setSettling(null)} /> : null}
       {receiving ? <ReceivedModal d={receiving} clientId={clientId} onClose={() => setReceiving(null)} /> : null}
     </div>
   );
@@ -228,6 +292,170 @@ function ReceivedModal({ d, clientId, onClose }: { d: SO["dispatches"][number]; 
       <Field label="Proof of delivery (PDF or photo, up to 4 MB)" htmlFor="rc-file">
         <input className="in" id="rc-file" type="file" accept="application/pdf,image/jpeg,image/png,image/webp" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
       </Field>
+    </Modal>
+  );
+}
+
+/** R53: report kits that arrived short, damaged or wrong, or that the school sent back. */
+function IssueModal({ so, dispatchId, onClose }: { so: SO; dispatchId: string | null; onClose: () => void }) {
+  const [v, setV] = useState({
+    kind: "SHORT" as Issue["kind"],
+    itemId: so.items[0]?.id ?? "",
+    qty: "",
+    detail: "",
+    date: todayIST(),
+    dispatchId: dispatchId ?? so.dispatches.filter((d) => !d.isReplacement).at(-1)?.id ?? "",
+  });
+  const { pending, run } = useAction();
+  return (
+    <Modal
+      title={`Material problem · ${so.number}`}
+      sub="Kits that arrived short, damaged or wrong, or that the school sent back. Settle it afterwards by a replacement or a refund."
+      onClose={onClose}
+      footer={
+        <>
+          <button className="btn" onClick={onClose}>
+            Cancel
+          </button>
+          <button className="btn pri" disabled={pending} onClick={() => run(() => reportMaterialIssue(so.id, v), { success: "Problem recorded.", onDone: onClose })}>
+            {pending ? "Saving…" : "Save"}
+          </button>
+        </>
+      }
+    >
+      <div className="fld">
+        <label>What happened</label>
+        <div className="chips">
+          {(Object.keys(ISSUE_KIND) as Issue["kind"][]).map((k) => (
+            <button key={k} type="button" className={`chip ${v.kind === k ? "on" : ""}`} aria-pressed={v.kind === k} onClick={() => setV({ ...v, kind: k })}>
+              {k === "SHORT" ? "Short (not received)" : k === "DAMAGED" ? "Damaged or wrong" : "Returned by school"}
+            </button>
+          ))}
+        </div>
+      </div>
+      <div className="grid grid-cols-1 gap-3 min-[501px]:grid-cols-[minmax(0,1fr)_110px]">
+        <Field label="Order line" htmlFor="mi-item">
+          <select className="sel" id="mi-item" value={v.itemId} onChange={(e) => setV({ ...v, itemId: e.target.value })}>
+            {so.items.map((i) => (
+              <option key={i.id} value={i.id}>
+                {i.description}
+              </option>
+            ))}
+          </select>
+        </Field>
+        <Field label="Kits affected" htmlFor="mi-qty">
+          <input className="in text-right" id="mi-qty" inputMode="numeric" value={v.qty} onChange={(e) => setV({ ...v, qty: e.target.value })} />
+        </Field>
+      </div>
+      <Field label="What exactly" htmlFor="mi-detail">
+        <input className="in" id="mi-detail" placeholder="e.g. Bags missing, Book 3 torn, wrong class kit" value={v.detail} onChange={(e) => setV({ ...v, detail: e.target.value })} />
+      </Field>
+      <div className="grid grid-cols-1 gap-3 min-[501px]:grid-cols-2">
+        <Field label="Date" htmlFor="mi-date">
+          <DateInput id="mi-date" value={v.date} onChange={(date) => setV({ ...v, date })} />
+        </Field>
+        <Field label="Challan" htmlFor="mi-dc">
+          <select className="sel" id="mi-dc" value={v.dispatchId} onChange={(e) => setV({ ...v, dispatchId: e.target.value })}>
+            <option value="">Not sure</option>
+            {so.dispatches
+              .filter((d) => !d.isReplacement)
+              .map((d) => (
+                <option key={d.id} value={d.id}>
+                  {d.number} · {dmy(d.date)}
+                </option>
+              ))}
+          </select>
+        </Field>
+      </div>
+    </Modal>
+  );
+}
+
+/** R53: settle a material problem: send a replacement, refund / adjust the money, or close it. */
+function SettleModal({ so, issue, how, onClose }: { so: SO; issue: Issue; how: "replace" | "refund" | "close"; onClose: () => void }) {
+  const [rep, setRep] = useState({ date: todayIST(), transporter: "", docketNo: "", vehicleNo: "" });
+  const [ref, setRef] = useState({ how: so.invoice ? "credit" : "paid", amount: String(Math.round(issue.unit * issue.qty * 100) / 100), date: todayIST(), note: "" });
+  const [note, setNote] = useState("");
+  const { pending, run } = useAction();
+  const what = `${issue.qty} × ${issue.item}${issue.detail ? ` (${issue.detail})` : ""}`;
+  const save = () =>
+    how === "replace"
+      ? run(() => sendMaterialReplacement(issue.id, rep), {
+          success: "Replacement challan made. Print it to send with the items.",
+          onDone: (id) => {
+            onClose();
+            // eslint-disable-next-line @next/next/no-location-assign-relative-destination -- a PDF file, not a page
+            if (id && !window.open(`/api/dispatches/${id}/challan`, "_blank")) (window.location.href = `/api/dispatches/${id}/challan`);
+          },
+        })
+      : how === "refund"
+        ? run(() => refundMaterialIssue(issue.id, ref), { success: "Money adjusted.", onDone: onClose })
+        : run(() => closeMaterialIssue(issue.id, note), { success: "Closed.", onDone: onClose });
+  return (
+    <Modal
+      title={how === "replace" ? "Send replacement" : how === "refund" ? "Refund / adjust money" : "Close problem"}
+      sub={what}
+      onClose={onClose}
+      footer={
+        <>
+          <button className="btn" onClick={onClose}>
+            Cancel
+          </button>
+          <button className="btn pri" disabled={pending} onClick={save}>
+            {pending ? "Saving…" : how === "replace" ? "Make replacement challan" : how === "refund" ? "Save" : "Close problem"}
+          </button>
+        </>
+      }
+    >
+      {how === "replace" ? (
+        <>
+          <p className="small muted mb-3">A replacement challan is made for these items. It doesn&apos;t count against the order&apos;s kits.</p>
+          <div className="grid grid-cols-1 gap-3 min-[501px]:grid-cols-2">
+            <Field label="Dispatch date" htmlFor="rp-date">
+              <DateInput id="rp-date" value={rep.date} onChange={(date) => setRep({ ...rep, date })} />
+            </Field>
+            <Field label="Transporter / courier" htmlFor="rp-tr">
+              <input className="in" id="rp-tr" value={rep.transporter} onChange={(e) => setRep({ ...rep, transporter: e.target.value })} />
+            </Field>
+            <Field label="Docket / LR number" htmlFor="rp-dk">
+              <input className="in" id="rp-dk" value={rep.docketNo} onChange={(e) => setRep({ ...rep, docketNo: e.target.value })} />
+            </Field>
+            <Field label="Vehicle number" htmlFor="rp-vh">
+              <input className="in" id="rp-vh" placeholder="Optional" value={rep.vehicleNo} onChange={(e) => setRep({ ...rep, vehicleNo: e.target.value })} />
+            </Field>
+          </div>
+        </>
+      ) : how === "refund" ? (
+        <>
+          <div className="fld">
+            <label>How</label>
+            <div className="chips">
+              <button type="button" className={`chip ${ref.how === "credit" ? "on" : ""}`} aria-pressed={ref.how === "credit"} disabled={!so.invoice} onClick={() => setRef({ ...ref, how: "credit" })}>
+                Lower the invoice (credit note)
+              </button>
+              <button type="button" className={`chip ${ref.how === "paid" ? "on" : ""}`} aria-pressed={ref.how === "paid"} onClick={() => setRef({ ...ref, how: "paid" })}>
+                Money paid back
+              </button>
+            </div>
+            {!so.invoice ? <span className="small faint">No invoice on this order yet, so a credit note isn&apos;t possible.</span> : null}
+          </div>
+          <div className="grid grid-cols-1 gap-3 min-[501px]:grid-cols-2">
+            <Field label="Amount (₹)" htmlFor="rf-amt">
+              <input className="in text-right" id="rf-amt" inputMode="decimal" value={ref.amount} onChange={(e) => setRef({ ...ref, amount: e.target.value })} />
+            </Field>
+            <Field label="Date" htmlFor="rf-date">
+              <DateInput id="rf-date" value={ref.date} onChange={(date) => setRef({ ...ref, date })} />
+            </Field>
+          </div>
+          <Field label="Note" htmlFor="rf-note">
+            <input className="in" id="rf-note" placeholder={ref.how === "paid" ? "e.g. NEFT ref. 1234" : "Optional"} value={ref.note} onChange={(e) => setRef({ ...ref, note: e.target.value })} />
+          </Field>
+        </>
+      ) : (
+        <Field label="Why is it closed?" htmlFor="cl-note">
+          <input className="in" id="cl-note" placeholder="e.g. School kept the kits, found later" value={note} onChange={(e) => setNote(e.target.value)} />
+        </Field>
+      )}
     </Modal>
   );
 }

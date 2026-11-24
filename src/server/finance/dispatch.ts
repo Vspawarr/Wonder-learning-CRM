@@ -31,7 +31,8 @@ export const dispatchInput = z.object({
 
 /** Kits ordered and already sent, per order line. */
 async function sentPerLine(salesOrderId: string) {
-  const rows = await db.dispatchItem.groupBy({ by: ["salesOrderItemId"], where: { dispatch: { salesOrderId } }, _sum: { qty: true } });
+  // Replacement lots (R53) resend items already counted, so they don't use up the order's kits.
+  const rows = await db.dispatchItem.groupBy({ by: ["salesOrderItemId"], where: { dispatch: { salesOrderId, isReplacement: false } }, _sum: { qty: true } });
   return new Map(rows.map((r) => [r.salesOrderItemId, r._sum.qty ?? 0]));
 }
 
@@ -85,7 +86,7 @@ export async function createDispatch(user: SessionUser, salesOrderId: string, ra
 async function loadDispatch(user: SessionUser, id: string) {
   const dc = await db.dispatch.findFirst({
     where: { id, client: clientScope(user) },
-    include: { items: { include: { salesOrderItem: true } }, salesOrder: true, client: true },
+    include: { items: { include: { salesOrderItem: true } }, salesOrder: true, client: true, replacementFor: { select: { id: true } } },
   });
   if (!dc) throw new NotFoundError("Dispatch");
   return dc;
@@ -102,13 +103,14 @@ export async function markDispatchReceived(user: SessionUser, id: string, date: 
 
 export async function deleteDispatch(user: SessionUser, id: string) {
   const dc = await loadDispatch(user, id);
-  await db.$transaction([
-    db.dispatch.delete({ where: { id } }),
-    ...(dc.salesOrder.status === "DELIVERED"
-      ? [db.salesOrder.update({ where: { id: dc.salesOrderId }, data: { status: "CONFIRMED", deliveredOn: null } })]
-      : []),
-    db.activity.create({ data: { type: "SYSTEM", subject: `Challan ${dc.number} deleted`, byId: user.id, clientId: dc.clientId } }),
-  ]);
+  await db.$transaction(async (tx) => {
+    await tx.dispatch.delete({ where: { id } });
+    // A deleted replacement lot reopens its material problem (R53); a normal lot reopens the order.
+    if (dc.replacementFor) await tx.materialIssue.update({ where: { id: dc.replacementFor.id }, data: { status: "OPEN", resolvedOn: null } });
+    else if (dc.salesOrder.status === "DELIVERED")
+      await tx.salesOrder.update({ where: { id: dc.salesOrderId }, data: { status: "CONFIRMED", deliveredOn: null } });
+    await tx.activity.create({ data: { type: "SYSTEM", subject: `Challan ${dc.number} deleted`, byId: user.id, clientId: dc.clientId } });
+  });
 }
 
 const dmy = (d: Date) => fromDbDate(d).split("-").reverse().join("-");
@@ -130,7 +132,7 @@ export async function challanPdf(user: SessionUser, id: string) {
     docketNo: dc.docketNo,
     vehicleNo: dc.vehicleNo,
     notes: dc.notes,
-    items: dc.items.map((i) => ({ description: i.salesOrderItem.description, qty: i.qty })),
+    items: dc.items.map((i) => ({ description: i.note ? `${i.salesOrderItem.description} (${i.note})` : i.salesOrderItem.description, qty: i.qty })),
     footerLines: content.footerLines,
     company: content.company,
   });

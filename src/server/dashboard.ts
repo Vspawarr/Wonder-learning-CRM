@@ -217,7 +217,7 @@ export async function serviceSummary(user: SessionUser, f: DashFilters) {
   const today = todayIST();
   const clientWhere: Prisma.ClientWhereInput = { ...clientScope(user), ...(exec ? { ownerId: exec } : {}), ...(f.state ? { state: f.state } : {}) };
   const taskWhere: Prisma.TaskWhereInput = { ...taskScope(user), ...(exec ? { assigneeId: exec } : {}), status: "OPEN" };
-  const [orders, inTransit, onboarding, overdue, dueToday, nextWeek] = await Promise.all([
+  const [orders, inTransit, onboarding, overdue, dueToday, nextWeek, materialOpen] = await Promise.all([
     db.salesOrder.findMany({
       where: { status: "CONFIRMED", client: { is: clientWhere } },
       select: { id: true, number: true, date: true, client: { select: { id: true, schoolName: true } } },
@@ -228,11 +228,14 @@ export async function serviceSummary(user: SessionUser, f: DashFilters) {
     db.task.count({ where: { ...taskWhere, dueDate: { lt: toDbDate(today) } } }),
     db.task.count({ where: { ...taskWhere, dueDate: toDbDate(today) } }),
     db.task.count({ where: { ...taskWhere, dueDate: { gt: toDbDate(today), lte: toDbDate(addDays(today, 7)) } } }),
+    // R53: material that arrived short / damaged or came back, not yet replaced, refunded or closed.
+    db.materialIssue.count({ where: { status: "OPEN", client: { is: clientWhere } } }),
   ]);
   return {
     orders: orders.map((o) => ({ id: o.id, number: o.number, date: fromDbDate(o.date), client: o.client })),
     inTransit,
     onboarding,
+    materialOpen,
     tasks: { overdue, dueToday, nextWeek },
   };
 }

@@ -365,6 +365,9 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
             <Kpi label="Due today" value={svc.tasks.dueToday} sub={`${svc.tasks.nextWeek} more in the next 7 days`} color="#E8930C" href="/tasks" />
             <Kpi label="Orders to deliver" value={svc.orders.length} sub="Confirmed, not yet delivered" color="#C2417A" href="/clients" />
             {features.dispatch ? <Kpi label="Kits in transit" value={svc.inTransit} sub="Dispatched, not yet received" color="#7A48B8" /> : null}
+            {features.dispatch ? (
+              <Kpi label="Material problems" value={svc.materialOpen} sub="Short, damaged or returned, not yet settled" color="#E3262C" href="/clients" />
+            ) : null}
             <Kpi label="Onboarding" value={svc.onboarding} sub="New clients being set up" color="#1C86C4" href="/clients" />
             {renewals ? (
               <Kpi label="Renewals due" value={renewals.clients.filter((c) => !exec || c.ownerId === exec).length} sub={`For FY ${renewals.ay.label}`} color="#0E8F79" href="/clients" />

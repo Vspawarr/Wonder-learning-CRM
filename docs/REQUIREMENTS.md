@@ -665,7 +665,7 @@ large files as **Google Drive links**. Mandatory documents: **client will provid
 |---|---|---|
 | **Outstanding pie on the finance dashboard** | ✅ | Finance → "Outstanding by school": pie of the overall outstanding, each school's ₹ and %, seven largest by name + "Others"; tap a school to open its invoices; in the dashboard PDF / Excel |
 | **All states + union territories, all districts of a state** | ✅ | 28 states + 8 union territories, 782 districts loaded into Settings → Locations (lead form, filters, Excel template). Written from knowledge (owner chose this, 24 Nov) as the official list couldn't be downloaded here: to be checked against the Local Government Directory; fix any name in Settings → Locations. Cities already added stay |
-| **Incomplete / returned material, part delivery** (replace or refund) | ⏳ | Planned |
+| **Incomplete / returned material, part delivery** (replace or refund) | ✅ | Part delivery: dispatch in lots, "x of y kits sent · n to go" (already there). New: **Report problem** on an order or challan (short / damaged or wrong / returned, kits, what exactly); settle by **Send replacement** (replacement challan, not counted against the order), **Refund / adjust** (Admin / Sales Head: credit note on the invoice or money paid back) or **Close** with a note; open problems on the dashboard |
 | **Mandatory client documents with completion status** | ⏳ | Checklist + progress can be built; list of documents from the client |
 | **Marketing material library** (small files uploaded, large files as Drive links) | ⏳ | Planned |
 | **Client segments** (new / renewed / not renewed / left) and **old data import** | ⏳ | Needs a sample of the client's old data |

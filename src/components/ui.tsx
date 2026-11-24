@@ -210,14 +210,15 @@ export function Pie({
   const total = data.reduce((t, d) => t + d.value, 0) || 1;
   const R = 70;
   const C = 2 * Math.PI * R;
-  let at = 0;
+  // Where each slice starts along the circle.
+  const starts = data.map((_, i) => data.slice(0, i).reduce((t, d) => t + (d.value / total) * C, 0));
   return (
     <div className="pie">
       <svg viewBox="0 0 180 180" className="pie-svg" role="img" aria-label="Pie chart">
         <circle cx="90" cy="90" r={R} fill="none" stroke="var(--surf2)" strokeWidth="30" />
-        {data.map((d) => {
+        {data.map((d, i) => {
           const len = (d.value / total) * C;
-          const el = (
+          return (
             <circle
               key={d.label}
               cx="90"
@@ -227,14 +228,12 @@ export function Pie({
               stroke={d.color}
               strokeWidth="30"
               strokeDasharray={`${Math.max(0, len - (data.length > 1 ? 1.5 : 0))} ${C}`}
-              strokeDashoffset={-at}
+              strokeDashoffset={-starts[i]}
               transform="rotate(-90 90 90)"
             >
               <title>{`${d.label}: ${format(d.value)} (${d.pct}%)`}</title>
             </circle>
           );
-          at += len;
-          return el;
         })}
         {center ? (
           <>

@@ -585,7 +585,7 @@ async function dashboard(user: SessionUser, p: Params): Promise<Report> {
       { k: "Follow-ups due today", v: svc.tasks.dueToday },
       { k: "Follow-ups in the next 7 days", v: svc.tasks.nextWeek },
       { k: "Orders to deliver", v: svc.orders.length },
-      ...(features.dispatch ? [{ k: "Kits in transit", v: svc.inTransit }] : []),
+      ...(features.dispatch ? [{ k: "Kits in transit", v: svc.inTransit }, { k: "Material problems open", v: svc.materialOpen }] : []),
       { k: "Clients onboarding", v: svc.onboarding },
       ...(renewals ? [{ k: `Renewals due (FY ${renewals.ay.label})`, v: renewals.clients.length }] : []),
     ]);

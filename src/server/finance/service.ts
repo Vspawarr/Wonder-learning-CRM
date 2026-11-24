@@ -856,6 +856,8 @@ export async function deleteCreditNote(user: SessionUser, id: string) {
   });
   if (!cn) throw new NotFoundError("Credit note");
   await db.$transaction(async (tx) => {
+    // A material problem settled by this credit note is open again (R53).
+    await tx.materialIssue.updateMany({ where: { creditNoteId: id }, data: { status: "OPEN", refundAmount: null, resolvedOn: null } });
     await tx.creditNote.delete({ where: { id } });
     await syncCollectionTask(tx, user, cn.invoiceId);
     await tx.activity.create({

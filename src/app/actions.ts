@@ -20,6 +20,7 @@ import * as fin from "@/server/finance/service";
 import * as features from "@/server/features";
 import * as po from "@/server/finance/po";
 import * as dispatch from "@/server/finance/dispatch";
+import * as material from "@/server/finance/material";
 import * as files from "@/server/files";
 import * as contacts from "@/server/contacts";
 import * as renewals from "@/server/renewals";
@@ -269,6 +270,10 @@ export const docShareLink = async (kind: ShareKind, id: string): Promise<ActionR
 export const createDispatch = async (salesOrderId: string, data: unknown) => run((u) => dispatch.createDispatch(u, salesOrderId, data));
 export const markDispatchReceived = async (id: string, date: string) => run((u) => dispatch.markDispatchReceived(u, id, date));
 export const deleteDispatch = async (id: string) => run((u) => dispatch.deleteDispatch(u, id));
+export const reportMaterialIssue = async (salesOrderId: string, data: unknown) => run((u) => material.reportIssue(u, salesOrderId, data));
+export const sendMaterialReplacement = async (id: string, data: unknown) => run((u) => material.sendReplacement(u, id, data));
+export const refundMaterialIssue = async (id: string, data: unknown) => run((u) => material.refundIssue(u, id, data));
+export const closeMaterialIssue = async (id: string, note: string) => run((u) => material.closeIssue(u, id, note));
 export const deleteClientFile = async (id: string) => run((u) => files.deleteClientFile(u, id));
 export const markDelivered = async (id: string, date: string) => run((u) => fin.markDelivered(u, id, date));
 export const cancelSalesOrder = async (id: string) => run((u) => fin.cancelSalesOrder(u, id));
