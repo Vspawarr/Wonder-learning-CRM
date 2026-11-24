@@ -19,6 +19,7 @@ _Last updated: 24 Nov 2026. Update this page whenever the situation changes._
 | Item | Why it matters | Ref |
 |---|---|---|
 | Feedback from the client's testing | Final changes before go-live | — |
+| Check the district list (Settings → Locations) against the official Local Government Directory | It was typed from knowledge, not downloaded; a recently created or renamed district may be missing | R53 |
 | **List of mandatory client documents** | Document checklist and "pending" count on each client | R53 |
 | **Sample of the client's old data** (a few rows) | Import of old clients / segments (new, renewed, not renewed, left) | R53 |
 | Which pages are slow, on which devices / browsers | Speeding up the site | R53 |

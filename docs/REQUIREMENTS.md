@@ -664,7 +664,7 @@ large files as **Google Drive links**. Mandatory documents: **client will provid
 | Change | Status | Notes |
 |---|---|---|
 | **Outstanding pie on the finance dashboard** | ✅ | Finance → "Outstanding by school": pie of the overall outstanding, each school's ₹ and %, seven largest by name + "Others"; tap a school to open its invoices; in the dashboard PDF / Excel |
-| **All states + union territories, all districts of a state** | ⏳ | Next |
+| **All states + union territories, all districts of a state** | ✅ | 28 states + 8 union territories, 782 districts loaded into Settings → Locations (lead form, filters, Excel template). Written from knowledge (owner chose this, 24 Nov) as the official list couldn't be downloaded here: to be checked against the Local Government Directory; fix any name in Settings → Locations. Cities already added stay |
 | **Incomplete / returned material, part delivery** (replace or refund) | ⏳ | Planned |
 | **Mandatory client documents with completion status** | ⏳ | Checklist + progress can be built; list of documents from the client |
 | **Marketing material library** (small files uploaded, large files as Drive links) | ⏳ | Planned |

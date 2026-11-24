@@ -28,7 +28,7 @@ the Android APK and the logo.)
   not in the list can be typed (choose Yes) and the upload adds it to Settings → Locations (R48). Dates DD/MM/YYYY.
   Whole numbers for strength and branches.
 - **Where the lists come from:** `src/lib/constants.ts` (designations, sources, statuses, categories,
-  follow-up types) and the database (states and cities from Settings → Locations; people from Settings → Users).
+  follow-up types) and the database (states and cities from Settings → Locations: all states / union territories and their districts, R53; people from Settings → Users).
   The form, the template and the upload all read these same lists; never type a second copy.
 - **Rules the upload enforces** (`import.ts`), the same as the New lead form:
   - header row must match exactly (an old template is refused, naming the changed column);

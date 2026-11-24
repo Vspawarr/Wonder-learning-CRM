@@ -7,6 +7,10 @@ commit id, what changed in plain words, and the requirement it answers (R… in 
 
 ## 24 Nov 2026
 
+- `pending` **All states, union territories and districts.** Settings → Locations now has all 28 states and 8 union
+  territories with their 782 districts; pick a state and its districts appear (lead form, filters, Excel template).
+  Existing cities kept. (R53)
+
 - `85d330b` **Outstanding by school pie** on the Finance dashboard: overall outstanding, each school's share in %;
   also in the dashboard PDF / Excel. Client meeting points recorded as R53. (R53)
 

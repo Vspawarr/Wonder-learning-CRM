@@ -432,7 +432,7 @@ decisions; PDF / Excel. Switch: Settings → Features → "Lead / client transfe
 |---|---|
 | **Users** | **Add user** (name, email, mobile, role, password), **Edit** (role, active; type a new password to reset it), **Hand over work** (move a leaving person's open leads, deals, clients and to-dos to someone else). Deactivated users can't sign in; their records stay |
 | **Products** | Kits and optional items with school price, MRP, GST. A kit's contents: "## Group" lines and one item per line, optionally with its price: `Book 1 to 9 \| 1792 \| 2688` (item prices let quotations take items out). **Kit checklist (PDF)** |
-| **Locations** | States and their cities (used by the lead form and the Excel template). Click a city to hide / show it; **×** deletes it (leads keep their city). A new city in a lead Excel upload is added here by itself |
+| **Locations** | All 28 states and 8 union territories with **all their districts** (R53), plus any city added since (used by the lead form and the Excel template); pick a state and its districts appear. Click a city to hide / show it; **×** deletes it (leads keep their city). A new city in a lead Excel upload is added here by itself |
 | **Documents** | **Quotation** text (3 pages), **Preview sample quotation**; **PO template, receipt & numbering**: addresses, bank, terms, customisation list, signatory, next receipt / PO number |
 | **Targets** | Monthly sales and collection targets per salesperson (dashboard shows progress) |
 | **Features** | Switch optional parts on or off (advance & proforma, cheques, credit notes, dispatch, renewals, ageing, targets, contacts, documents, quotation validity, this guide). Data already entered is kept |

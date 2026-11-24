@@ -163,7 +163,7 @@ describe("upload", () => {
       await filled([
         good({ schoolName: "A", source: "Facebok" }),
         good({ schoolName: "B", city: "" }),
-        good({ schoolName: "C", state: "Kerala", city: "Kochi" }),
+        good({ schoolName: "C", state: "Atlantis", city: "Kochi" }),
         good({ schoolName: "D", assignedTo: "Nobody" }),
         good({ schoolName: "E", nextFollowUpDate: "31/02/2026" }),
         good({ schoolName: "F", contactName: "", mobile: "" }),
@@ -176,7 +176,7 @@ describe("upload", () => {
     const reasons = Object.fromEntries(r.skipped.map((s) => [s.school, s.reason]));
     expect(reasons.A).toMatch(/"Lead Source": "Facebok" is not an allowed value/);
     expect(reasons.B).toMatch(/"City\*?" is required/);
-    expect(reasons.C).toMatch(/"State": "Kerala" is not an allowed value/);
+    expect(reasons.C).toMatch(/"State": "Atlantis" is not an allowed value/);
     expect(reasons.D).toMatch(/"Assigned To": "Nobody" is not an allowed value/);
     expect(reasons.E).toMatch(/"Next Follow-up Date": "31\/02\/2026" is not a valid date/);
     expect(reasons.F).toMatch(/"Owner\/Contact Person Name" is required.*"Mobile Number" is required/);

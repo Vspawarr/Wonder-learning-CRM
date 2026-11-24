@@ -234,7 +234,7 @@ describe("tasks and activity", () => {
 
 describe("locations", () => {
   it("state and city must be listed and active", async () => {
-    await expect(createLead(exA, leadData(exA.id, { state: "Kerala" }))).rejects.toThrow(/not in the list of states/);
+    await expect(createLead(exA, leadData(exA.id, { state: "Atlantis" }))).rejects.toThrow(/not in the list of states/);
     await expect(createLead(exA, leadData(exA.id, { city: "Nashik" }))).rejects.toThrow(/not a listed city of Maharashtra/);
     await db.city.create({ data: { stateName: "Maharashtra", name: "Nashik", active: false } });
     await expect(createLead(exA, leadData(exA.id, { city: "Nashik" }))).rejects.toThrow(/not a listed city/);

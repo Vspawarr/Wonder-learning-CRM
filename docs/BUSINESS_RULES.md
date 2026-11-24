@@ -282,7 +282,8 @@ targets · several contacts · client documents · quotation validity. New optio
 
 Fixed lists live only in `src/lib/constants.ts`: lead sources (Facebook and Instagram are merged into **Social Media**, R28), designations, follow-up types, own to-do
 types, competitors (choosing **Other** asks which one, R41), lost reasons, stages + probabilities, payment modes, document categories, contact roles.
-States and cities live in the database (Settings → Locations). The form, the Excel template and the upload
+States and cities live in the database (Settings → Locations). They start with all 28 states and 8 union
+territories and every district of each (R53, `prisma/data/india-districts.txt`); cities added later sit alongside. The form, the Excel template and the upload
 read the same lists, so they can't drift apart (R9, R10). An admin can hide or **delete** a city; leads and
 clients keep the city they have (R48). The lead **Excel upload adds a city it doesn't know** under a listed state
 to Locations by itself (an unknown state is still refused); the lead form still offers only listed cities (R48).
