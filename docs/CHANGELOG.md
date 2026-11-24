@@ -7,7 +7,7 @@ commit id, what changed in plain words, and the requirement it answers (R… in 
 
 ## 24 Nov 2026
 
-- `pending` **Marketing material library.** New menu page: presentations, brochures, videos, animations, HTML files and
+- `3af7957` **Marketing material library.** New menu page: presentations, brochures, videos, animations, HTML files and
   PDFs by category; small files uploaded, big ones as Google Drive links; open, download, WhatsApp or copy a link the
   school can open without logging in. Switch in Settings → Features. (R53)
 
