@@ -7,7 +7,7 @@ commit id, what changed in plain words, and the requirement it answers (R… in 
 
 ## 24 Nov 2026
 
-- `pending` **Short, damaged and returned material.** On a sales order, **Report problem** (or **Problem?** on a
+- `c588dc0` **Short, damaged and returned material.** On a sales order, **Report problem** (or **Problem?** on a
   challan), then **Send replacement** (its own replacement challan), **Refund / adjust** (credit note or money paid
   back; Admin / Sales Head) or **Close**. Open problems show on the dashboard. Also a fix to the pie chart code. (R53)
 
