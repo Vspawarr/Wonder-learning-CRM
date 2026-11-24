@@ -17,7 +17,7 @@ import { renewalCandidates } from "@/server/renewals";
 
 export const metadata = { title: "Clients" };
 
-export default async function ClientsPage({ searchParams }: { searchParams: Promise<{ q?: string; status?: string; from?: string; to?: string; yr?: string }> }) {
+export default async function ClientsPage({ searchParams }: { searchParams: Promise<{ q?: string; status?: string; from?: string; to?: string; yr?: string; docs?: string }> }) {
   const user = await requireUser();
   const sp = await searchParams;
   const year = await selectedRange();
@@ -25,7 +25,7 @@ export default async function ClientsPage({ searchParams }: { searchParams: Prom
   const yl = year ? fyLabel(financialYear(year.from).start) : null;
   const renewals = features.renewals ? await renewalCandidates(user) : null;
   const today = todayIST();
-  const filtered = !!(sp.q || sp.status || sp.yr);
+  const filtered = !!(sp.q || sp.status || sp.yr || sp.docs);
   const empty = filtered ? "No clients match these filters." : "No clients yet. Won opportunities can be converted to clients.";
 
   return (
@@ -37,7 +37,7 @@ export default async function ClientsPage({ searchParams }: { searchParams: Prom
         <ExportButtons report="clients" />
       </PageHeader>
       {renewals ? <RenewalsBanner ay={renewals.ay.label} count={renewals.clients.length} canCreate={seesAllSales(user.role)} /> : null}
-      <ClientFilterBar year={yl} />
+      <ClientFilterBar year={yl} docs={features.documents} />
       <div className="mb-3">
         <DateRangeFilter label="Client since" />
       </div>
@@ -56,6 +56,7 @@ export default async function ClientsPage({ searchParams }: { searchParams: Prom
                   {c.schoolName}
                 </Link>
                 <div className="small muted">{c.contactName}</div>
+                {features.documents && c.docs.pending ? <span className="pill warn mt-1">{`Documents ${c.docs.done}/${c.docs.total}`}</span> : null}
               </td>
               <td>{c.city}</td>
               <td className="whitespace-nowrap">{c.mobile}</td>
@@ -87,8 +88,9 @@ export default async function ClientsPage({ searchParams }: { searchParams: Prom
             <div className="small mt-1">
               {clientCode(c.number)} · since {fmtDate(istDate(c.since), today)} · Assigned to {c.owner.name}
             </div>
-            <div className="mt-1.5">
+            <div className="mt-1.5 flex flex-wrap items-center gap-2">
               <YearCell standing={c.standing} amount={c.yearAmount} last={c.lastOrdered} />
+              {features.documents && c.docs.pending ? <span className="pill warn">{`Documents ${c.docs.done}/${c.docs.total}`}</span> : null}
             </div>
           </Link>
         ))}

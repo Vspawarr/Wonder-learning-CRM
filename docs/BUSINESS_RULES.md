@@ -100,6 +100,11 @@ client shows a warning (the user may still save). The Excel upload skips same sc
   shows on the sales order, proforma and invoice. The sales order shows the quotation's creation time
   (date + H:M:S AM/PM) (R16.10, R17).
 - **Dispatch** in one or more lots with transporter/docket, a challan PDF, and **Mark received** with proof.
+- **Mandatory client documents** (R53): Settings → Documents → "Mandatory client documents" (one per line; a starting
+  list until the client sends theirs). Each client's Documents tab shows "x of y received" with a bar, a tick per
+  document received (matched by document type) and **Upload** on each pending one; the tab and the client header show
+  the count. Clients list: a "Documents x/y" tag and a **Documents pending** filter; dashboard (Service & delivery):
+  clients with documents pending and documents to collect. The required names are also offered as document types.
 - **Material problems** (R53): on an order, **Report problem** (or **Problem?** on a challan): kits **short** (not
   received), **damaged or wrong**, or **returned by the school**, with the order line, kits affected and what exactly.
   Settled one of three ways: **Send replacement** (a replacement challan, marked "Replacement", printed with

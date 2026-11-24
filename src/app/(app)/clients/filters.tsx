@@ -19,7 +19,7 @@ const YEAR: [string, string][] = [
   ["none", "No order"],
 ];
 
-export function ClientFilterBar({ year }: { year: string | null }) {
+export function ClientFilterBar({ year, docs = false }: { year: string | null; docs?: boolean }) {
   const router = useRouter();
   const path = usePathname();
   const sp = useSearchParams();
@@ -66,6 +66,11 @@ export function ClientFilterBar({ year }: { year: string | null }) {
             </button>
           ))}
         </div>
+      ) : null}
+      {docs ? (
+        <button className={`chip ${sp.get("docs") === "pending" ? "on" : ""}`} onClick={() => set("docs", sp.get("docs") === "pending" ? "" : "pending")}>
+          Documents pending
+        </button>
       ) : null}
     </div>
   );

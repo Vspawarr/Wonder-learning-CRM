@@ -161,7 +161,7 @@ async function opportunities(user: SessionUser, p: Params): Promise<Report> {
 
 async function clients(user: SessionUser, p: Params): Promise<Report> {
   const year = yearOf(p);
-  const rows = await clientsList(user, { q: p.q, status: p.status, from: p.from, to: p.to, year, yr: p.yr });
+  const rows = await clientsList(user, { q: p.q, status: p.status, from: p.from, to: p.to, year, yr: p.yr, docs: p.docs });
   const yl = year ? fyLabel(financialYear(year.from).start) : null;
   return {
     title: "Clients",
@@ -170,6 +170,7 @@ async function clients(user: SessionUser, p: Params): Promise<Report> {
       p.status && `Status: ${CLIENT_STATUS_LABEL[p.status as "ACTIVE"] ?? p.status}`,
       yl && p.yr && YEAR_FILTERS[p.yr] && `In ${yl}: ${{ ordered: "Ordered", renewed: "Renewed", new: "New", notrenewed: "Not renewed", none: "No order" }[p.yr]}`,
       p.q && `Search: "${p.q}"`,
+      p.docs === "pending" && "Documents pending",
       rangeLine("Client since", p),
     ]),
     landscape: false,
@@ -185,8 +186,10 @@ async function clients(user: SessionUser, p: Params): Promise<Report> {
           { key: "year", header: yl ? `In ${yl}` : "Last order", width: 1 },
           { key: "since", header: "Since", width: 0.8 },
           { key: "owner", header: "Assigned to", width: 1 },
+          { key: "docs", header: "Documents", width: 0.8 },
         ],
         rows: rows.map((c) => ({
+          docs: c.docs.total ? `${c.docs.done}/${c.docs.total}` : "",
           no: clientCode(c.number),
           school: c.schoolName,
           contact: c.contactName,
@@ -587,6 +590,7 @@ async function dashboard(user: SessionUser, p: Params): Promise<Report> {
       { k: "Orders to deliver", v: svc.orders.length },
       ...(features.dispatch ? [{ k: "Kits in transit", v: svc.inTransit }, { k: "Material problems open", v: svc.materialOpen }] : []),
       { k: "Clients onboarding", v: svc.onboarding },
+      ...(features.documents ? [{ k: "Clients with documents pending", v: svc.docsPending.clients }, { k: "Documents to collect", v: svc.docsPending.documents }] : []),
       ...(renewals ? [{ k: `Renewals due (FY ${renewals.ay.label})`, v: renewals.clients.length }] : []),
     ]);
     sections.push({

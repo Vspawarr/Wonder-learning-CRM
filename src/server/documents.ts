@@ -20,6 +20,8 @@ export type DocumentSettings = {
   /** "Items to be customised with school name & logo" rows (YES / NO chosen per PO). */
   poCustomise: string[];
   poShippingTerms: string;
+  /** R53: documents every client must hand over after conversion (each client shows how many are pending). */
+  requiredDocs: string[];
   /** Next numbers for the current financial year; the CRM never goes below the highest number already used. */
   numbering: { fy: string; nextReceipt: number | null; nextPo: number | null };
 };
@@ -54,6 +56,8 @@ export const DEFAULT_DOCUMENTS: DocumentSettings = {
     "Sport Cert, Graduation Cert & Medal",
   ],
   poShippingTerms: "Door Delivery",
+  // A starting list until the client sends theirs (R53); edited in Settings → Documents.
+  requiredDocs: ["Agreement / MOU", "GST certificate", "PAN card", "Cheque copy", "School registration"],
   numbering: { fy: "", nextReceipt: null, nextPo: null },
 };
 
@@ -68,6 +72,7 @@ export const documentsSchema = z.object({
   poTerms: lines(12),
   poCustomise: lines(10),
   poShippingTerms: z.string().trim().max(80),
+  requiredDocs: z.array(z.string().trim().min(1).max(60)).max(20),
   numbering: z.object({ fy: z.string().max(9), nextReceipt: next, nextPo: next }),
 });
 
@@ -89,4 +94,23 @@ export async function startingNumber(kind: "receipt" | "po", fyLabel: string): P
   const n = (await getDocumentSettings()).numbering;
   if (n.fy !== fyLabel) return 1;
   return (kind === "receipt" ? n.nextReceipt : n.nextPo) ?? 1;
+}
+
+/** R53: which of the required documents a client has handed over (matched by document type, case-insensitive). */
+export function docProgress(required: string[], categories: string[]) {
+  const have = new Set(categories.map((c) => c.toLowerCase()));
+  const items = required.map((name) => ({ name, done: have.has(name.toLowerCase()) }));
+  const done = items.filter((i) => i.done).length;
+  return { items, done, total: items.length, pending: items.length - done };
+}
+
+/** Document types a client file can have: the required list first, then the fixed types (R53). */
+export function documentTypes(required: string[], fixed: readonly string[]) {
+  const seen = new Set<string>();
+  return [...required, ...fixed].filter((t) => {
+    const k = t.toLowerCase();
+    if (seen.has(k)) return false;
+    seen.add(k);
+    return true;
+  });
 }

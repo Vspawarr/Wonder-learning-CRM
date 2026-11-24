@@ -54,7 +54,7 @@ Code: `src/server/reports/index.ts` (one builder per report, using the screen's 
 |---|---|---|
 | `leads` | Leads (follows status, source, salesperson, dates, sort) | Lead, Added (date + time), School, Contact, Mobile, City, Source, Status, Assigned to, Next follow-up |
 | `opportunities` | Opportunities (follows Sort) | Opp., Added (date + time), School, Contact, City, Stage, Category, Value, Chance %, Expected close, Next action, Assigned to |
-| `clients` | Clients | Client, School, Contact, Mobile, City, Status, In 2026-27 (standing + order value; "Last order" for All years), Since, Assigned to |
+| `clients` | Clients | Client, School, Contact, Mobile, City, Status, In 2026-27 (standing + order value; "Last order" for All years), Since, Assigned to; Documents x/y column and the Documents pending filter (R53) |
 | `outstanding` | Outstanding | Summary, ageing, expected collections, then each invoice: Invoice, Date, School, PO No., Due, Total, Received, Balance, Status, Assigned to |
 | `ledger` | Ledger, and the client page's Ledger tab | One client: Date, Ref. No., PO No., Particulars, Debit, Credit, Balance. All clients: Client, School, City, Assigned to, Opening, Invoiced, Received, Closing |
 | `todo` | To-do | When, Date, Time, Type, Task, Related to, Priority, Postponed, Assigned to |
@@ -65,7 +65,7 @@ Code: `src/server/reports/index.ts` (one builder per report, using the screen's 
 | `bills` | Accounts → Bills to pay | No., Bill date, Supplier, Their no., For, Description, Before GST, GST, Total, Paid, To pay, Due, Status; totals (follows the To pay / Waiting chips and dates) |
 | `salaries` | Accounts → Salaries | Month, Employee, Gross, Deductions, Take-home, Paid on, From (account), Mode / ref., Status; totals of approved |
 | `book` | Accounts → Account books | The chosen account: Date, Type, Particulars, In, Out, Balance, Matched (opening and closing in the title line); then other money in / out |
-| `dashboard` | Dashboard | Follows the **Show** buttons (Service & delivery also counts open material problems, R53): Sales (key numbers, pipeline by stage, lead sources, biggest deals) · Finance (collected/outstanding/overdue/cheques, expenses, and for Accounts bank & cash and bills to pay; outstanding by school with % (R53); ageing, expected collections) · Team & management (win rate, lost, interactions, team table, targets, lost reasons, competitors) · Service & delivery (follow-ups, orders to deliver, kits in transit, onboarding, renewals, lists) |
+| `dashboard` | Dashboard | Follows the **Show** buttons (Service & delivery also counts open material problems and documents pending, R53): Sales (key numbers, pipeline by stage, lead sources, biggest deals) · Finance (collected/outstanding/overdue/cheques, expenses, and for Accounts bank & cash and bills to pay; outstanding by school with % (R53); ageing, expected collections) · Team & management (win rate, lost, interactions, team table, targets, lost reasons, competitors) · Service & delivery (follow-ups, orders to deliver, kits in transit, onboarding, renewals, lists) |
 
 Wording rule: the salesperson is always **"Assigned to"**; "Owner" only means the school's owner.
 

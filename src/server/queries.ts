@@ -4,7 +4,8 @@ import type { Prisma } from "@/generated/prisma/client";
 import type { KitSection } from "@/lib/quotation-text";
 import { db } from "@/lib/db";
 import type { PoDetails } from "./finance/po";
-import { CLOSED_STAGES, STAGES, type Stage } from "@/lib/constants";
+import { CLOSED_STAGES, DOCUMENT_CATEGORIES, STAGES, type Stage } from "@/lib/constants";
+import { docProgress, documentTypes, getDocumentSettings } from "./documents";
 import { financialYear, fyLabel } from "@/lib/fy";
 import { addDays, fmtDateTimeIST, fromDbDate, isDateStr, istDayStart, optDate, toDbDate, todayIST } from "@/lib/dates";
 
@@ -524,7 +525,7 @@ export const YEAR_FILTERS: Record<string, YearStanding[]> = {
   none: ["NONE", "NOT_RENEWED"],
 };
 
-export async function clientsList(user: SessionUser, f: { q?: string; status?: string; from?: string; to?: string; year?: YearRange; yr?: string }) {
+export async function clientsList(user: SessionUser, f: { q?: string; status?: string; from?: string; to?: string; year?: YearRange; yr?: string; docs?: string }) {
   // Clients are never hidden by year (so schools that didn't continue can be contacted again), except
   // schools that only became clients after the chosen year.
   const where: Prisma.ClientWhereInput = { ...clientScope(user), ...(f.year ? { AND: [{ createdAt: { lt: istDayStart(addDays(f.year.to, 1)) } }] } : {}) };
@@ -555,6 +556,13 @@ export async function clientsList(user: SessionUser, f: { q?: string; status?: s
         select: { clientId: true, date: true, items: { select: { qty: true, price: true } } },
       })
     : [];
+  // R53: document types each client has handed over, for the mandatory-documents count.
+  const [files, docSettings] = await Promise.all([
+    rows.length ? db.clientFile.findMany({ where: { clientId: { in: rows.map((c) => c.id) }, dispatchId: null }, select: { clientId: true, category: true } }) : [],
+    getDocumentSettings(),
+  ]);
+  const cats = new Map<string, string[]>();
+  for (const x of files) cats.set(x.clientId, [...(cats.get(x.clientId) ?? []), x.category]);
   const byClient = new Map<string, { years: Set<number>; amount: Map<number, number> }>();
   for (const o of orders) {
     const fy = financialYear(fromDbDate(o.date)).start;
@@ -590,10 +598,13 @@ export async function clientsList(user: SessionUser, f: { q?: string; status?: s
       yearAmount: y !== null ? Math.round(e?.amount.get(y) ?? 0) : null,
       /** "2025-26": the last year this school ordered, if ever. */
       lastOrdered: years.length ? fyLabel(years[years.length - 1]) : null,
+      /** R53: mandatory documents received / pending. */
+      docs: (({ done, total, pending }) => ({ done, total, pending }))(docProgress(docSettings.requiredDocs, cats.get(c.id) ?? [])),
     };
   });
   const keep = f.yr && y !== null ? YEAR_FILTERS[f.yr] : undefined;
-  return keep ? out.filter((c) => c.standing && keep.includes(c.standing)) : out;
+  const kept = keep ? out.filter((c) => c.standing && keep.includes(c.standing)) : out;
+  return f.docs === "pending" ? kept.filter((c) => c.docs.pending > 0) : kept;
 }
 
 const quoteInclude = {
@@ -714,6 +725,7 @@ export async function clientDetail(user: SessionUser, id: string) {
     },
   });
   if (!c) return null;
+  const docSettings = await getDocumentSettings();
   // Quotations made on the client (repeat orders) and on the deal it came from.
   const quotations = await db.quotation.findMany({
     where: {
@@ -838,6 +850,9 @@ export async function clientDetail(user: SessionUser, id: string) {
       recordedBy: p.recordedBy.name,
     })),
     money: outstandingSummary(invoices),
+    /** R53: the mandatory documents handed over / pending, and the types offered when uploading. */
+    docs: docProgress(docSettings.requiredDocs, c.files.map((f) => f.category)),
+    docTypes: documentTypes(docSettings.requiredDocs, DOCUMENT_CATEGORIES),
     documents: c.files.map((f) => ({
       id: f.id,
       category: f.category,

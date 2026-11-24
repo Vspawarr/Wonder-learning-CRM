@@ -9,6 +9,7 @@ import { moveOpportunity } from "@/server/opportunities";
 import { createDispatch, deleteDispatch } from "@/server/finance/dispatch";
 import { closeIssue, refundIssue, reportIssue, sendReplacement } from "@/server/finance/material";
 import { createInvoice, createSalesOrder, deleteCreditNote } from "@/server/finance/service";
+import { docProgress, documentTypes } from "@/server/documents";
 import { leadData, makeUser, resetData } from "./helpers";
 
 const row = (id: string, balance: number, state = "UNPAID") =>
@@ -93,5 +94,15 @@ describe("material problems", () => {
     await expect(closeIssue(ex, id, "")).rejects.toThrow(/why/);
     await closeIssue(ex, id, "School kept it");
     expect((await db.materialIssue.findUniqueOrThrow({ where: { id } })).status).toBe("CLOSED");
+  });
+});
+
+describe("mandatory client documents", () => {
+  it("counts what is received (by type, any case) and lists the types for upload once each", () => {
+    const p = docProgress(["Agreement / MOU", "GST certificate", "PAN card"], ["gst certificate", "Other", "GST certificate"]);
+    expect([p.done, p.total, p.pending]).toEqual([1, 3, 2]);
+    expect(p.items.map((i) => i.done)).toEqual([false, true, false]);
+    expect(documentTypes(["Trust deed", "PAN card"], ["PAN card", "Other"])).toEqual(["Trust deed", "PAN card", "Other"]);
+    expect(docProgress([], ["x"])).toMatchObject({ total: 0, pending: 0 });
   });
 });

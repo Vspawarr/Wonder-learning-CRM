@@ -243,6 +243,7 @@ who gets payment messages).
 
 | Button | What it does |
 |---|---|
+| **Documents** tab | **Mandatory documents**: "x of y received", a tick per document, **Upload** on each pending one (list set in Settings → Documents). The Clients list has a **Documents pending** filter (R53) |
 | **Report problem** / **Problem?** (dispatch) | Kits short, damaged / wrong or returned by the school: order line, kits, what exactly. Then **Send replacement** (replacement challan), **Refund / adjust** (Admin / Sales Head: credit note or money paid back) or **Close** with a note (R53) |
 | **View signed PO** / **PO** | See or add the school's PO |
 | **Take advance** | Money received before invoicing; gets a receipt and comes off the invoice later |

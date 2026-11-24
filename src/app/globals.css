@@ -693,3 +693,11 @@
     .pie-legend { width: 100%; }
   }
 }
+
+/* R53: mandatory documents progress */
+@layer components {
+  .docbar { height: 10px; border-radius: 99px; background: var(--surf); border: 1px solid var(--line); overflow: hidden; }
+  .docbar i { display: block; height: 100%; border-radius: 99px; background: var(--rainbow); background-size: 300px 100%; }
+  .docmark { width: 20px; height: 20px; flex: none; border-radius: 6px; border: 2px solid var(--line); display: grid; place-items: center; font-size: 12px; font-weight: 800; color: #fff; }
+  .docmark.on { background: var(--mint); border-color: var(--mint); }
+}

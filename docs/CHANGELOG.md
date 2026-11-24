@@ -7,6 +7,10 @@ commit id, what changed in plain words, and the requirement it answers (R… in 
 
 ## 24 Nov 2026
 
+- `pending` **Mandatory client documents.** Settings → Documents lists the documents every client must give; each
+  client shows "x of y received" with ticks and Upload buttons; Clients list tag + "Documents pending" filter;
+  dashboard count. Starting list until the client sends theirs. (R53)
+
 - `c588dc0` **Short, damaged and returned material.** On a sales order, **Report problem** (or **Problem?** on a
   challan), then **Send replacement** (its own replacement challan), **Refund / adjust** (credit note or money paid
   back; Admin / Sales Head) or **Close**. Open problems show on the dashboard. Also a fix to the pie chart code. (R53)

@@ -170,7 +170,7 @@ export default async function ClientPage({ params }: { params: Promise<{ id: str
       panel: <ClientStatement user={user} clientId={c.id} period={period} range={`${period.label} · ${dmyF(period.from)} – ${dmyF(period.to)}`} />,
     },
     ...(features.documents
-      ? [{ id: "docs", label: "Documents", panel: <Card title="Documents"><DocumentsCard client={c} /></Card> }]
+      ? [{ id: "docs", label: c.docs.total ? `Documents ${c.docs.done}/${c.docs.total}` : "Documents", panel: <Card title="Documents"><DocumentsCard client={c} /></Card> }]
       : []),
     { id: "activity", label: "Timeline", panel: <Card title="Activity"><ActivityLog items={c.activities} /></Card> },
   ];
@@ -195,6 +195,11 @@ export default async function ClientPage({ params }: { params: Promise<{ id: str
               <span className="tag">Onboarded {fmtDate(istDate(c.onboardingCompletedAt), today)}</span>
             ) : null}
             <span className="tag">Salesperson: {c.owner.name}</span>
+            {features.documents && c.docs.pending ? (
+              <a href="?tab=docs" className="no-underline">
+                <Pill tone="warn">{`Documents ${c.docs.done}/${c.docs.total} · ${c.docs.pending} pending`}</Pill>
+              </a>
+            ) : null}
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-2">

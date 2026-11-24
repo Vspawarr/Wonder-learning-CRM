@@ -5,6 +5,7 @@ import type { SessionUser } from "@/lib/permissions";
 import { clientScope } from "./access";
 import { DomainError, NotFoundError } from "./errors";
 import { PO_MAX_BYTES, PO_TYPES } from "./finance/po";
+import { documentTypes, getDocumentSettings } from "./documents";
 
 export async function saveClientFile(
   user: SessionUser,
@@ -14,7 +15,8 @@ export async function saveClientFile(
   const client = await db.client.findFirst({ where: { id: clientId, ...clientScope(user) }, select: { id: true } });
   if (!client) throw new NotFoundError("Client");
   const category = f.dispatchId ? POD_CATEGORY : f.category;
-  if (!f.dispatchId && !(DOCUMENT_CATEGORIES as readonly string[]).includes(category)) throw new DomainError("Choose what kind of document this is.");
+  if (!f.dispatchId && !documentTypes((await getDocumentSettings()).requiredDocs, DOCUMENT_CATEGORIES).includes(category))
+    throw new DomainError("Choose what kind of document this is.");
   if (!PO_TYPES[f.type]) throw new DomainError("Upload a PDF or a photo (JPG or PNG).");
   if (!f.bytes.length) throw new DomainError("The file is empty.");
   if (f.bytes.length > PO_MAX_BYTES) throw new DomainError("The file is larger than 4 MB. Please upload a smaller PDF or photo.");

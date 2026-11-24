@@ -7,7 +7,7 @@ import { Field, Modal, Options, useAction } from "@/components/client";
 import { Icon } from "@/components/icons";
 import { Pill } from "@/components/ui";
 import { deleteClientFile, deleteContact, saveContact } from "@/app/actions";
-import { CONTACT_ROLES, DOCUMENT_CATEGORIES } from "@/lib/constants";
+import { CONTACT_ROLES } from "@/lib/constants";
 import { fmtDate, istDate } from "@/lib/dates";
 import type { ClientDetail } from "@/server/queries";
 import { uploadClientFile } from "./dispatch";
@@ -115,10 +115,41 @@ function ContactModal({ clientId, contact, onClose }: { clientId: string; contac
 }
 
 export function DocumentsCard({ client }: { client: ClientDetail }) {
-  const [adding, setAdding] = useState(false);
+  const [adding, setAdding] = useState<string | null | false>(false);
   const { pending, run } = useAction();
+  const d = client.docs;
   return (
     <>
+      {d.total ? (
+        <div className="mb-3 rounded-xl border border-line bg-surf2 p-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <b>Mandatory documents</b>
+            <span className={`pill ${d.pending ? "warn" : "ok"}`}>{d.pending ? `${d.done} of ${d.total} received · ${d.pending} pending` : `All ${d.total} received`}</span>
+          </div>
+          <div className="docbar mt-2" role="progressbar" aria-valuemin={0} aria-valuemax={d.total} aria-valuenow={d.done} aria-label="Documents received">
+            <i style={{ width: `${(d.done / d.total) * 100}%` }} />
+          </div>
+          <ul className="mt-2 grid grid-cols-1 gap-1 min-[601px]:grid-cols-2">
+            {d.items.map((i) => (
+              <li key={i.name} className="flex items-center justify-between gap-2 rounded-lg bg-surf px-2.5 py-1.5">
+                <span className="flex min-w-0 items-center gap-2">
+                  <span className={`docmark ${i.done ? "on" : ""}`} aria-hidden>
+                    {i.done ? "✓" : ""}
+                  </span>
+                  <span className={`truncate ${i.done ? "" : "font-semibold"}`}>{i.name}</span>
+                </span>
+                {i.done ? (
+                  <span className="small faint">Received</span>
+                ) : (
+                  <button className="btn sm" onClick={() => setAdding(i.name)}>
+                    Upload
+                  </button>
+                )}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
       {client.documents.length ? (
         <div className="flex flex-col">
           {client.documents.map((f) => (
@@ -144,16 +175,16 @@ export function DocumentsCard({ client }: { client: ClientDetail }) {
       ) : (
         <div className="small muted">No documents yet. Keep the agreement, GST certificate and other papers here.</div>
       )}
-      <button className="btn sm mt-2" onClick={() => setAdding(true)}>
+      <button className="btn sm mt-2" onClick={() => setAdding(null)}>
         <Icon name="upload" size={14} /> Upload document
       </button>
-      {adding ? <UploadModal clientId={client.id} onClose={() => setAdding(false)} /> : null}
+      {adding !== false ? <UploadModal clientId={client.id} types={client.docTypes} category={adding ?? ""} onClose={() => setAdding(false)} /> : null}
     </>
   );
 }
 
-function UploadModal({ clientId, onClose }: { clientId: string; onClose: () => void }) {
-  const [v, setV] = useState({ category: "", title: "" });
+function UploadModal({ clientId, types, category, onClose }: { clientId: string; types: string[]; category: string; onClose: () => void }) {
+  const [v, setV] = useState({ category, title: "" });
   const [file, setFile] = useState<File | null>(null);
   const { pending, run } = useAction();
   const router = useRouter();
@@ -186,7 +217,7 @@ function UploadModal({ clientId, onClose }: { clientId: string; onClose: () => v
     >
       <Field label="What is it? *" htmlFor="doc-cat">
         <select className="sel" id="doc-cat" value={v.category} onChange={(e) => setV({ ...v, category: e.target.value })}>
-          <Options list={DOCUMENT_CATEGORIES} blank="Choose…" />
+          <Options list={types} blank="Choose…" />
         </select>
       </Field>
       <Field label="Name (optional)" htmlFor="doc-title">

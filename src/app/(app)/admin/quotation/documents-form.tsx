@@ -23,6 +23,7 @@ export function DocumentSettingsForm({ initial, fy, used }: { initial: DocumentS
     poTerms: initial.poTerms.join("\n"),
     poCustomise: initial.poCustomise.join("\n"),
     poShippingTerms: initial.poShippingTerms,
+    requiredDocs: initial.requiredDocs.join("\n"),
     nextReceipt: current.nextReceipt ? String(current.nextReceipt) : "",
     nextPo: current.nextPo ? String(current.nextPo) : "",
   });
@@ -44,6 +45,7 @@ export function DocumentSettingsForm({ initial, fy, used }: { initial: DocumentS
           poTerms: toLines(v.poTerms),
           poCustomise: toLines(v.poCustomise),
           poShippingTerms: v.poShippingTerms,
+          requiredDocs: toLines(v.requiredDocs),
           numbering: { fy, nextReceipt: v.nextReceipt || null, nextPo: v.nextPo || null },
         }),
       { success: "Saved. New POs and receipts use these settings." },
@@ -82,6 +84,14 @@ export function DocumentSettingsForm({ initial, fy, used }: { initial: DocumentS
         <Field label="Default shipping terms" htmlFor="ds-ship">
           <input className="in" id="ds-ship" value={v.poShippingTerms} onChange={(e) => setV({ ...v, poShippingTerms: e.target.value })} />
         </Field>
+      </Card>
+      <Card title="Mandatory client documents">
+        {area(
+          "requiredDocs",
+          "Documents every client must give",
+          "One per line (up to 20). Each client shows how many are received and which are pending; they are also the document types offered when uploading.",
+          6,
+        )}
       </Card>
       <Card title="Payment receipt">
         {area("receiptLines", "Office address on receipts", "One line each, printed under the company name.", 2)}

@@ -369,6 +369,15 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
               <Kpi label="Material problems" value={svc.materialOpen} sub="Short, damaged or returned, not yet settled" color="#E3262C" href="/clients" />
             ) : null}
             <Kpi label="Onboarding" value={svc.onboarding} sub="New clients being set up" color="#1C86C4" href="/clients" />
+            {features.documents ? (
+              <Kpi
+                label="Documents pending"
+                value={svc.docsPending.clients}
+                sub={`Client(s) · ${svc.docsPending.documents} document(s) to collect`}
+                color="#F28C1E"
+                href="/clients?docs=pending"
+              />
+            ) : null}
             {renewals ? (
               <Kpi label="Renewals due" value={renewals.clients.filter((c) => !exec || c.ownerId === exec).length} sub={`For FY ${renewals.ay.label}`} color="#0E8F79" href="/clients" />
             ) : null}

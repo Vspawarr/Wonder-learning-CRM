@@ -1,5 +1,6 @@
 // Sales dashboard metrics. Scope first (a Sales Executive only ever sees their
 // own numbers), then the optional executive / state filters.
+import { docProgress, getDocumentSettings } from "./documents";
 import type { Prisma } from "@/generated/prisma/client";
 import { db } from "@/lib/db";
 import { COMPETITORS, LOST_REASONS, SOURCES, STAGES, competitorLabel, type Stage } from "@/lib/constants";
@@ -231,7 +232,14 @@ export async function serviceSummary(user: SessionUser, f: DashFilters) {
     // R53: material that arrived short / damaged or came back, not yet replaced, refunded or closed.
     db.materialIssue.count({ where: { status: "OPEN", client: { is: clientWhere } } }),
   ]);
+  // R53: clients still owing mandatory documents, and how many documents in all.
+  const [docSettings, clientFiles] = await Promise.all([
+    getDocumentSettings(),
+    db.client.findMany({ where: clientWhere, select: { files: { where: { dispatchId: null }, select: { category: true } } } }),
+  ]);
+  const docGaps = clientFiles.map((c) => docProgress(docSettings.requiredDocs, c.files.map((x) => x.category)).pending).filter((n) => n > 0);
   return {
+    docsPending: { clients: docGaps.length, documents: docGaps.reduce((t, n) => t + n, 0) },
     orders: orders.map((o) => ({ id: o.id, number: o.number, date: fromDbDate(o.date), client: o.client })),
     inTransit,
     onboarding,
