@@ -99,6 +99,7 @@ Sales orders are SO/YYYY/MM/NNN (on screen; the number prints on proforma and in
 | Expense bills | My expenses / Accounts → Expenses → Add expense | Photos (shrunk in the browser) or PDF, up to 4 per expense, 4 MB each | `/api/expenses`, `src/server/expenses.ts`; viewed at `/api/expenses/files/<id>` |
 | Supplier bill photo / PDF | Accounts → Bills to pay → Add bill | One photo (shrunk) or PDF, 4 MB | `/api/company/bills`, `src/server/company.ts`; viewed at `/api/company/files/bill/<id>` |
 | Voucher for other money in / out | Accounts → Account books → Other money in / Other payment | One photo (shrunk) or PDF, 4 MB (optional) | `/api/company/entries`; viewed at `/api/company/files/entry/<id>` |
+| Marketing material (R53) | Marketing material → Add material | PDF, PowerPoint, picture, video, HTML, ZIP up to 4 MB, or a Google Drive link; files served at `/api/marketing/<id>` (team) and private links `/m/<token>` (schools) | `src/server/marketing.ts` |
 | School logo (R51) | Send PO template → School logo | PNG or JPG, max 2 MB; one per school | `src/server/school-logo.ts`, `/api/quotations/<id>/school-logo` |
 | Signed PO | Quotation → Convert to PO → Upload received PO (or Client → Purchase orders → Upload received PO; on an order: PO) | PDF or photo, max 4 MB | `src/server/finance/po.ts` |
 | Client documents, proof of delivery | Client → Documents tab; Dispatch → Mark received | PDF or photo, max 4 MB | `/api/clients/<id>/files`, `src/server/files.ts` |

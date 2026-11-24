@@ -10,6 +10,7 @@ import { createDispatch, deleteDispatch } from "@/server/finance/dispatch";
 import { closeIssue, refundIssue, reportIssue, sendReplacement } from "@/server/finance/material";
 import { createInvoice, createSalesOrder, deleteCreditNote } from "@/server/finance/service";
 import { docProgress, documentTypes } from "@/server/documents";
+import { addMarketingFile, addMarketingLink, listMarketing, marketingHeaders, marketingToken, sharedMarketingFile } from "@/server/marketing";
 import { leadData, makeUser, resetData } from "./helpers";
 
 const row = (id: string, balance: number, state = "UNPAID") =>
@@ -104,5 +105,36 @@ describe("mandatory client documents", () => {
     expect(p.items.map((i) => i.done)).toEqual([false, true, false]);
     expect(documentTypes(["Trust deed", "PAN card"], ["PAN card", "Other"])).toEqual(["Trust deed", "PAN card", "Other"]);
     expect(docProgress([], ["x"])).toMatchObject({ total: 0, pending: 0 });
+  });
+});
+
+describe("marketing material", () => {
+  beforeEach(resetData);
+
+  it("Admin / Sales Head add files and Drive links; everyone lists them; private links can't be changed", async () => {
+    const ex = await makeUser("SALES_EXECUTIVE");
+    const head = await makeUser("SALES_HEAD");
+    const base = { title: "Curriculum deck", category: "Presentation" };
+    await expect(addMarketingLink(ex, { ...base, url: "https://drive.google.com/x" })).rejects.toThrow(/Admin or the Sales Head/);
+    await expect(addMarketingLink(head, { ...base, url: "drive.google.com/x" })).rejects.toThrow(/https/);
+    await addMarketingLink(head, { ...base, title: "Kit video", category: "Video", url: "https://drive.google.com/file/d/abc/view" });
+    await expect(addMarketingFile(head, base, { name: "deck.exe", bytes: new Uint8Array([1]) })).rejects.toThrow(/can't be uploaded/);
+    const id = await addMarketingFile(head, base, { name: "Deck.PDF", bytes: new Uint8Array([37, 80, 68, 70]) });
+    const items = await listMarketing();
+    expect(items.map((i) => [i.title, i.kind])).toEqual([
+      ["Curriculum deck", "file"],
+      ["Kit video", "link"],
+    ]);
+    expect(items[1].share).toBe("https://drive.google.com/file/d/abc/view");
+    expect(items[0].share).toBe(`/m/${marketingToken(id)}`);
+    expect((await sharedMarketingFile(marketingToken(id)))?.type).toBe("application/pdf");
+    const bad = marketingToken(id).slice(0, -1) + (marketingToken(id).endsWith("A") ? "B" : "A");
+    expect(await sharedMarketingFile(bad)).toBeNull();
+  });
+
+  it("serves HTML only inside a sandbox and office files as downloads", () => {
+    expect(marketingHeaders({ fileName: "a.html", type: "text/html", show: "sandbox" }, false)["Content-Security-Policy"]).toMatch(/^sandbox/);
+    expect(marketingHeaders({ fileName: "a.pptx", type: "x", show: "download" }, false)["Content-Disposition"]).toMatch(/^attachment/);
+    expect(marketingHeaders({ fileName: "a.pdf", type: "application/pdf", show: "inline" }, false)["Content-Disposition"]).toMatch(/^inline/);
   });
 });

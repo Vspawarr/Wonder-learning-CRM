@@ -88,6 +88,7 @@ model User {
   transfers          AccountTransfer[]
   bookMatches        BookMatch[]
   issuesReported     MaterialIssue[]          @relation("IssueCreatedBy")
+  marketingAdded     MarketingItem[]          @relation("MarketingCreatedBy")
 }
 
 // ───────────────────────── Masters ─────────────────────────
@@ -1258,4 +1259,26 @@ model NotificationRead {
   readAt DateTime @default(now())
 
   @@id([userId, key])
+}
+
+/// R53: marketing material for presenting to schools (presentations, videos, animations, HTML files, PDFs). Small files
+/// are stored here (4 MB max); large ones are a link (e.g. Google Drive).
+model MarketingItem {
+  id          String   @id @default(cuid())
+  title       String
+  /// MARKETING_CATEGORIES
+  category    String
+  description String?
+  /// A Google Drive (or other https) link, for large files.
+  url         String?
+  fileName    String?
+  contentType String?
+  size        Int?
+  data        Bytes?
+  createdById String
+  createdBy   User     @relation("MarketingCreatedBy", fields: [createdById], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([category])
 }

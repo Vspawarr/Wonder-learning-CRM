@@ -17,7 +17,7 @@ const KIND_OF: Record<string, ShareKind> = { p: "proforma", c: "challan", n: "cr
 /** Reads the documents for a public link; the link itself is the permission. */
 const LINK_VIEWER: SessionUser = { id: "", name: "Shared link", email: "", role: "ADMIN" };
 
-function sign(body: string) {
+export function sign(body: string) {
   const secret = process.env.AUTH_SECRET;
   if (!secret) throw new Error("AUTH_SECRET is not set.");
   return createHmac("sha256", `share-link:${secret}`).update(body).digest("base64url").slice(0, 24);

@@ -701,3 +701,12 @@
   .docmark { width: 20px; height: 20px; flex: none; border-radius: 6px; border: 2px solid var(--line); display: grid; place-items: center; font-size: 12px; font-weight: 800; color: #fff; }
   .docmark.on { background: var(--mint); border-color: var(--mint); }
 }
+
+/* R53: marketing library cards */
+@layer components {
+  .mk-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 14px; }
+  .mk-card { border-top: 5px solid var(--c); }
+  .mk-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .mk-cat { display: inline-block; padding: 2px 10px; border-radius: 99px; font-size: 12px; font-weight: 700; color: #fff; background: var(--c); }
+  @media (max-width: 600px) { .mk-grid { grid-template-columns: 1fr; } }
+}

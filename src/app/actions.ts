@@ -21,6 +21,7 @@ import * as features from "@/server/features";
 import * as po from "@/server/finance/po";
 import * as dispatch from "@/server/finance/dispatch";
 import * as material from "@/server/finance/material";
+import * as marketing from "@/server/marketing";
 import * as files from "@/server/files";
 import * as contacts from "@/server/contacts";
 import * as renewals from "@/server/renewals";
@@ -340,3 +341,8 @@ export async function cancelTransfer(id: string) {
 export async function markAlerts(keys: string[], read: boolean) {
   return run((u) => search.markAlerts(u, keys, read));
 }
+
+// R53: marketing material (files are uploaded through /api/marketing).
+export const addMarketingLink = async (data: unknown) => run((u) => marketing.addMarketingLink(u, data));
+export const updateMarketing = async (id: string, data: unknown) => run((u) => marketing.updateMarketing(u, id, data));
+export const deleteMarketing = async (id: string) => run((u) => marketing.deleteMarketing(u, id));

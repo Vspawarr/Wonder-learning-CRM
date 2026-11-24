@@ -100,6 +100,12 @@ client shows a warning (the user may still save). The Excel upload skips same sc
   shows on the sales order, proforma and invoice. The sales order shows the quotation's creation time
   (date + H:M:S AM/PM) (R16.10, R17).
 - **Dispatch** in one or more lots with transporter/docket, a challan PDF, and **Mark received** with proof.
+- **Marketing material** (R53, switch in Settings → Features): menu → Marketing material. Admin / Director / Sales
+  Head add items (title, category: Presentation, Brochure, Video, Animation, HTML file, PDF, Other; description) as a
+  **file up to 4 MB** (PDF, PowerPoint, picture, video, HTML, ZIP) or a **Google Drive link** for big files, and edit /
+  remove them. Everyone can open, download, share on **WhatsApp** or copy the link. Files are sent as a private link
+  (`/m/…`, opens without login; a changed link is refused; removing the item stops it); Drive items send the Drive
+  link (set Drive sharing to "Anyone with the link"). HTML files open in a sandbox with no access to the CRM.
 - **Mandatory client documents** (R53): Settings → Documents → "Mandatory client documents" (one per line; a starting
   list until the client sends theirs). Each client's Documents tab shows "x of y received" with a bar, a tick per
   document received (matched by document type) and **Upload** on each pending one; the tab and the client header show

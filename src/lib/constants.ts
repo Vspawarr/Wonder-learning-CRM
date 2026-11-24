@@ -160,6 +160,9 @@ export const PAYMENT_MODES = ["NEFT/RTGS", "UPI", "Cheque", "CDC (Current Dated 
 export const DOCUMENT_CATEGORIES = ["Agreement / MOU", "GST certificate", "PAN card", "Cheque copy", "School registration", "Other"] as const;
 export const POD_CATEGORY = "Proof of delivery";
 
+/** R53: kinds of marketing material. */
+export const MARKETING_CATEGORIES = ["Presentation", "Brochure", "Video", "Animation", "HTML file", "PDF", "Other"] as const;
+
 /** People at a school besides the main contact. */
 export const CONTACT_ROLES = ["Owner", "Director", "Principal", "Coordinator", "Accounts", "Teacher", "Other"] as const;
 

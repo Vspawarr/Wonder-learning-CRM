@@ -32,6 +32,8 @@ export const canManageCompanyAccounts = canApprovePayments;
 
 /** Anyone who sees all sales data may view the user list. */
 export const canViewUsers = seesAllSales;
+/** R53: add, change and remove marketing material (everyone can view and share it). */
+export const canManageMarketing = seesAllSales;
 
 /** Roles that can own leads, opportunities and sales tasks. */
 export const SALES_ROLES: readonly Role[] = ["SALES_HEAD", "SALES_MANAGER", "SALES_EXECUTIVE"];

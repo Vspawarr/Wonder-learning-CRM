@@ -391,6 +391,15 @@ month; the Director approves entries made by Admin / Accounts.
   salaries and other payments = **profit / loss** (GST, loans, capital and withdrawals left out).
 - **GST summary**: GST on invoices vs GST on supplier bills, for the CA.
 
+## 9b. Marketing material
+
+Menu → **Marketing material** (R53): presentations, brochures, videos, animations, HTML files and PDFs to show a school
+or send them.
+- **Everyone:** filter by category or search; **Open**, **Download**, **WhatsApp** (opens WhatsApp with the title,
+  description and a link the school can open without logging in), **Copy link**.
+- **Admin / Sales Head:** **Add material** → *File upload* (up to 4 MB) or *Google Drive link* (big files such as
+  videos: in Drive, Share → General access → "Anyone with the link" → Copy link); **Edit**, **Remove**.
+
 ## 9a. Transferring a lead or client to another salesperson
 
 On a lead or client page: **Transfer** → choose the salesperson and write why → **Ask for approval**. The page shows
