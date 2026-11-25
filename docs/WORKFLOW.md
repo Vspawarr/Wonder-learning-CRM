@@ -437,6 +437,7 @@ or send them.
 - **Tools → What to design: UKG book covers** (R58): same steps without the student. The school's logo and name
   appear in the box at the top of the front cover, and its logo, name, address and phone on the back, in place of
   Wonder Learning's. Downloads are JPG (picture) or PDF (real cover size).
+  The book covers as one file: *book-cover-designer.html* on the Tools tab (R59; about 4 MB, works offline).
   The ID card tool as one file: *download id-card-designer.html* on the Tools tab; it opens in any browser, no login.
 
 ## 9a. Transferring a lead or client to another salesperson

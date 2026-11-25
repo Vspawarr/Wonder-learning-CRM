@@ -34,11 +34,14 @@ describe("ID card designs", () => {
     }
   });
 
-  it("the standalone designer file is built from the current designs", async () => {
+  it("the standalone designer files (ID cards, book covers) are built from the current designs", async () => {
     // @ts-expect-error plain JS build script
-    const { designerHtml, OUT } = await import("../scripts/designer-html.mjs");
-    expect(readFileSync(OUT, "utf8"), "Run `npm run designer:build` and commit public/tools/id-card-designer.html").toBe(await designerHtml());
-  }, 30000);
+    const { designerHtml, TOOLS } = await import("../scripts/designer-html.mjs");
+    for (const [tool, t] of Object.entries(TOOLS as Record<string, { out: string }>)) {
+      const html = await designerHtml(tool);
+      expect(readFileSync(t.out, "utf8") === html, `Run \`npm run designer:build\` and commit ${t.out}`).toBe(true);
+    }
+  }, 60000);
 });
 
 describe("designer school picker", () => {

@@ -118,5 +118,5 @@ export const UKG_COVERS: DesignKind = {
   assets: Object.fromEntries(UKG_TOPICS.map((_, i) => [`ukg-book-${i + 1}`, `/designs/covers/ukg-book-${i + 1}.jpg`])),
 };
 
-/** Book cover kinds (CRM only: the pictures are too big for the standalone file). Nursery and LKG to follow. */
+/** Book cover kinds in the CRM (the UKG ones also in public/tools/book-cover-designer.html). Nursery and LKG to follow. */
 export const COVER_KINDS: DesignKind[] = [UKG_COVERS];

@@ -20,11 +20,15 @@ export function MarketingTools({ schools }: { schools: School[] }) {
           place of Wonder Learning&apos;s.
         </p>
         <p className="muted mt-2 text-sm">
-          The ID cards are also available as a single file that opens in any browser without logging in:{" "}
+          Also as single files that open in any browser without logging in or internet:{" "}
           <a className="link" href="/tools/id-card-designer.html" download>
-            download id-card-designer.html
-          </a>
-          .
+            id-card-designer.html
+          </a>{" "}
+          (ID cards) and{" "}
+          <a className="link" href="/tools/book-cover-designer.html" download>
+            book-cover-designer.html
+          </a>{" "}
+          (UKG book covers, about 4 MB).
         </p>
       </div>
       <Designer schools={schools} loadLogo={designSchoolLogo} kinds={KINDS} />

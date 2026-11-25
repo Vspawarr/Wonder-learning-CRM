@@ -146,7 +146,7 @@ client shows a warning (the user may still save). The Excel upload skips same sc
   Wonder Learning's logo box (front) and logo + address (back) painted out; the school's logo and name go in the front
   box, its logo, name, address and phone on the back. Pictures: `public/designs/covers/` (made from the client's PDF
   at 120 dpi; a new class = its compressed PDF → same clean-up → a list in `src/lib/designs/book-covers.ts`). Covers
-  are in the CRM only, not in the separate HTML file. Saved as JPG (a PNG would be several MB).
+  are also in their own file `public/tools/book-cover-designer.html` (R59, pictures inside, about 4 MB). Saved as JPG (a PNG would be several MB).
 - **Mandatory client documents** (R53): Settings → Documents → "Mandatory client documents" (one per line; a starting
   list until the client sends theirs). Each client's Documents tab shows "x of y received" with a bar, a tick per
   document received (matched by document type) and **Upload** on each pending one; the tab and the client header show

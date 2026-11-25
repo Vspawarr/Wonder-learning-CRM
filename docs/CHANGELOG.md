@@ -7,6 +7,9 @@ commit id, what changed in plain words, and the requirement it answers (R… in 
 
 ## 25 Nov 2026
 
+- `pending` **Offline book cover file** `book-cover-designer.html` (about 4 MB): the UKG book cover designer in one file
+  that opens without login or internet, like the ID card file; link on Marketing → Tools. (R59)
+
 - `b02a78f` **Book cover designer** (Marketing → Tools → What to design: UKG book covers): the 9 UKG covers with
   the school's logo and name on the front and its logo, name, address and phone on the back, in place of Wonder
   Learning's; download JPG / PDF at cover size / all 9, or share on WhatsApp. (R58)
