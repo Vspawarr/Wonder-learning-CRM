@@ -7,7 +7,7 @@ commit id, what changed in plain words, and the requirement it answers (R… in 
 
 ## 25 Nov 2026
 
-- `pending` **Inventory & production.** Stock of every kit, kit item and book; production orders made by themselves
+- `1109a23` **Inventory & production.** Stock of every kit, kit item and book; production orders made by themselves
   from sales orders (received POs) for a new Production login (Start → Ready: kits in, items out); dispatch takes
   stock out; returned material comes back as good or damaged stock; adjustments, opening stock, reorder levels,
   movements; PDF / Excel; dashboard counts. (R54)
