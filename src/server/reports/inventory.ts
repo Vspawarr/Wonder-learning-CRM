@@ -67,7 +67,7 @@ export async function production(user: SessionUser, p: Params): Promise<Report> 
           no: r.number,
           school: r.client.schoolName,
           so: `${r.salesOrder.number}${r.salesOrder.poNumber ? ` · PO ${r.salesOrder.poNumber}` : ""}`,
-          kits: r.lines.map((l) => `${l.qty} × ${l.description}`).join("; "),
+          kits: r.lines.map((l) => `${l.qty} × ${l.description}${l.made && l.made < l.qty ? ` (${l.made} done)` : ""}`).join("; "),
           due: r.dueDate ? dmy(r.dueDate) : "",
           status: PRODUCTION_STATUS_LABEL[r.status],
           short: r.short || null,

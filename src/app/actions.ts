@@ -352,6 +352,11 @@ export const deleteMarketing = async (id: string) => run((u) => marketing.delete
 export const adjustStock = async (data: unknown) => run((u) => inventory.adjustStock(u, data));
 export const setReorderLevel = async (id: string, level: number | null) => run((u) => inventory.setReorderLevel(u, id, level));
 export const makeProductionOrder = async (salesOrderId: string) => run((u) => inventory.makeProductionOrder(u, salesOrderId));
+export const completeProduction = async (id: string, data: unknown) => run((u) => inventory.completeProduction(u, id, data));
+export async function productionReadyPlan(id: string) {
+  const u = await requireUser();
+  return inventory.readyPlan(u, id);
+}
 export const setProductionStatus = async (id: string, to: "IN_PRODUCTION" | "READY" | "CANCELLED" | "UNDO_READY") => run((u) => inventory.setProductionStatus(u, id, to));
 /** What can leave or come back for a material problem: the kit and its items (read only). */
 export async function materialStockChoices(salesOrderItemId: string) {

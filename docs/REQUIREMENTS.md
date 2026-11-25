@@ -690,3 +690,13 @@ with a **new Production login**.
 | **Returns / damaged** | ✅ | On Report problem: back to the store as good or damaged stock (kit or item); damaged kept apart; repair / write off |
 | **Stock screen** | ✅ | In stock, damaged, in production, needed, to dispatch, free; Short / Low (reorder level); adjustments and opening stock; movements; PDF / Excel; dashboard counts |
 | **Production login** | ✅ | New role "Production" (Settings → Users): sees only Inventory & production |
+
+## R55. Mark ready: adjust stock automatically or from an editable list (25 Nov)
+
+"When production team mark ready all items should adjusted automatically or there should be editable confirmation
+list display to adjust stock at once and direct option for everything inside order is ready."
+
+| Change | Status | Notes |
+|---|---|---|
+| **Direct "Everything is ready"** | ✅ | Mark ready → **Everything is ready**: all kits left go into stock and all their items come out, in one click |
+| **Editable confirmation list** | ✅ | Same window: kits finished now per line and items taken out (worked out from the kits, follow the kit numbers until changed by hand), with today's stock; **Save this list** updates all stock at once. Fewer kits than ordered: the order stays In production and the rest is finished later (batches). **Undo finished** reverses them |

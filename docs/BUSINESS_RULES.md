@@ -110,8 +110,12 @@ client shows a warning (the user may still save). The Excel upload skips same sc
     received PO), with the kit lines and the items one kit needs (the quotation's kit changes applied: removed items
     out, added items in). While "To start" it follows changes to the order; cancelling the order cancels it. Orders
     made before inventory: **Make production order** on the order (Admin / Sales Head). Status: To start →
-    **Start production** → **Mark ready** (or Cancel). **Ready** adds the finished kits to stock and takes their items
-    out (a warning first if items are short; stock may then go below zero). **Undo ready** reverses it.
+    **Start production** → **Mark ready** (or Cancel). **Mark ready** (R55) opens a list: **Everything is ready**
+    finishes all kits left with their items as listed; or change the **kits finished now** (fewer: the order stays In
+    production for the rest, finished in batches) and the **items taken out** (worked out from the kits, editable for
+    extra / less used) and **Save this list**: all stock changes at once. Kits add to stock, items come out (a warning
+    if items are short; stock may then go below zero). **Undo finished** reverses every finished batch; an order with
+    finished kits can't be cancelled until they are undone.
   - **Dispatch** takes the finished kits (and items / books sold on their own) out of stock; deleting a challan puts
     them back. A **replacement** lot takes out what is chosen: the whole kit or one of its items (e.g. bags).
   - **Returned / damaged material** (Report problem): "Did it come back to our store?" No / as **good stock** / as

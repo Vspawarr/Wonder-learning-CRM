@@ -9,7 +9,7 @@ import { moveOpportunity } from "@/server/opportunities";
 import { createDispatch, deleteDispatch } from "@/server/finance/dispatch";
 import { reportIssue, sendReplacement } from "@/server/finance/material";
 import { cancelSalesOrder, createSalesOrder, updateSalesOrder } from "@/server/finance/service";
-import { adjustStock, componentName, productionOrders, setProductionStatus, stockLevels, stockMoves } from "@/server/inventory";
+import { adjustStock, completeProduction, componentName, productionOrders, readyPlan, setProductionStatus, stockLevels, stockMoves } from "@/server/inventory";
 import { leadData, makeUser, resetData } from "./helpers";
 
 const today = todayIST();
@@ -94,5 +94,34 @@ describe("inventory", () => {
     const so = await order(5);
     await cancelSalesOrder(ex, so);
     expect((await productionOrders(prod, "all"))[0].status).toBe("CANCELLED");
+  });
+});
+
+describe("marking production ready (R55)", () => {
+  it("finishes in batches with an edited item list, then the rest in one go; undo puts everything back", async () => {
+    await order(10);
+    const [po] = await productionOrders(prod);
+    const plan = await readyPlan(prod, po.id);
+    expect(plan.lines[0]).toMatchObject({ ordered: 10, made: 0, left: 10 });
+    expect(plan.items.find((i) => i.name === "Bag")?.qty).toBe(10);
+    await expect(completeProduction(prod, po.id, { lines: [{ id: plan.lines[0].id, qty: 11 }] })).rejects.toThrow(/Only 10/);
+    // First batch: 4 kits; 6 bags used (2 spoiled), diary as worked out.
+    const items = plan.items.map((i) => ({ name: i.name, qty: i.name === "Bag" ? 6 : (i.qty / 10) * 4 }));
+    await completeProduction(prod, po.id, { lines: [{ id: plan.lines[0].id, qty: 4 }], items, note: "first batch" });
+    let [now] = await productionOrders(prod);
+    expect(now).toMatchObject({ status: "IN_PRODUCTION", made: 4 });
+    expect(await level(lkg.name)).toMatchObject({ good: 4, inProduction: 6 });
+    expect(await level("Bag")).toMatchObject({ good: -6, needed: 6 });
+    expect((await level("Diary")).good).toBe(-4);
+    // "Everything is ready": the 6 left, items as listed.
+    await setProductionStatus(prod, po.id, "READY");
+    [now] = await productionOrders(prod, "all");
+    expect(now).toMatchObject({ status: "READY", made: 10 });
+    expect(await level("Bag")).toMatchObject({ good: -12, needed: 0 });
+    expect((await level(lkg.name)).good).toBe(10);
+    await expect(setProductionStatus(prod, po.id, "CANCELLED")).rejects.toThrow();
+    await setProductionStatus(prod, po.id, "UNDO_READY");
+    expect(await level("Bag")).toMatchObject({ good: 0, needed: 10 });
+    expect(await level(lkg.name)).toMatchObject({ good: 0, inProduction: 10 });
   });
 });

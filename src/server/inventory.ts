@@ -181,45 +181,130 @@ async function loadProduction(user: SessionUser, id: string) {
   return po;
 }
 
-/** In production → Ready, Cancel, or undo Ready. Ready adds the finished kits and takes their items out of stock. */
+type Comp = { name: string; qty: number };
+
+/** Kits still to make per line, and the items they use (per-kit quantity × kits), for the Ready list. */
+function remainingPlan(lines: { id: string; description: string; qty: number; made: number; components: unknown }[]) {
+  const items = new Map<string, number>();
+  const out = lines.map((l) => {
+    const left = Math.max(0, l.qty - l.made);
+    for (const c of l.components as Comp[]) items.set(c.name, (items.get(c.name) ?? 0) + c.qty * left);
+    return { id: l.id, description: l.description, ordered: l.qty, made: l.made, left, perKit: l.components as Comp[] };
+  });
+  return { lines: out, items: [...items.entries()].map(([name, qty]) => ({ name, qty })) };
+}
+
+export const readyInput = z.object({
+  /** Kits finished now, per production line (up to what is left). */
+  lines: z.array(z.object({ id: z.string().min(1), qty: z.coerce.number().int("Whole kits only.").min(0) })).min(1),
+  /** Items taken out of stock for them; empty: worked out from the kits (per-kit items × kits). */
+  items: z.array(z.object({ name: z.string().trim().min(1).max(200), qty: z.coerce.number().int("Whole numbers only.").min(0) })).nullish(),
+  note: z
+    .string()
+    .trim()
+    .max(300)
+    .nullish()
+    .transform((s) => s || null),
+});
+
+/**
+ * R55: kits finished. "Everything is ready" finishes all that is left with the listed items; the editable list can
+ * change the kits finished (fewer: the order stays In production for the rest) and the items used, saved at once.
+ */
+export async function completeProduction(user: SessionUser, id: string, raw: unknown) {
+  await assertOn();
+  assertManager(user);
+  const d = parse(readyInput, raw);
+  const po = await loadProduction(user, id);
+  if (po.status !== "PLANNED" && po.status !== "IN_PRODUCTION") throw new DomainError(`This production order is ${PRODUCTION_STATUS_LABEL[po.status].toLowerCase()}.`);
+  const done = new Map<string, number>();
+  for (const l of d.lines) {
+    const line = po.lines.find((x) => x.id === l.id);
+    if (!line) throw new DomainError("A line doesn't belong to this production order.");
+    if (l.qty > line.qty - line.made) throw new DomainError(`Only ${line.qty - line.made} kit(s) of ${line.description} are left to make.`);
+    if (l.qty) done.set(line.id, l.qty);
+  }
+  if (!done.size) throw new DomainError("Enter how many kits are ready.");
+  // Items: as typed, else per-kit items × kits finished now.
+  const auto = new Map<string, number>();
+  for (const l of po.lines) for (const c of l.components as Comp[]) auto.set(c.name, (auto.get(c.name) ?? 0) + c.qty * (done.get(l.id) ?? 0));
+  const items = d.items ? new Map(d.items.map((i) => [i.name, i.qty])) : auto;
+  const allDone = po.lines.every((l) => l.made + (done.get(l.id) ?? 0) >= l.qty);
+  const kits = [...done.values()].reduce((a, b) => a + b, 0);
+  await db.$transaction(async (tx) => {
+    await syncStockItems(tx);
+    const byName = new Map((await tx.stockItem.findMany({ select: { id: true, name: true } })).map((s) => [s.name, s.id]));
+    const date = toDbDate(todayIST());
+    const note = `${po.number}${d.note ? ` · ${d.note}` : ""}`;
+    const moves: Prisma.StockMoveCreateManyInput[] = [];
+    for (const l of po.lines) {
+      const q = done.get(l.id);
+      if (q) moves.push({ stockItemId: l.stockItemId, date, kind: "PRODUCED", qty: q, productionOrderId: po.id, createdById: user.id, note: `${note} · ${l.description}` });
+    }
+    for (const [name, q] of items) {
+      if (!q) continue;
+      let itemId = byName.get(name);
+      if (!itemId) {
+        itemId = (await tx.stockItem.create({ data: { name, kind: "ITEM" } })).id;
+        byName.set(name, itemId);
+      }
+      moves.push({ stockItemId: itemId, date, kind: "USED", qty: -q, productionOrderId: po.id, createdById: user.id, note });
+    }
+    await tx.stockMove.createMany({ data: moves });
+    for (const [lineId, q] of done) await tx.productionLine.update({ where: { id: lineId }, data: { made: { increment: q } } });
+    await tx.productionOrder.update({
+      where: { id: po.id },
+      data: { status: allDone ? "READY" : "IN_PRODUCTION", startedAt: po.startedAt ?? new Date(), ...(allDone ? { readyAt: new Date() } : {}) },
+    });
+    await tx.activity.create({
+      data: {
+        type: "SYSTEM",
+        subject: `Production ${po.number} (${po.salesOrder.number}): ${kits} kit(s) ready${allDone ? " · all done" : ` · ${po.lines.reduce((t, l) => t + l.qty - l.made, 0) - kits} still to make`}`,
+        byId: user.id,
+        clientId: po.clientId,
+      },
+    });
+  });
+}
+
+/** In production, Cancel, Ready (everything left, as listed) or undo what was finished. */
 export async function setProductionStatus(user: SessionUser, id: string, to: "IN_PRODUCTION" | "READY" | "CANCELLED" | "UNDO_READY") {
   await assertOn();
   assertManager(user);
   const po = await loadProduction(user, id);
-  const allowed: Record<string, string[]> = { IN_PRODUCTION: ["PLANNED"], READY: ["PLANNED", "IN_PRODUCTION"], CANCELLED: ["PLANNED", "IN_PRODUCTION"], UNDO_READY: ["READY"] };
-  if (!allowed[to].includes(po.status)) throw new DomainError(`This production order is ${PRODUCTION_STATUS_LABEL[po.status].toLowerCase()}.`);
+  if (to === "READY") {
+    const plan = remainingPlan(po.lines);
+    return completeProduction(user, id, { lines: plan.lines.map((l) => ({ id: l.id, qty: l.left })) });
+  }
+  const made = po.lines.some((l) => l.made > 0);
+  const allowed = to === "IN_PRODUCTION" ? po.status === "PLANNED" : to === "CANCELLED" ? (po.status === "PLANNED" || po.status === "IN_PRODUCTION") && !made : made;
+  if (!allowed)
+    throw new DomainError(
+      to === "CANCELLED" && made ? "Some kits are already finished. Undo them first, then cancel." : `This production order is ${PRODUCTION_STATUS_LABEL[po.status].toLowerCase()}.`,
+    );
   await db.$transaction(async (tx) => {
     if (to === "UNDO_READY") {
+      // Takes the finished kits back out of stock and puts their items back.
       await tx.stockMove.deleteMany({ where: { productionOrderId: po.id } });
+      await tx.productionLine.updateMany({ where: { productionOrderId: po.id }, data: { made: 0 } });
       await tx.productionOrder.update({ where: { id: po.id }, data: { status: "IN_PRODUCTION", readyAt: null } });
-      return;
-    }
-    if (to === "READY") {
-      await syncStockItems(tx);
-      const byName = new Map((await tx.stockItem.findMany({ select: { id: true, name: true } })).map((s) => [s.name, s.id]));
-      const date = toDbDate(todayIST());
-      const moves: Prisma.StockMoveCreateManyInput[] = [];
-      for (const l of po.lines) {
-        moves.push({ stockItemId: l.stockItemId, date, kind: "PRODUCED", qty: l.qty, productionOrderId: po.id, createdById: user.id, note: po.number });
-        for (const c of l.components as { name: string; qty: number }[]) {
-          let itemId = byName.get(c.name);
-          if (!itemId) {
-            itemId = (await tx.stockItem.create({ data: { name: c.name, kind: "ITEM" } })).id;
-            byName.set(c.name, itemId);
-          }
-          moves.push({ stockItemId: itemId, date, kind: "USED", qty: -(c.qty * l.qty), productionOrderId: po.id, createdById: user.id, note: `${po.number} · ${l.description}` });
-        }
-      }
-      await tx.stockMove.createMany({ data: moves });
-    }
-    await tx.productionOrder.update({
-      where: { id: po.id },
-      data: { status: to, ...(to === "IN_PRODUCTION" ? { startedAt: new Date() } : {}), ...(to === "READY" ? { readyAt: new Date(), startedAt: po.startedAt ?? new Date() } : {}) },
-    });
+    } else
+      await tx.productionOrder.update({ where: { id: po.id }, data: { status: to, ...(to === "IN_PRODUCTION" ? { startedAt: new Date() } : {}) } });
     await tx.activity.create({
-      data: { type: "SYSTEM", subject: `Production ${po.number} (${po.salesOrder.number}): ${PRODUCTION_STATUS_LABEL[to].toLowerCase()}`, byId: user.id, clientId: po.clientId },
+      data: {
+        type: "SYSTEM",
+        subject: `Production ${po.number} (${po.salesOrder.number}): ${to === "UNDO_READY" ? "finished kits undone" : PRODUCTION_STATUS_LABEL[to].toLowerCase()}`,
+        byId: user.id,
+        clientId: po.clientId,
+      },
     });
   });
+}
+
+/** R55: what the Ready list starts with: kits left per line and the items they use. */
+export async function readyPlan(user: SessionUser, id: string) {
+  const po = await loadProduction(user, id);
+  return remainingPlan(po.lines);
 }
 
 /* ---------- stock moves from dispatch and returns ---------- */
@@ -315,7 +400,7 @@ export async function stockLevels() {
   const [items, sums, open, toSend] = await Promise.all([
     db.stockItem.findMany({ where: { active: true }, orderBy: [{ kind: "asc" }, { name: "asc" }] }),
     db.stockMove.groupBy({ by: ["stockItemId", "damaged"], _sum: { qty: true } }),
-    db.productionLine.findMany({ where: { productionOrder: { status: { in: ["PLANNED", "IN_PRODUCTION"] } } }, select: { stockItemId: true, qty: true, components: true } }),
+    db.productionLine.findMany({ where: { productionOrder: { status: { in: ["PLANNED", "IN_PRODUCTION"] } } }, select: { stockItemId: true, qty: true, made: true, components: true } }),
     // Kits on open orders not yet sent (normal lots only).
     db.salesOrderItem.findMany({
       where: { productId: { not: null }, salesOrder: { status: "CONFIRMED" } },
@@ -328,8 +413,9 @@ export async function stockLevels() {
   const needByName = new Map<string, number>();
   const making = new Map<string, number>();
   for (const l of open) {
-    making.set(l.stockItemId, (making.get(l.stockItemId) ?? 0) + l.qty);
-    for (const c of l.components as { name: string; qty: number }[]) needByName.set(c.name, (needByName.get(c.name) ?? 0) + c.qty * l.qty);
+    const left = Math.max(0, l.qty - l.made);
+    making.set(l.stockItemId, (making.get(l.stockItemId) ?? 0) + left);
+    for (const c of l.components as { name: string; qty: number }[]) needByName.set(c.name, (needByName.get(c.name) ?? 0) + c.qty * left);
   }
   const sendByProduct = new Map<string, number>();
   for (const i of toSend) sendByProduct.set(i.productId!, (sendByProduct.get(i.productId!) ?? 0) + Math.max(0, i.qty - i.dispatched.reduce((t, d) => t + d.qty, 0)));
@@ -376,7 +462,9 @@ export async function productionOrders(user: SessionUser, show?: string) {
   const goodByName = new Map(levels.map((l) => [l.name, l.good]));
   return rows.map((p) => {
     const need = new Map<string, number>();
-    for (const l of p.lines) for (const c of l.components as { name: string; qty: number }[]) need.set(c.name, (need.get(c.name) ?? 0) + c.qty * l.qty);
+    // Items for the kits still to make (all of them once the order is ready or cancelled, for the record).
+    const open = p.status === "PLANNED" || p.status === "IN_PRODUCTION";
+    for (const l of p.lines) for (const c of l.components as { name: string; qty: number }[]) need.set(c.name, (need.get(c.name) ?? 0) + c.qty * (open ? l.qty - l.made : l.qty));
     const items = [...need.entries()].map(([name, qty]) => ({ name, qty, inStock: goodByName.get(name) ?? 0 }));
     return {
       id: p.id,
@@ -387,8 +475,9 @@ export async function productionOrders(user: SessionUser, show?: string) {
       readyAt: p.readyAt?.toISOString() ?? null,
       client: p.client,
       salesOrder: p.salesOrder,
-      lines: p.lines.map((l) => ({ description: l.description, qty: l.qty })),
+      lines: p.lines.map((l) => ({ description: l.description, qty: l.qty, made: l.made })),
       kits: p.lines.reduce((t, l) => t + l.qty, 0),
+      made: p.lines.reduce((t, l) => t + l.made, 0),
       items,
       short: p.status === "PLANNED" || p.status === "IN_PRODUCTION" ? items.filter((i) => i.qty > i.inStock).length : 0,
     };

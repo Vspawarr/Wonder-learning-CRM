@@ -397,8 +397,10 @@ month; the Director approves entries made by Admin / Accounts.
 Menu → **Operations → Inventory & production** (R54). The production team's login shows only this page.
 - **Production orders** tab: made by themselves when a sales order is created from the school's received PO (older
   orders: **Make production order** on the order). Each shows the school, order, PO, kits and delivery date;
-  **Items needed** lists every item for all its kits against today's stock (red = short). **Start production** →
-  **Mark ready** (kits go into stock, their items come out) · **Cancel** · **Undo ready** (only for a mistake).
+  **Items needed** lists every item for the kits still to make against today's stock (red = short). **Start
+  production** → **Mark ready**: a list opens with **Everything is ready** (all kits left, items as listed) or change
+  the kits finished now and the items used and **Save this list** (fewer kits: the rest stays in production) ·
+  **Cancel** · **Undo finished** (only for a mistake).
 - **Stock** tab: every finished kit and item: in stock, damaged, in production, needed, to dispatch, **free**; filters
   Finished kits · Items · Short / low · Damaged. **Adjust**: opening stock, add, remove (why), set aside as damaged,
   damaged → good, write off damaged, and the reorder level ("Low" warning).

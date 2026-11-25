@@ -4,11 +4,11 @@
 // levels, damaged stock) and the movements list. Filters live in the address so exports match the screen.
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Field, Modal, useAction } from "@/components/client";
 import { DateInput } from "@/components/date-input";
 import { Empty, Pill, Table } from "@/components/ui";
-import { adjustStock, setProductionStatus, setReorderLevel } from "@/app/actions";
+import { adjustStock, completeProduction, productionReadyPlan, setProductionStatus, setReorderLevel } from "@/app/actions";
 import { todayIST } from "@/lib/dates";
 import { dmy } from "@/lib/format";
 import type { productionOrders, stockLevels, stockMoves } from "@/server/inventory";
@@ -42,6 +42,7 @@ function useParam(key: string) {
 export function ProductionTab({ orders, manage }: { orders: Order[]; manage: boolean }) {
   const [show, setShow] = useParam("pshow");
   const [open, setOpen] = useState<string | null>(null);
+  const [ready, setReady] = useState<Order | null>(null);
   const { pending, run } = useAction();
   const act = (o: Order, to: "IN_PRODUCTION" | "READY" | "CANCELLED" | "UNDO_READY", msg: string, ask?: string) =>
     (!ask || confirm(ask)) && run(() => setProductionStatus(o.id, to), { success: msg });
@@ -68,6 +69,7 @@ export function ProductionTab({ orders, manage }: { orders: Order[]; manage: boo
                     <b>{o.number}</b>
                     <Pill tone={STATUS[o.status][1]}>{STATUS[o.status][0]}</Pill>
                     {o.short ? <Pill tone="bad">{`${o.short} item(s) short`}</Pill> : null}
+                    {o.made && o.status !== "READY" ? <Pill tone="info">{`${o.made} of ${o.kits} kits done`}</Pill> : null}
                   </div>
                   <div className="mt-0.5">
                     <Link href={`/clients/${o.client.id}?tab=sales`} className="font-semibold">
@@ -85,6 +87,7 @@ export function ProductionTab({ orders, manage }: { orders: Order[]; manage: boo
                     {o.lines.map((l, i) => (
                       <span key={i} className="tag">
                         {l.qty} × {l.description}
+                        {l.made && l.made < l.qty ? ` (${l.made} done)` : ""}
                       </span>
                     ))}
                   </div>
@@ -100,32 +103,25 @@ export function ProductionTab({ orders, manage }: { orders: Order[]; manage: boo
                   ) : null}
                   {manage && (o.status === "PLANNED" || o.status === "IN_PRODUCTION") ? (
                     <>
-                      <button
-                        className="btn sm pri"
-                        disabled={pending}
-                        onClick={() =>
-                          act(
-                            o,
-                            "READY",
-                            "Ready: kits added to stock, items taken out.",
-                            `Mark ${o.number} ready? ${o.kits} kits go into stock and their items come out of stock.${o.short ? `\n\n${o.short} item(s) are short in the CRM's stock, so their stock will go below zero. Enter the opening stock or stock received first if it's really there.` : ""}`,
-                          )
-                        }
-                      >
+                      <button className="btn sm pri" disabled={pending} onClick={() => setReady(o)}>
                         Mark ready
                       </button>
-                      <button className="btn sm ghost" disabled={pending} onClick={() => act(o, "CANCELLED", "Cancelled.", `Cancel ${o.number}?`)}>
-                        Cancel
-                      </button>
+                      {!o.made ? (
+                        <button className="btn sm ghost" disabled={pending} onClick={() => act(o, "CANCELLED", "Cancelled.", `Cancel ${o.number}?`)}>
+                          Cancel
+                        </button>
+                      ) : null}
                     </>
                   ) : null}
-                  {manage && o.status === "READY" ? (
+                  {manage && o.made ? (
                     <button
                       className="btn sm ghost"
                       disabled={pending}
-                      onClick={() => act(o, "UNDO_READY", "Back in production; stock put back.", `Undo "ready" for ${o.number}? Its kits come out of stock and the items go back. Only if it was marked by mistake.`)}
+                      onClick={() =>
+                        act(o, "UNDO_READY", "Finished kits undone; stock put back.", `Undo the ${o.made} finished kit(s) of ${o.number}? They come out of stock and their items go back. Only for a mistake.`)
+                      }
                     >
-                      Undo ready
+                      Undo finished
                     </button>
                   ) : null}
                 </div>
@@ -153,7 +149,146 @@ export function ProductionTab({ orders, manage }: { orders: Order[]; manage: boo
           <Empty>{show ? "Nothing here." : "No open production orders. They are made by themselves when a sales order is created from a received PO."}</Empty>
         </div>
       )}
+      {ready ? <ReadyModal order={ready} onClose={() => setReady(null)} /> : null}
     </>
+  );
+}
+
+/** R55: mark kits ready: everything at once as listed, or an editable list of kits finished and items used. */
+function ReadyModal({ order, onClose }: { order: Order; onClose: () => void }) {
+  const [plan, setPlan] = useState<Awaited<ReturnType<typeof productionReadyPlan>> | null>(null);
+  const [kits, setKits] = useState<Record<string, string>>({});
+  const [items, setItems] = useState<Record<string, string>>({});
+  const [edited, setEdited] = useState<Set<string>>(new Set());
+  const [note, setNote] = useState("");
+  const { pending, run } = useAction();
+  useEffect(() => {
+    let live = true;
+    productionReadyPlan(order.id).then((p) => {
+      if (!live) return;
+      setPlan(p);
+      setKits(Object.fromEntries(p.lines.map((l) => [l.id, String(l.left)])));
+      setItems(Object.fromEntries(p.items.map((i) => [i.name, String(i.qty)])));
+    });
+    return () => {
+      live = false;
+    };
+  }, [order.id]);
+  const inStock = new Map(order.items.map((i) => [i.name, i.inStock]));
+  // Items follow the kits typed, unless changed by hand.
+  const recalc = (nextKits: Record<string, string>) => {
+    if (!plan) return;
+    const auto = new Map<string, number>();
+    for (const l of plan.lines) for (const c of l.perKit) auto.set(c.name, (auto.get(c.name) ?? 0) + c.qty * (Number(nextKits[l.id]) || 0));
+    setItems((cur) => Object.fromEntries(Object.keys(cur).map((n) => [n, edited.has(n) ? cur[n] : String(auto.get(n) ?? 0)])));
+  };
+  const left = plan ? plan.lines.reduce((t, l) => t + l.left, 0) : 0;
+  const short = plan ? plan.items.filter((i) => i.qty > (inStock.get(i.name) ?? 0)) : [];
+  const all = () =>
+    run(() => completeProduction(order.id, { lines: plan!.lines.map((l) => ({ id: l.id, qty: l.left })), note }), {
+      success: "All kits ready: added to stock, items taken out.",
+      onDone: onClose,
+    });
+  const save = () =>
+    run(
+      () =>
+        completeProduction(order.id, {
+          lines: plan!.lines.map((l) => ({ id: l.id, qty: kits[l.id] || 0 })),
+          items: Object.entries(items).map(([name, qty]) => ({ name, qty: qty || 0 })),
+          note,
+        }),
+      { success: "Saved: stock updated.", onDone: onClose },
+    );
+  return (
+    <Modal
+      wide
+      title={`Mark ready · ${order.number}`}
+      sub={`${order.client.schoolName} · ${left} kit(s) left to make`}
+      onClose={onClose}
+      footer={
+        <>
+          <button className="btn" onClick={onClose}>
+            Cancel
+          </button>
+          <button className="btn" disabled={pending || !plan} onClick={save}>
+            Save this list
+          </button>
+          <button className="btn pri" disabled={pending || !plan} onClick={all}>
+            Everything is ready
+          </button>
+        </>
+      }
+    >
+      {!plan ? (
+        <p className="muted">Loading…</p>
+      ) : (
+        <>
+          <div className="note">
+            <b>Everything is ready</b> puts all {left} kit(s) into stock and takes the items below out, as listed. Or change any number
+            below (fewer kits finished, more of an item used) and <b>Save this list</b>; if fewer kits are finished, the rest stays in
+            production.
+          </div>
+          {short.length ? (
+            <div className="note bad">
+              {short.length} item(s) are short in the CRM&apos;s stock ({short.map((s) => s.name).slice(0, 4).join(", ")}
+              {short.length > 4 ? "…" : ""}), so their stock will go below zero. Enter opening stock or stock received first if it&apos;s
+              really there.
+            </div>
+          ) : null}
+          <h3 className="mt-3">Kits finished now</h3>
+          <div className="mt-2 flex flex-col gap-2">
+            {plan.lines.map((l) => (
+              <div key={l.id} className="grid grid-cols-[minmax(0,1fr)_96px] items-center gap-2">
+                <label className="min-w-0" htmlFor={`rk-${l.id}`}>
+                  {l.description}
+                  <span className="small faint block">
+                    {l.made ? `${l.made} of ${l.ordered} done · ` : ""}
+                    {l.left} left
+                  </span>
+                </label>
+                <input
+                  className="in text-right"
+                  id={`rk-${l.id}`}
+                  inputMode="numeric"
+                  disabled={!l.left}
+                  value={kits[l.id] ?? ""}
+                  onChange={(e) => {
+                    const next = { ...kits, [l.id]: e.target.value };
+                    setKits(next);
+                    recalc(next);
+                  }}
+                />
+              </div>
+            ))}
+          </div>
+          <h3 className="mt-4">Items taken out of stock</h3>
+          <p className="small muted">Worked out from the kits; change any number if more or less was used.</p>
+          <div className="mt-2 grid grid-cols-1 gap-x-6 gap-y-1.5 min-[701px]:grid-cols-2">
+            {plan.items.map((i) => (
+              <div key={i.name} className="grid grid-cols-[minmax(0,1fr)_84px] items-center gap-2">
+                <label className="min-w-0 text-[13px]" htmlFor={`ri-${i.name}`}>
+                  <span className={`block truncate ${edited.has(i.name) ? "font-bold" : ""}`}>{i.name}</span>
+                  <span className={`small block ${Number(items[i.name] || 0) > (inStock.get(i.name) ?? 0) ? "text-coral" : "faint"}`}>{inStock.get(i.name) ?? 0} in stock</span>
+                </label>
+                <input
+                  className="in text-right"
+                  id={`ri-${i.name}`}
+                  inputMode="numeric"
+                  value={items[i.name] ?? ""}
+                  onChange={(e) => {
+                    setItems({ ...items, [i.name]: e.target.value });
+                    setEdited(new Set(edited).add(i.name));
+                  }}
+                />
+              </div>
+            ))}
+          </div>
+          <Field label="Note" htmlFor="rk-note">
+            <input className="in" id="rk-note" placeholder="Optional, e.g. first batch" value={note} onChange={(e) => setNote(e.target.value)} />
+          </Field>
+        </>
+      )}
+    </Modal>
   );
 }
 

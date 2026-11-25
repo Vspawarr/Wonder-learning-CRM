@@ -1372,6 +1372,8 @@ model ProductionLine {
   stockItem         StockItem       @relation(fields: [stockItemId], references: [id])
   description       String
   qty               Int
+  /// R55: kits of this line already finished (marked ready in one go or in batches).
+  made              Int             @default(0)
   /// [{ name, qty }]: items used for ONE kit.
   components        Json
   sortOrder         Int
