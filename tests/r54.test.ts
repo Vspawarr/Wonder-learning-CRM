@@ -6,9 +6,12 @@ import { todayIST } from "@/lib/dates";
 import { convertToClient } from "@/server/clients";
 import { convertLead, createLead } from "@/server/leads";
 import { moveOpportunity } from "@/server/opportunities";
-import { createDispatch, deleteDispatch } from "@/server/finance/dispatch";
+import { createDispatch, deleteDispatch, markDispatchReceived } from "@/server/finance/dispatch";
+import { orderTracker } from "@/server/tracker";
+import { createQuotation, markQuotationSent } from "@/server/quotation/service";
+import { receivePo } from "@/server/finance/po";
 import { reportIssue, sendReplacement } from "@/server/finance/material";
-import { cancelSalesOrder, createSalesOrder, updateSalesOrder } from "@/server/finance/service";
+import { cancelSalesOrder, createInvoice, createSalesOrder, recordPayment, updateSalesOrder } from "@/server/finance/service";
 import { adjustStock, completeProduction, componentName, productionOrders, readyPlan, setProductionStatus, stockLevels, stockMoves } from "@/server/inventory";
 import { leadData, makeUser, resetData } from "./helpers";
 
@@ -123,5 +126,33 @@ describe("marking production ready (R55)", () => {
     await setProductionStatus(prod, po.id, "UNDO_READY");
     expect(await level("Bag")).toMatchObject({ good: 0, needed: 10 });
     expect(await level(lkg.name)).toMatchObject({ good: 0, inProduction: 10 });
+  });
+});
+
+describe("order tracker (R56)", () => {
+  it("follows an order from the received PO to the last payment", async () => {
+    const stage = async () => (await orderTracker(ex, { show: "all" })).rows.map((r) => r.stage);
+    const q = await createQuotation(ex, { clientId }, { date: today, validityDays: 3, toLine: "The Director", schoolName: "Test", items: [{ productId: lkg.id, description: "LKG Kit", mrp: 4000, price: 3000 }] });
+    await markQuotationSent(ex, q, "download");
+    await receivePo(ex, q, { poNumber: "SCH-1" });
+    expect(await stage()).toEqual(["SO"]);
+    const so = await createSalesOrder(ex, clientId, { date: today, quotationId: q, poNumber: "SCH-1", items: [{ productId: lkg.id, description: "LKG Kit", qty: 5, price: 3000, gstRate: 0 }] });
+    expect(await stage()).toEqual(["PRODUCTION"]);
+    const [po] = await productionOrders(prod);
+    await setProductionStatus(prod, po.id, "READY");
+    expect(await stage()).toEqual(["DISPATCH"]);
+    const item = (await db.salesOrderItem.findFirstOrThrow({ where: { salesOrderId: so } })).id;
+    const dc = await createDispatch(ex, so, { date: today, lines: [{ itemId: item, qty: 5 }] });
+    expect(await stage()).toEqual(["TRANSIT"]);
+    await markDispatchReceived(ex, dc, today);
+    expect(await stage()).toEqual(["INVOICE"]);
+    const inv = await createInvoice(ex, so, { date: today, dueDate: today });
+    const r = (await orderTracker(ex)).rows[0];
+    expect(r.stage).toBe("PAYMENT");
+    expect(r.steps.find((s) => s.title === "PO received")?.lines[0]).toBe("PO SCH-1");
+    expect(r.steps.find((s) => s.title === "Production")?.lines).toContain("5 of 5 kits done");
+    await recordPayment(ex, inv, { amount: 15000, date: today, mode: "UPI" });
+    expect(await stage()).toEqual(["DONE"]);
+    expect((await orderTracker(ex)).rows).toHaveLength(0);
   });
 });

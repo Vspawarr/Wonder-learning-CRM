@@ -101,6 +101,11 @@ client shows a warning (the user may still save). The Excel upload skips same sc
   shows on the sales order, proforma and invoice. The sales order shows the quotation's creation time
   (date + H:M:S AM/PM) (R16.10, R17).
 - **Dispatch** in one or more lots with transporter/docket, a challan PDF, and **Mark received** with proof.
+- **Order tracker** (R56, Operations → Order tracker): each received PO without a sales order, and each sales order,
+  as PO → Sales order → Production (when inventory is on) → Dispatch → Invoice → Payment. Stage: Make sales order ·
+  In production (production open and kits still to send) · To dispatch · In transit (all sent, a lot not received) ·
+  To invoice · Payment due · Completed · Cancelled. "Late" = days past the order's deliver-by date while kits are
+  still to send (for a PO without a sales order: days since the PO). Open orders first, most late first.
 - **Inventory & production** (R54, switch in Settings → Features; menu → Operations → Inventory & production):
   - **Stock items** are made by the CRM from Settings → Products: every finished **kit**, every **item** inside the
     kits, and the other books. Items in a kit's **Class Connect** section (the class books / notebooks) are separate

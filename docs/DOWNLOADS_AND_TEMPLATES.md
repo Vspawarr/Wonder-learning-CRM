@@ -65,6 +65,7 @@ Code: `src/server/reports/index.ts` (one builder per report, using the screen's 
 | `bills` | Accounts → Bills to pay | No., Bill date, Supplier, Their no., For, Description, Before GST, GST, Total, Paid, To pay, Due, Status; totals (follows the To pay / Waiting chips and dates) |
 | `salaries` | Accounts → Salaries | Month, Employee, Gross, Deductions, Take-home, Paid on, From (account), Mode / ref., Status; totals of approved |
 | `book` | Accounts → Account books | The chosen account: Date, Type, Particulars, In, Out, Balance, Matched (opening and closing in the title line); then other money in / out |
+| `tracker` | Order tracker | School, Stage, PO, Sales order, Production, Dispatch, Invoice / payment, Late (days), Next (follows the filter and search) (R56) |
 | `stock` | Inventory → Stock | Item, Type, In stock, Damaged, In production, Needed for production, To dispatch, Free, Reorder at, Status (follows the Show filter) (R54) |
 | `production` | Inventory → Production orders | Production order, School, Sales order / PO, Kits (with "x done" for part-finished, R55), Due, Status, Items short (Open / Ready-cancelled / All) (R54) |
 | `stockmoves` | Inventory → Movements | Date, Item, What, Qty, Details, By (item / kind filters) (R54) |

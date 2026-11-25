@@ -392,6 +392,17 @@ month; the Director approves entries made by Admin / Accounts.
   salaries and other payments = **profit / loss** (GST, loans, capital and withdrawals left out).
 - **GST summary**: GST on invoices vs GST on supplier bills, for the CA.
 
+## 9d. Order tracker
+
+Menu → **Operations → Order tracker** (R56): every school order on one page, most urgent first, as six steps:
+**PO received** (PO number, date, quotation) → **Sales order** (number, kits, value, deliver-by date) →
+**Production** (production order, status, kits done) → **Dispatch** (kits sent, challans, in transit, received,
+open material problems) → **Invoice** (number, amount) → **Payment** (balance due / paid / overdue). Done steps are
+ticked, the current one is highlighted, and **Next** says what to do (e.g. "Dispatch 10 kit(s)"); a red tag shows how
+many days an order is past its deliver-by date. Filters: Open · PO received, no sales order · In production · To
+dispatch · In transit · To invoice · Payment due · Completed · All; search by school, PO, SO or invoice; PDF / Excel.
+Salespeople see their own schools.
+
 ## 9c. Inventory & production
 
 Menu → **Operations → Inventory & production** (R54). The production team's login shows only this page.

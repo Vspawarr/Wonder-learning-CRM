@@ -700,3 +700,12 @@ list display to adjust stock at once and direct option for everything inside ord
 |---|---|---|
 | **Direct "Everything is ready"** | ✅ | Mark ready → **Everything is ready**: all kits left go into stock and all their items come out, in one click |
 | **Editable confirmation list** | ✅ | Same window: kits finished now per line and items taken out (worked out from the kits, follow the kit numbers until changed by hand), with today's stock; **Save this list** updates all stock at once. Fewer kits than ordered: the order stays In production and the rest is finished later (batches). **Undo finished** reverses them |
+
+## R56. Order tracker under Operations (25 Nov)
+
+"In operations tab add one more tab with relevant name where Open PO status, SO status, Production status should be
+display with proper information so track of everything can be taken from there."
+
+| Change | Status | Notes |
+|---|---|---|
+| **Order tracker** (Operations menu) | ✅ | One card per order: PO received → Sales order → Production → Dispatch → Invoice → Payment with numbers, dates, kits done / sent, balance; current step highlighted, "Next" step, days late; filters by stage (incl. "PO received, no sales order"), search, PDF / Excel |

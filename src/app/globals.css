@@ -710,3 +710,19 @@
   .mk-cat { display: inline-block; padding: 2px 10px; border-radius: 99px; font-size: 12px; font-weight: 700; color: #fff; background: var(--c); }
   @media (max-width: 600px) { .mk-grid { grid-template-columns: 1fr; } }
 }
+
+/* R56: order tracker steps (PO → SO → Production → Dispatch → Invoice → Payment) */
+@layer components {
+  .trk-next { max-width: 420px; padding: 6px 10px; border-radius: 10px; background: var(--brandsoft); }
+  .trk-steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 8px; margin-top: 12px; }
+  .trk-step { position: relative; padding: 10px 10px 10px 34px; border-radius: 12px; border: 1px solid var(--line); background: var(--surf2); min-width: 0; overflow-wrap: anywhere; }
+  .trk-step b { display: block; font-size: 13px; }
+  .trk-dot { position: absolute; left: 10px; top: 11px; width: 16px; height: 16px; border-radius: 99px; border: 2px solid var(--line); display: grid; place-items: center; font-size: 10px; font-weight: 800; color: #fff; }
+  .trk-step.done { border-color: color-mix(in srgb, var(--mint) 35%, var(--line)); }
+  .trk-step.done .trk-dot { background: var(--mint); border-color: var(--mint); }
+  .trk-step.now { border-color: var(--brand2); background: var(--brandsoft); box-shadow: 0 0 0 2px color-mix(in srgb, var(--brand2) 25%, transparent); }
+  .trk-step.now .trk-dot { border-color: var(--brand); background: var(--brand); }
+  .trk-step.todo { color: var(--ink3); }
+  .trk-step.skip { opacity: 0.55; }
+  @media (max-width: 600px) { .trk-steps { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+}

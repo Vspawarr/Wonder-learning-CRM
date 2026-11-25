@@ -83,7 +83,11 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     ...(canManageSettings(user.role) ? [{ href: "/admin/docs", label: "Project documents", icon: "doc" as const }] : []),
   ];
   // R54: stock and production orders, for everyone (the production team sees only this).
-  if (features.inventory) nav.splice(1, 0, { group: "Operations", items: [{ href: "/inventory", label: "Inventory & production", icon: "box" }] });
+  // R56: the order tracker (PO → SO → production → dispatch → invoice → payment), with inventory when it is on.
+  nav.splice(1, 0, {
+    group: "Operations",
+    items: [{ href: "/tracker", label: "Order tracker", icon: "funnel" }, ...(features.inventory ? [{ href: "/inventory", label: "Inventory & production", icon: "box" as const }] : [])],
+  });
   if (admin.length && !isProductionOnly(user.role)) nav.push({ group: "Settings", items: admin });
   if (isProductionOnly(user.role)) nav.splice(0, nav.length, { group: "Operations", items: [{ href: "/inventory", label: "Inventory & production", icon: "box" }] });
 

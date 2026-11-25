@@ -7,6 +7,10 @@ commit id, what changed in plain words, and the requirement it answers (R… in 
 
 ## 25 Nov 2026
 
+- `pending` **Order tracker** (Operations → Order tracker): every order from the received PO through sales order,
+  production, dispatch, invoice and payment on one page, with the next step and days late; stage filters, search,
+  PDF / Excel. (R56)
+
 - `78cc20a` **Mark ready with a confirmation list.** "Everything is ready" in one click, or edit the kits finished and
   the items used and save all stock at once; kits can be finished in batches; "Undo finished". (R55)
 

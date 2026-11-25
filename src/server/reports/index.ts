@@ -1,4 +1,5 @@
 // Every exportable report, built with the same filters and access rules as its screen.
+import { TRACK_FILTERS, TRACK_STAGE_LABEL, orderTracker } from "../tracker";
 import * as inventory from "./inventory";
 import { CLIENT_STATUS_LABEL, EXPENSE_PAID_BY_SHORT, LEAD_STATUS_LABEL, STAGE_LABEL, TEMPERATURE_LABEL, clientCode, leadCode, oppCode } from "@/lib/constants";
 import { daysFrom, fmtDateTimeIST, istDate, todayIST } from "@/lib/dates";
@@ -759,6 +760,44 @@ async function transfers(user: SessionUser): Promise<Report> {
   };
 }
 
+/** R56: the order tracker as a table (follows the filter and search). */
+async function tracker(user: SessionUser, p: Params): Promise<Report> {
+  const { rows } = await orderTracker(user, { show: p.show, q: p.q });
+  const step = (r: (typeof rows)[number], title: string) => r.steps.find((s) => s.title === title)?.lines.join(" · ") ?? "";
+  return {
+    title: "Order tracker",
+    subtitle: [TRACK_FILTERS[p.show ?? ""]?.label ?? "Open", p.q && `Search: "${p.q}"`].filter(Boolean).join(" · "),
+    landscape: true,
+    sections: [
+      {
+        columns: [
+          { key: "school", header: "School", width: 1.6 },
+          { key: "stage", header: "Stage", width: 0.9 },
+          { key: "po", header: "PO", width: 1.2 },
+          { key: "so", header: "Sales order", width: 1.4 },
+          { key: "prod", header: "Production", width: 1.3 },
+          { key: "disp", header: "Dispatch", width: 1.3 },
+          { key: "inv", header: "Invoice / payment", width: 1.4 },
+          { key: "late", header: "Late (days)", kind: "number" },
+          { key: "next", header: "Next", width: 1.6 },
+        ],
+        rows: rows.map((r) => ({
+          school: r.client.schoolName,
+          stage: TRACK_STAGE_LABEL[r.stage],
+          po: step(r, "PO received"),
+          so: step(r, "Sales order"),
+          prod: step(r, "Production"),
+          disp: step(r, "Dispatch"),
+          inv: [step(r, "Invoice"), step(r, "Payment")].filter(Boolean).join(" · "),
+          late: r.lateDays || null,
+          next: r.stage === "DONE" || r.stage === "CANCELLED" ? "" : r.next,
+        })),
+        empty: "No orders match.",
+      },
+    ],
+  };
+}
+
 export const REPORTS = {
   approvals,
   transfers,
@@ -777,6 +816,7 @@ export const REPORTS = {
   stock: inventory.stock,
   production: inventory.production,
   stockmoves: inventory.stockmoves,
+  tracker,
 } as const;
 export type ReportName = keyof typeof REPORTS;
 
