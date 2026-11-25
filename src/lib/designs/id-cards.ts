@@ -48,21 +48,25 @@ function fields(d: CardData, f: Fields) {
 }
 
 /** The three icons in plain colours, centred on (x + 28, baseline − 14). */
-const plainIcons =
-  (main: string, light: string) =>
-  (k: "cake" | "mobile" | "home", x: number, y: number) =>
-    k === "cake" ? cakeIcon(x, y - 46, 56, { main, cream: light }) : k === "mobile" ? mobileIcon(x, y - 46, 56, { main, screen: light }) : homeIcon(x, y - 46, 56, { main, door: light });
+const plainIcons = (main: string, light: string) => (k: "cake" | "mobile" | "home", x: number, y: number) =>
+  k === "cake"
+    ? cakeIcon(x, y - 46, 56, { main, cream: light })
+    : k === "mobile"
+      ? mobileIcon(x, y - 46, 56, { main, screen: light })
+      : homeIcon(x, y - 46, 56, { main, door: light });
 
 /** The three icons on round badges. */
-const badgeIcons =
-  (bg: string, main: string, light: string) =>
-  (k: "cake" | "mobile" | "home", x: number, y: number) =>
-    badge(x + 30, y - 16, 31, bg, (ix, iy, s) =>
-      k === "cake" ? cakeIcon(ix, iy, s, { main, cream: light }) : k === "mobile" ? mobileIcon(ix, iy, s, { main, screen: light }) : homeIcon(ix, iy, s, { main, door: light }),
-    );
+const badgeIcons = (bg: string, main: string, light: string) => (k: "cake" | "mobile" | "home", x: number, y: number) =>
+  badge(x + 30, y - 16, 31, bg, (ix, iy, s) =>
+    k === "cake"
+      ? cakeIcon(ix, iy, s, { main, cream: light })
+      : k === "mobile"
+        ? mobileIcon(ix, iy, s, { main, screen: light })
+        : homeIcon(ix, iy, s, { main, door: light }),
+  );
 
 /** The school's logo, or its initials in a circle while there is none. */
-function logo(d: CardData, x: number, y: number, w: number, h: number, o: { circle?: boolean; color?: string } = {}) {
+export function logo(d: CardData, x: number, y: number, w: number, h: number, o: { circle?: boolean; color?: string } = {}) {
   if (d.logo) return image(d.logo, x, y, w, h, { circle: o.circle });
   const initials = d.schoolName
     .split(/\s+/)
@@ -91,16 +95,56 @@ const wrap = (body: string, bg = "#fff", border = "#1f1f1f") =>
 function schoolName(d: CardData, cx: number, y: number, w: number, o: { fill: string; size?: number; second?: string; spaced?: boolean }) {
   const lines = twoLines(d.schoolName.toUpperCase(), 18);
   const size = o.size ?? 70;
-  if (lines.length === 1) return text(cx, y + size * 0.35, lines[0], { size, bold: true, fill: o.fill, anchor: "middle", maxW: w, min: 26 });
+  if (lines.length === 1)
+    return text(cx, y + size * 0.35, lines[0], {
+      size,
+      bold: true,
+      fill: o.fill,
+      anchor: "middle",
+      maxW: w,
+      min: 26,
+    });
   const s1 = fit(lines[0], w, size, 26, true);
   const s2 = Math.min(fit(lines[1], w * 0.95, size * 0.62, 20), s1 * 0.75);
   return (
-    text(cx, y - 2, lines[0], { size: s1, bold: true, fill: o.fill, anchor: "middle" }) +
-    text(cx, y + s2 + 8, lines[1], { size: s2, fill: o.second ?? o.fill, anchor: "middle", spacing: o.spaced ? s2 * 0.18 : 0 })
+    text(cx, y - 2, lines[0], {
+      size: s1,
+      bold: true,
+      fill: o.fill,
+      anchor: "middle",
+    }) +
+    text(cx, y + s2 + 8, lines[1], {
+      size: s2,
+      fill: o.second ?? o.fill,
+      anchor: "middle",
+      spacing: o.spaced ? s2 * 0.18 : 0,
+    })
   );
 }
 
-export type Design = { id: string; name: string; colors: string[]; render: (d: CardData) => string };
+/** `assets`: the kind's pictures (backgrounds) as data URLs, loaded by the designer before drawing. */
+export type Design = {
+  id: string;
+  name: string;
+  colors: string[];
+  render: (d: CardData, assets?: Record<string, string>) => string;
+};
+
+export type DesignKind = {
+  id: string;
+  name: string;
+  width: number;
+  height: number;
+  /** Print size in mm (PDF page). */
+  mm: [number, number];
+  designs: Design[];
+  /** Whether the designer asks for the sample student (ID cards) or only the school (book covers). */
+  student: boolean;
+  /** PNG / PDF pixels per design unit (2 for small vector cards, 1 for big picture covers). */
+  scale: number;
+  /** Pictures the designs draw on, by id → address (loaded once, then passed to `render`). */
+  assets?: Record<string, string>;
+};
 
 export const ID_CARD_DESIGNS: Design[] = [
   {
@@ -259,6 +303,16 @@ ${text(1310, 845, "Director", { size: 40, fill: "#222", anchor: "end" })}`,
 ];
 
 /** Every design kind the tool can make; more (bag, diary, certificates…) are added here. */
-export const DESIGN_KINDS = [{ id: "id-card", name: "Student ID card", width: CARD_W, height: CARD_H, mm: [85.6, 54] as [number, number], designs: ID_CARD_DESIGNS }];
+export const ID_CARD_KIND: DesignKind = {
+  id: "id-card",
+  name: "Student ID card",
+  width: CARD_W,
+  height: CARD_H,
+  mm: [85.6, 54],
+  designs: ID_CARD_DESIGNS,
+  student: true,
+  scale: 2,
+};
+export const DESIGN_KINDS: DesignKind[] = [ID_CARD_KIND];
 
 export { esc };

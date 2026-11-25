@@ -24,6 +24,7 @@ _Last updated: 25 Nov 2026. Update this page whenever the situation changes._
 | Confirm which kit items are **different for each class** (now: the Class Connect books / notebooks) and which are shared | Stock is counted per class only for those | R54 |
 | **List of mandatory client documents** | The checklist is built with a starting list; type the client's list in Settings → Documents | R53 |
 | **Sample of the client's old data** (a few rows) | Import of old clients / segments (new, renewed, not renewed, left) | R53 |
+| **Compressed PDFs of the Nursery and LKG book covers** (under ~10 MB each; the 62 MB Nursery file on Drive is too big to download) | Book cover designer for those classes (UKG is done) | R58 |
 | Hiren Sir / owner: review the **8 ID card designs** (Marketing → Tools) and decide: Tools tab, separate HTML file, or both; samples for more design types (visiting card, certificate…) | Final approach for the designer | R57 |
 | Which pages are slow, on which devices / browsers | Speeding up the site | R53 |
 | WhatsApp Business API + client approval | Automatic WhatsApp reminders (on hold) | R53 |

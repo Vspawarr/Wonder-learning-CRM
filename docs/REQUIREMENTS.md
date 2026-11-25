@@ -729,3 +729,18 @@ for now (final approach decided later); **Download PNG / PDF and Share on WhatsA
 | **Download PNG / PDF, Share on WhatsApp** | ✅ | PNG picture; PDF at real card size (85.6 × 54 mm); "Download all designs (PDF)"; WhatsApp: on phones the picture goes straight to WhatsApp, on computers it is saved and WhatsApp Web opens |
 | **Separate HTML file** | ✅ | `id-card-designer.html` (link on the Tools tab, or /tools/id-card-designer.html): opens in any browser without login or internet |
 | **More design types** | ⏳ | Ready to add (visiting card, certificate, admission form…) when the owner sends samples |
+
+## R58. Book cover designer with the school's logo and address (25 Nov)
+
+"Now access wonder learning folder and view all 3 PDF's now we have to make same tool for book covers as well. One
+compressed PDF I have uploaded here for your review and coding. Other are getting uploaded on drive."
+
+Owner's choices: **replace the Wonder Learning logo with the school logo and the address with the school address**;
+use the existing PDFs (no clean artwork); **covers in the CRM only** (not in the separate HTML file); **start with UKG**,
+Nursery and LKG once their compressed PDFs arrive.
+
+| Change | Status | Notes |
+|---|---|---|
+| **UKG book covers (Book 1–9)** in Marketing → Tools ("What to design") | ✅ | Client's covers (back + front) with Wonder Learning's logo box and address painted out; front box: school logo + name; back: school logo, name, address, phone. MRP, class, book number and pictures unchanged |
+| **Pop-up, download, share** | ✅ | Same as ID cards: all 9 in a pop-up; JPG picture, PDF at the real cover size (back + front, 436.9 × 279.4 mm), all 9 as one PDF, WhatsApp |
+| **Nursery and LKG covers** | ⏳ | Waiting for compressed PDFs (the 62 MB Nursery PDF on Drive is too big to download) |

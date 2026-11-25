@@ -434,7 +434,10 @@ or send them.
   3. **Generate designs** → a pop-up shows all 8 designs. Tap one to see it large (**Previous / Next**).
   4. **Download PNG** (picture), **Download PDF** (real card size, for printing), **Share on WhatsApp** (phone: pick
      the chat; computer: the picture is saved, attach it in WhatsApp Web), or **Download all designs (PDF)**.
-  The same tool as one file: *download id-card-designer.html* on the Tools tab; it opens in any browser, no login.
+- **Tools → What to design: UKG book covers** (R58): same steps without the student. The school's logo and name
+  appear in the box at the top of the front cover, and its logo, name, address and phone on the back, in place of
+  Wonder Learning's. Downloads are JPG (picture) or PDF (real cover size).
+  The ID card tool as one file: *download id-card-designer.html* on the Tools tab; it opens in any browser, no login.
 
 ## 9a. Transferring a lead or client to another salesperson
 

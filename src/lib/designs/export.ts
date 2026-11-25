@@ -28,18 +28,28 @@ export async function svgToCanvas(svg: string, width: number, height: number, sc
 const toBlob = (c: HTMLCanvasElement, type: string, q?: number) =>
   new Promise<Blob>((ok, fail) => c.toBlob((b) => (b ? ok(b) : fail(new Error("Couldn't make the file."))), type, q));
 
-export async function pngBlob(svg: string, w: number, h: number) {
-  return toBlob(await svgToCanvas(svg, w, h, 2), "image/png");
+export async function pngBlob(svg: string, w: number, h: number, scale = 2) {
+  return toBlob(await svgToCanvas(svg, w, h, scale), "image/png");
+}
+
+/** A picture (JPEG) of the design, for big picture designs where a PNG would be very large. */
+export async function jpegBlob(svg: string, w: number, h: number, scale = 1) {
+  return toBlob(await svgToCanvas(svg, w, h, scale), "image/jpeg", 0.9);
 }
 
 /** A PDF with one page per design, each page the real card size (mm), the design filling it. */
-export async function pdfBlob(svgs: string[], w: number, h: number, mm: [number, number]) {
-  const pages = await Promise.all(
-    svgs.map(async (s) => {
-      const c = await svgToCanvas(s, w, h, 2);
-      return { bytes: new Uint8Array(await (await toBlob(c, "image/jpeg", 0.92)).arrayBuffer()), pw: c.width, ph: c.height };
-    }),
-  );
+export async function pdfBlob(svgs: string[], w: number, h: number, mm: [number, number], scale = 2) {
+  // One page at a time, so big designs don't use up a phone's memory.
+  const pages: { bytes: Uint8Array; pw: number; ph: number }[] = [];
+  for (const s of svgs) {
+    const c = await svgToCanvas(s, w, h, scale);
+    pages.push({
+      bytes: new Uint8Array(await (await toBlob(c, "image/jpeg", 0.92)).arrayBuffer()),
+      pw: c.width,
+      ph: c.height,
+    });
+    c.width = c.height = 0;
+  }
   const pt = (v: number) => +((v / 25.4) * 72).toFixed(2);
   const [W, H] = [pt(mm[0]), pt(mm[1])];
   const enc = new TextEncoder();
@@ -67,7 +77,11 @@ export async function pdfBlob(svgs: string[], w: number, h: number, mm: [number,
     const content = `q ${W} 0 0 ${H} 0 0 cm /Im0 Do Q`;
     obj(pg, [`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${W} ${H}] /Resources << /XObject << /Im0 ${im} 0 R >> >> /Contents ${ct} 0 R >>`]);
     obj(ct, [`<< /Length ${content.length} >>\nstream\n${content}\nendstream`]);
-    obj(im, [`<< /Type /XObject /Subtype /Image /Width ${p.pw} /Height ${p.ph} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${p.bytes.length} >>\nstream\n`, p.bytes, "\nendstream"]);
+    obj(im, [
+      `<< /Type /XObject /Subtype /Image /Width ${p.pw} /Height ${p.ph} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${p.bytes.length} >>\nstream\n`,
+      p.bytes,
+      "\nendstream",
+    ]);
   });
   const xref = size;
   const count = 3 + n * 3;

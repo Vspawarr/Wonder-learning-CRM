@@ -4,13 +4,46 @@
 // shows every design with them; one tap opens a design large to download (PNG / print-size PDF) or share on WhatsApp.
 // Self-contained (own styles, no CRM code), so the same component runs in the CRM and in the standalone HTML file.
 import { useEffect, useMemo, useState } from "react";
-import { DESIGN_KINDS } from "./id-cards";
+import { DESIGN_KINDS, type DesignKind } from "./id-cards";
 import { SAMPLE_CARD, type CardData } from "./sample";
-import { download, fileSafe, pdfBlob, pngBlob, shareFiles } from "./export";
+import { download, fileSafe, jpegBlob, pdfBlob, pngBlob, shareFiles } from "./export";
 
-export type School = { key: string; label: string; schoolName: string; schoolAddress: string; schoolPhone: string };
+export type School = {
+  key: string;
+  label: string;
+  schoolName: string;
+  schoolAddress: string;
+  schoolPhone: string;
+};
 
-const svgUrl = (svg: string) => `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+/** A design kind's pictures as data URLs (so they are inside the SVG when it becomes a PNG / PDF), loaded once. */
+const assetCache = new Map<string, Promise<string>>();
+function loadAsset(url: string) {
+  let p = assetCache.get(url);
+  if (!p) {
+    p = fetch(url)
+      .then((r) => {
+        if (!r.ok) throw new Error("A design picture couldn't be loaded. Check the internet connection and try again.");
+        return r.blob();
+      })
+      .then(
+        (b) =>
+          new Promise<string>((ok, fail) => {
+            const fr = new FileReader();
+            fr.onload = () => ok(String(fr.result));
+            fr.onerror = () => fail(new Error("A design picture couldn't be read."));
+            fr.readAsDataURL(b);
+          }),
+      );
+    p.catch(() => assetCache.delete(url));
+    assetCache.set(url, p);
+  }
+  return p;
+}
+async function loadAssets(kind: DesignKind) {
+  const entries = await Promise.all(Object.entries(kind.assets ?? {}).map(async ([id, url]) => [id, await loadAsset(url)] as const));
+  return Object.fromEntries(entries);
+}
 
 /** Reads a picture and makes it small enough for a design (long side `max` px), as a data URL. */
 function readPicture(file: File, max: number): Promise<string> {
@@ -43,11 +76,13 @@ type Props = {
   schools?: School[];
   /** CRM: the school's saved logo (data URL) or null. */
   loadLogo?: (key: string) => Promise<string | null>;
+  /** The design types offered (default: ID cards only, as in the standalone file). */
+  kinds?: DesignKind[];
 };
 
-export function Designer({ schools, loadLogo }: Props) {
-  const [kindId, setKindId] = useState(DESIGN_KINDS[0].id);
-  const kind = DESIGN_KINDS.find((k) => k.id === kindId) ?? DESIGN_KINDS[0];
+export function Designer({ schools, loadLogo, kinds = DESIGN_KINDS }: Props) {
+  const [kindId, setKindId] = useState(kinds[0].id);
+  const kind = kinds.find((k) => k.id === kindId) ?? kinds[0];
   const [d, setD] = useState<CardData>(SAMPLE_CARD);
   const [school, setSchool] = useState("");
   const [msg, setMsg] = useState<{ text: string; bad?: boolean } | null>(null);
@@ -59,7 +94,12 @@ export function Designer({ schools, loadLogo }: Props) {
     setSchool(key);
     const s = schools?.find((x) => x.key === key);
     if (!s) return;
-    setD((p) => ({ ...p, schoolName: s.schoolName, schoolAddress: s.schoolAddress, schoolPhone: s.schoolPhone }));
+    setD((p) => ({
+      ...p,
+      schoolName: s.schoolName,
+      schoolAddress: s.schoolAddress,
+      schoolPhone: s.schoolPhone,
+    }));
     const logo = loadLogo ? await loadLogo(key).catch(() => null) : null;
     setD((p) => ({ ...p, logo }));
     say(logo ? "School details and saved logo filled in." : "School details filled in. No logo saved for this school yet: upload one below.");
@@ -89,11 +129,11 @@ export function Designer({ schools, loadLogo }: Props) {
     <div className="idd">
       <style>{CSS}</style>
       <div className="idd-form">
-        {DESIGN_KINDS.length > 1 ? (
-          <label className="idd-f">
-            <span>Design</span>
+        {kinds.length > 1 ? (
+          <label className="idd-f idd-kind">
+            <span>What to design</span>
             <select value={kindId} onChange={(e) => setKindId(e.target.value)}>
-              {DESIGN_KINDS.map((k) => (
+              {kinds.map((k) => (
                 <option key={k.id} value={k.id}>
                   {k.name}
                 </option>
@@ -149,48 +189,62 @@ export function Designer({ schools, loadLogo }: Props) {
           </div>
         </section>
 
-        <section>
-          <h3>Sample student</h3>
-          <div className="idd-pic">
-            <Thumb src={d.photo} label="Photo" />
-            <div className="idd-picb">
-              <label className="idd-btn">
-                {d.photo ? "Change photo" : "Upload photo"}
-                <input type="file" accept="image/png,image/jpeg,image/webp" onChange={upload("photo")} hidden />
-              </label>
-              {d.photo ? (
-                <button type="button" className="idd-link" onClick={() => setD((p) => ({ ...p, photo: null }))}>
-                  Remove
-                </button>
-              ) : null}
+        {kind.student ? (
+          <section>
+            <h3>Sample student</h3>
+            <div className="idd-pic">
+              <Thumb src={d.photo} label="Photo" />
+              <div className="idd-picb">
+                <label className="idd-btn">
+                  {d.photo ? "Change photo" : "Upload photo"}
+                  <input type="file" accept="image/png,image/jpeg,image/webp" onChange={upload("photo")} hidden />
+                </label>
+                {d.photo ? (
+                  <button type="button" className="idd-link" onClick={() => setD((p) => ({ ...p, photo: null }))}>
+                    Remove
+                  </button>
+                ) : null}
+              </div>
             </div>
-          </div>
-          <div className="idd-2">
+            <div className="idd-2">
+              <label className="idd-f">
+                <span>Name</span>
+                <input value={d.studentName} onChange={set("studentName")} maxLength={40} />
+              </label>
+              <label className="idd-f">
+                <span>Class</span>
+                <input value={d.className} onChange={set("className")} maxLength={20} />
+              </label>
+              <label className="idd-f">
+                <span>Date of birth</span>
+                <input value={d.dob} onChange={set("dob")} maxLength={20} />
+              </label>
+              <label className="idd-f">
+                <span>Parent&apos;s mobile</span>
+                <input value={d.mobile} onChange={set("mobile")} maxLength={20} inputMode="tel" />
+              </label>
+            </div>
             <label className="idd-f">
-              <span>Name</span>
-              <input value={d.studentName} onChange={set("studentName")} maxLength={40} />
+              <span>Home address</span>
+              <input value={d.homeAddress} onChange={set("homeAddress")} maxLength={70} />
             </label>
-            <label className="idd-f">
-              <span>Class</span>
-              <input value={d.className} onChange={set("className")} maxLength={20} />
-            </label>
-            <label className="idd-f">
-              <span>Date of birth</span>
-              <input value={d.dob} onChange={set("dob")} maxLength={20} />
-            </label>
-            <label className="idd-f">
-              <span>Parent&apos;s mobile</span>
-              <input value={d.mobile} onChange={set("mobile")} maxLength={20} inputMode="tel" />
-            </label>
-          </div>
-          <label className="idd-f">
-            <span>Home address</span>
-            <input value={d.homeAddress} onChange={set("homeAddress")} maxLength={70} />
-          </label>
-          <button type="button" className="idd-link" onClick={() => setD((p) => ({ ...SAMPLE_CARD, schoolName: p.schoolName, schoolAddress: p.schoolAddress, schoolPhone: p.schoolPhone, logo: p.logo }))}>
-            Use the sample student again
-          </button>
-        </section>
+            <button
+              type="button"
+              className="idd-link"
+              onClick={() =>
+                setD((p) => ({
+                  ...SAMPLE_CARD,
+                  schoolName: p.schoolName,
+                  schoolAddress: p.schoolAddress,
+                  schoolPhone: p.schoolPhone,
+                  logo: p.logo,
+                }))
+              }
+            >
+              Use the sample student again
+            </button>
+          </section>
+        ) : null}
 
         {msg ? <p className={`idd-msg ${msg.bad ? "bad" : ""}`}>{msg.text}</p> : null}
         <button type="button" className="idd-go" onClick={generate}>
@@ -211,10 +265,28 @@ function Thumb({ src, label }: { src: string | null; label: string }) {
   );
 }
 
-type Kind = (typeof DESIGN_KINDS)[number];
-
-function Gallery({ kind, data, onClose }: { kind: Kind; data: CardData; onClose: () => void }) {
-  const rendered = useMemo(() => kind.designs.map((x) => ({ ...x, svg: x.render(data) })), [kind, data]);
+function Gallery({ kind, data, onClose }: { kind: DesignKind; data: CardData; onClose: () => void }) {
+  const [assets, setAssets] = useState<Record<string, string> | null>(kind.assets ? null : {});
+  const [failed, setFailed] = useState("");
+  useEffect(() => {
+    if (!kind.assets) return;
+    let live = true;
+    loadAssets(kind).then(
+      (a) => live && setAssets(a),
+      (e: Error) => live && setFailed(e.message),
+    );
+    return () => {
+      live = false;
+    };
+  }, [kind]);
+  const rendered = useMemo(() => (assets ? kind.designs.map((x) => ({ ...x, svg: x.render(data, assets) })) : []), [kind, data, assets]);
+  // Shown through blob addresses: the designs with their pictures are too big for data: addresses.
+  const urls = useMemo(() => rendered.map((x) => URL.createObjectURL(new Blob([x.svg], { type: "image/svg+xml" }))), [rendered]);
+  useEffect(() => () => urls.forEach((u) => URL.revokeObjectURL(u)), [urls]);
+  // Big picture designs (covers) are saved as JPG; a PNG of them would be several MB.
+  const photoLike = kind.scale === 1;
+  const picture = (svg: string) => (photoLike ? jpegBlob(svg, kind.width, kind.height, kind.scale) : pngBlob(svg, kind.width, kind.height, kind.scale));
+  const ext = photoLike ? "jpg" : "png";
   const [open, setOpen] = useState<number | null>(null);
   const [busy, setBusy] = useState("");
   const [note, setNote] = useState("");
@@ -245,7 +317,9 @@ function Gallery({ kind, data, onClose }: { kind: Kind; data: CardData; onClose:
   const cur = open !== null ? rendered[open] : null;
   const share = (x: (typeof rendered)[number]) =>
     act("share", async () => {
-      const file = new File([await pngBlob(x.svg, kind.width, kind.height)], `${base}-${x.id}.png`, { type: "image/png" });
+      const file = new File([await picture(x.svg)], `${base}-${x.id}.${ext}`, {
+        type: photoLike ? "image/jpeg" : "image/png",
+      });
       const r = await shareFiles([file], `${kind.name} design for ${data.schoolName}, from Wonder Learning.`);
       return r === "downloaded" ? "The picture is saved: attach it in the WhatsApp chat that opened." : "";
     });
@@ -255,8 +329,8 @@ function Gallery({ kind, data, onClose }: { kind: Kind; data: CardData; onClose:
       <div className="idd-modal" role="dialog" aria-modal="true" aria-label={`${kind.name} designs`}>
         <div className="idd-mh">
           <div>
-            <h2>{cur ? cur.name : `${kind.name} designs`}</h2>
-            <p>{cur ? data.schoolName : `${rendered.length} designs for ${data.schoolName}. Tap one to see it large.`}</p>
+            <h2>{cur ? cur.name : kind.name}</h2>
+            <p>{cur ? data.schoolName : `${kind.designs.length} designs for ${data.schoolName}. Tap one to see it large.`}</p>
           </div>
           <button type="button" className="idd-x" aria-label={cur ? "Back to all designs" : "Close"} onClick={() => (cur ? setOpen(null) : onClose())}>
             {cur ? "‹ All" : "✕"}
@@ -266,7 +340,7 @@ function Gallery({ kind, data, onClose }: { kind: Kind; data: CardData; onClose:
           {cur ? (
             <div className="idd-big">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={svgUrl(cur.svg)} alt={`${cur.name} design`} />
+              <img src={urls[open!]} alt={`${cur.name} design`} />
               <div className="idd-nav">
                 <button type="button" className="idd-btn" disabled={open === 0} onClick={() => setOpen((o) => (o ?? 1) - 1)}>
                   ‹ Previous
@@ -279,14 +353,20 @@ function Gallery({ kind, data, onClose }: { kind: Kind; data: CardData; onClose:
                 </button>
               </div>
             </div>
+          ) : !assets ? (
+            <p className={`idd-msg ${failed ? "bad" : ""}`}>{failed || "Loading the designs…"}</p>
           ) : (
-            <div className="idd-grid">
+            <div className={`idd-grid ${photoLike ? "wide" : ""}`}>
               {rendered.map((x, i) => (
                 <button type="button" key={x.id} className="idd-card" onClick={() => setOpen(i)}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={svgUrl(x.svg)} alt={`${x.name} design`} loading="lazy" />
+                  <img src={urls[i]} alt={`${x.name} design`} loading="lazy" style={{ aspectRatio: `${kind.width}/${kind.height}` }} />
                   <span>
-                    <i style={{ background: `linear-gradient(90deg, ${x.colors.join(",")})` }} />
+                    <i
+                      style={{
+                        background: `linear-gradient(90deg, ${x.colors.join(",")})`,
+                      }}
+                    />
                     {x.name}
                   </span>
                 </button>
@@ -298,10 +378,22 @@ function Gallery({ kind, data, onClose }: { kind: Kind; data: CardData; onClose:
           {note ? <p className="idd-msg">{note}</p> : null}
           {cur ? (
             <>
-              <button type="button" className="idd-btn" disabled={!!busy} onClick={() => act("png", async () => download(await pngBlob(cur.svg, kind.width, kind.height), `${base}-${cur.id}.png`))}>
-                {busy === "png" ? "Making…" : "Download PNG"}
+              <button
+                type="button"
+                className="idd-btn"
+                disabled={!!busy}
+                onClick={() => act("png", async () => download(await picture(cur.svg), `${base}-${cur.id}.${ext}`))}
+              >
+                {busy === "png" ? "Making…" : `Download ${ext.toUpperCase()}`}
               </button>
-              <button type="button" className="idd-btn" disabled={!!busy} onClick={() => act("pdf", async () => download(await pdfBlob([cur.svg], kind.width, kind.height, kind.mm), `${base}-${cur.id}.pdf`))}>
+              <button
+                type="button"
+                className="idd-btn"
+                disabled={!!busy}
+                onClick={() =>
+                  act("pdf", async () => download(await pdfBlob([cur.svg], kind.width, kind.height, kind.mm, kind.scale), `${base}-${cur.id}.pdf`))
+                }
+              >
                 {busy === "pdf" ? "Making…" : "Download PDF"}
               </button>
               <button type="button" className="idd-btn wa" disabled={!!busy} onClick={() => share(cur)}>
@@ -312,8 +404,21 @@ function Gallery({ kind, data, onClose }: { kind: Kind; data: CardData; onClose:
             <button
               type="button"
               className="idd-btn"
-              disabled={!!busy}
-              onClick={() => act("all", async () => download(await pdfBlob(rendered.map((x) => x.svg), kind.width, kind.height, kind.mm), `${base}-all-designs.pdf`))}
+              disabled={!!busy || !rendered.length}
+              onClick={() =>
+                act("all", async () =>
+                  download(
+                    await pdfBlob(
+                      rendered.map((x) => x.svg),
+                      kind.width,
+                      kind.height,
+                      kind.mm,
+                      kind.scale,
+                    ),
+                    `${base}-all-designs.pdf`,
+                  ),
+                )
+              }
             >
               {busy === "all" ? "Making the PDF…" : "Download all designs (PDF)"}
             </button>
@@ -360,7 +465,8 @@ const CSS = `
 .idd-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:16px}
 .idd-card{border:1px solid var(--line);background:#faf8fc;border-radius:14px;padding:10px;cursor:pointer;display:flex;flex-direction:column;gap:8px;font:inherit;color:inherit;text-align:left}
 .idd-card:hover{border-color:var(--b);box-shadow:0 4px 14px rgba(108,45,145,.15)}
-.idd-card img{width:100%;aspect-ratio:1374/868;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,.12);background:#fff}
+.idd-grid.wide{grid-template-columns:repeat(auto-fill,minmax(330px,1fr))}
+.idd-card img{width:100%;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,.12);background:#fff}
 .idd-card span{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:600}
 .idd-card i{width:28px;height:10px;border-radius:5px;flex:none}
 .idd-big{display:flex;flex-direction:column;align-items:center;gap:14px}
@@ -370,6 +476,7 @@ const CSS = `
 .idd-mf .idd-msg{flex-basis:100%;text-align:right}
 @media (max-width:600px){
   .idd-2{grid-template-columns:1fr}
+  .idd-grid.wide{grid-template-columns:1fr}
   .idd-scrim{padding:0;align-items:flex-end}
   .idd-modal{border-radius:20px 20px 0 0;max-height:94vh}
   .idd-mh,.idd-mb,.idd-mf{padding-left:14px;padding-right:14px}

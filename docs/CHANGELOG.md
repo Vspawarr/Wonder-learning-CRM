@@ -7,6 +7,10 @@ commit id, what changed in plain words, and the requirement it answers (R… in 
 
 ## 25 Nov 2026
 
+- `pending` **Book cover designer** (Marketing → Tools → What to design: UKG book covers): the 9 UKG covers with
+  the school's logo and name on the front and its logo, name, address and phone on the back, in place of Wonder
+  Learning's; download JPG / PDF at cover size / all 9, or share on WhatsApp. (R58)
+
 - `5cf44a9` **ID card designer** (Marketing → Tools): the sales person picks or types the school's details and logo,
   presses Generate and sees 8 ID card designs with them in a pop-up; download PNG / print-size PDF / all designs, or
   share on WhatsApp. Also as a separate file `id-card-designer.html` that opens without login. (R57)
