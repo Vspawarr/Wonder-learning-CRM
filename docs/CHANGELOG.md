@@ -7,7 +7,7 @@ commit id, what changed in plain words, and the requirement it answers (R… in 
 
 ## 25 Nov 2026
 
-- `pending` **Mark ready with a confirmation list.** "Everything is ready" in one click, or edit the kits finished and
+- `78cc20a` **Mark ready with a confirmation list.** "Everything is ready" in one click, or edit the kits finished and
   the items used and save all stock at once; kits can be finished in batches; "Undo finished". (R55)
 
 - `1109a23` **Inventory & production.** Stock of every kit, kit item and book; production orders made by themselves
