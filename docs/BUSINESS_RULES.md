@@ -135,6 +135,13 @@ client shows a warning (the user may still save). The Excel upload skips same sc
   remove them. Everyone can open, download, share on **WhatsApp** or copy the link. Files are sent as a private link
   (`/m/…`, opens without login; a changed link is refused; removing the item stops it); Drive items send the Drive
   link (set Drive sharing to "Anyone with the link"). HTML files open in a sandbox with no access to the CRM.
+- **Design tools** (R57, part of Marketing material): Marketing material → **Tools** → ID card designer. Everyone who
+  sees Marketing can use it. The school list shows the user's own leads and clients (all for Admin / Director / Sales
+  Head); picking one fills its name, address (or area, city) and mobile, and the logo saved for its PO template (R51)
+  if any. Nothing typed or uploaded in the designer is saved; pictures are made in the browser. Designs live in
+  `src/lib/designs/` (one list per design type, so new types can be added); the separate file
+  `public/tools/id-card-designer.html` is built from the same code (`npm run designer:build`; a test fails if it is out
+  of date) and opens without login.
 - **Mandatory client documents** (R53): Settings → Documents → "Mandatory client documents" (one per line; a starting
   list until the client sends theirs). Each client's Documents tab shows "x of y received" with a bar, a tick per
   document received (matched by document type) and **Upload** on each pending one; the tab and the client header show

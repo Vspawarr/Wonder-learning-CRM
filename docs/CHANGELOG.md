@@ -7,6 +7,10 @@ commit id, what changed in plain words, and the requirement it answers (R… in 
 
 ## 25 Nov 2026
 
+- `pending` **ID card designer** (Marketing → Tools): the sales person picks or types the school's details and logo,
+  presses Generate and sees 8 ID card designs with them in a pop-up; download PNG / print-size PDF / all designs, or
+  share on WhatsApp. Also as a separate file `id-card-designer.html` that opens without login. (R57)
+
 - `4ce53a0` **Order tracker** (Operations → Order tracker): every order from the received PO through sales order,
   production, dispatch, invoice and payment on one page, with the next step and days late; stage filters, search,
   PDF / Excel. (R56)

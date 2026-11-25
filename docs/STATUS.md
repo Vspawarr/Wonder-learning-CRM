@@ -24,6 +24,7 @@ _Last updated: 25 Nov 2026. Update this page whenever the situation changes._
 | Confirm which kit items are **different for each class** (now: the Class Connect books / notebooks) and which are shared | Stock is counted per class only for those | R54 |
 | **List of mandatory client documents** | The checklist is built with a starting list; type the client's list in Settings → Documents | R53 |
 | **Sample of the client's old data** (a few rows) | Import of old clients / segments (new, renewed, not renewed, left) | R53 |
+| Hiren Sir / owner: review the **8 ID card designs** (Marketing → Tools) and decide: Tools tab, separate HTML file, or both; samples for more design types (visiting card, certificate…) | Final approach for the designer | R57 |
 | Which pages are slow, on which devices / browsers | Speeding up the site | R53 |
 | WhatsApp Business API + client approval | Automatic WhatsApp reminders (on hold) | R53 |
 | **Staff: reinstall the Android app (version 1.3)** from the "Download app" page, so WhatsApp gets the PDF with the message | Older app versions send only the link | R43 |

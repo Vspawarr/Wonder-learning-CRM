@@ -57,7 +57,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       // /q/<secret> is the shareable quotation PDF link sent on WhatsApp.
       // /i/<secret> is the same for an invoice.
       // /r/<secret> is a payment receipt; /download-app is the public page with the Android app.
-      if (["/login", "/q/", "/i/", "/r/", "/d/", "/m/", "/download-app", "/forgot-password", "/reset-password/"].some((p) => path.startsWith(p))) return true;
+      if (["/login", "/q/", "/i/", "/r/", "/d/", "/m/", "/tools/", "/download-app", "/forgot-password", "/reset-password/"].some((p) => path.startsWith(p))) return true;
       if (!auth?.user) return false;
       // R54: the production team works only in Inventory (production orders and stock).
       const inventoryExport = /^\/api\/export\/(stock|production|stockmoves)$/.test(path);

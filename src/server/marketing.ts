@@ -9,6 +9,7 @@ import { canManageMarketing, type SessionUser } from "@/lib/permissions";
 import { DomainError, NotFoundError } from "./errors";
 import { getFeatures } from "./features";
 import { sign } from "./share-links";
+import { clientScope, leadScope } from "./access";
 import { parse } from "./validation";
 
 export const MARKETING_MAX_BYTES = 4 * 1024 * 1024;
@@ -152,4 +153,32 @@ export function marketingHeaders(f: { fileName: string; type: string; show: "inl
     "X-Robots-Tag": "noindex",
     ...(f.show === "sandbox" ? { "Content-Security-Policy": "sandbox allow-scripts allow-popups allow-forms" } : {}),
   };
+}
+
+/* ---------- R57: design tools (ID card designer) ---------- */
+
+/** The sales person's own leads and clients (all of them for Admin / Sales Head), to fill a design with a school's details. */
+export async function designSchools(user: SessionUser) {
+  await assertOn();
+  const [leads, clients] = await Promise.all([
+    db.lead.findMany({ where: leadScope(user), select: { id: true, schoolName: true, mobile: true, city: true, area: true, address: true }, orderBy: { schoolName: "asc" }, take: 1000 }),
+    db.client.findMany({ where: clientScope(user), select: { id: true, schoolName: true, mobile: true, city: true, area: true, address: true }, orderBy: { schoolName: "asc" }, take: 1000 }),
+  ]);
+  const addr = (s: { city: string; area: string | null; address: string | null }) => s.address?.trim() || [s.area, s.city].filter(Boolean).join(", ");
+  return [
+    ...clients.map((c) => ({ key: `client:${c.id}`, label: `${c.schoolName} · client`, schoolName: c.schoolName, schoolAddress: addr(c), schoolPhone: c.mobile })),
+    ...leads.map((l) => ({ key: `lead:${l.id}`, label: `${l.schoolName} · lead`, schoolName: l.schoolName, schoolAddress: addr(l), schoolPhone: l.mobile })),
+  ];
+}
+
+/** The school's saved logo (R51) as a picture the designer can use, or null. Only for a lead / client the user can see. */
+export async function designSchoolLogo(user: SessionUser, key: string) {
+  await assertOn();
+  const [kind, id] = key.split(":");
+  if (!id || (kind !== "lead" && kind !== "client")) return null;
+  const visible =
+    kind === "lead" ? await db.lead.findFirst({ where: { id, ...leadScope(user) }, select: { id: true } }) : await db.client.findFirst({ where: { id, ...clientScope(user) }, select: { id: true } });
+  if (!visible) return null;
+  const l = await db.schoolLogo.findFirst({ where: kind === "lead" ? { leadId: id } : { clientId: id } });
+  return l ? `data:${l.contentType};base64,${Buffer.from(l.data).toString("base64")}` : null;
 }

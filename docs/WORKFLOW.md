@@ -428,6 +428,13 @@ or send them.
   description and a link the school can open without logging in), **Copy link**.
 - **Admin / Sales Head:** **Add material** → *File upload* (up to 4 MB) or *Google Drive link* (big files such as
   videos: in Drive, Share → General access → "Anyone with the link" → Copy link); **Edit**, **Remove**.
+- **Tools → ID card designer** (R57): show a school its own student ID cards.
+  1. *Fill from a lead or client* (or type the school name, address, phone); **Upload logo** if it isn't filled in.
+  2. A sample student and photo are already there; change them if you like.
+  3. **Generate designs** → a pop-up shows all 8 designs. Tap one to see it large (**Previous / Next**).
+  4. **Download PNG** (picture), **Download PDF** (real card size, for printing), **Share on WhatsApp** (phone: pick
+     the chat; computer: the picture is saved, attach it in WhatsApp Web), or **Download all designs (PDF)**.
+  The same tool as one file: *download id-card-designer.html* on the Tools tab; it opens in any browser, no login.
 
 ## 9a. Transferring a lead or client to another salesperson
 

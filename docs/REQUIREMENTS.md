@@ -709,3 +709,23 @@ display with proper information so track of everything can be taken from there."
 | Change | Status | Notes |
 |---|---|---|
 | **Order tracker** (Operations menu) | ✅ | One card per order: PO received → Sales order → Production → Dispatch → Invoice → Payment with numbers, dates, kits done / sent, balance; current step highlighted, "Next" step, days late; filters by stage (incl. "PO received, no sales order"), search, PDF / Excel |
+
+## R57. ID card designer for schools (marketing tool) (25 Nov)
+
+"Review this id card designs this is regarding marketing material. Now plan is that sales representative will show school
+directly how will there name and school appear there. So he will upload logo and school details and press generate
+button and automatically there design will generate in different format. For now take Photo, name and logo by your
+choice for real time there should be pop up appear. It can be separate HTML tool or add tools section inside marketing."
+
+Owner's choices: **rebuild the designs as live templates**; **both** a Tools tab in Marketing and a separate HTML file
+for now (final approach decided later); **Download PNG / PDF and Share on WhatsApp**; **ID card now, ready for more**
+(visiting cards, certificates… later).
+
+| Change | Status | Notes |
+|---|---|---|
+| **8 ID card designs as live templates** | ✅ | Redrawn from Hiren Sir's PDFs as sharp graphics (no "GGK" watermark, no blurred icons): Red & orange, Green waves, Blue & red, Purple stripe, Cream & navy, Navy & yellow, Navy circle, Navy diagonal; long school names shrink / go to two lines |
+| **Marketing → Tools → ID card designer** | ✅ | Pick a lead / client (fills name, address, phone and the logo saved for its PO template) or type them; upload logo; sample student, photo, class, birth date, mobile, address (changeable) |
+| **Generate → pop-up with all designs** | ✅ | Tap one to see it large, Previous / Next |
+| **Download PNG / PDF, Share on WhatsApp** | ✅ | PNG picture; PDF at real card size (85.6 × 54 mm); "Download all designs (PDF)"; WhatsApp: on phones the picture goes straight to WhatsApp, on computers it is saved and WhatsApp Web opens |
+| **Separate HTML file** | ✅ | `id-card-designer.html` (link on the Tools tab, or /tools/id-card-designer.html): opens in any browser without login or internet |
+| **More design types** | ⏳ | Ready to add (visiting card, certificate, admission form…) when the owner sends samples |

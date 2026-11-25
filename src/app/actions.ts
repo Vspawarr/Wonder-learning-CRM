@@ -347,6 +347,7 @@ export async function markAlerts(keys: string[], read: boolean) {
 export const addMarketingLink = async (data: unknown) => run((u) => marketing.addMarketingLink(u, data));
 export const updateMarketing = async (id: string, data: unknown) => run((u) => marketing.updateMarketing(u, id, data));
 export const deleteMarketing = async (id: string) => run((u) => marketing.deleteMarketing(u, id));
+export const designSchoolLogo = async (key: string) => marketing.designSchoolLogo(await requireUser(), key);
 
 // R54: inventory and production.
 export const adjustStock = async (data: unknown) => run((u) => inventory.adjustStock(u, data));
