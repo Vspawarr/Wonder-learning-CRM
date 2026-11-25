@@ -7,7 +7,7 @@ commit id, what changed in plain words, and the requirement it answers (R… in 
 
 ## 25 Nov 2026
 
-- `pending` **Offline book cover file** `book-cover-designer.html` (about 4 MB): the UKG book cover designer in one file
+- `42e50a6` **Offline book cover file** `book-cover-designer.html` (about 4 MB): the UKG book cover designer in one file
   that opens without login or internet, like the ID card file; link on Marketing → Tools. (R59)
 
 - `b02a78f` **Book cover designer** (Marketing → Tools → What to design: UKG book covers): the 9 UKG covers with
