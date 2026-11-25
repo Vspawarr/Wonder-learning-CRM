@@ -22,7 +22,7 @@ export function Shell({
   children,
 }: {
   nav: NavGroup[];
-  user: { id: string; name: string; role: string };
+  user: { id: string; name: string; role: string; productionOnly?: boolean };
   /** The chosen financial year: "2026-27", or null for All years. */
   year: string | null;
   children: React.ReactNode;
@@ -114,7 +114,8 @@ export function Shell({
             <span className="max-[480px]:hidden">{year ? `FY ${year}` : "All years"}</span>
             <span className="min-[481px]:hidden">{year ? year.slice(2) : "All"}</span>
           </Link>
-          <TopBarTools />
+          {/* R54: the production team has no sales search / Add menu. */}
+          {user.productionOnly ? <div className="grow" /> : <TopBarTools />}
         </header>
         <main className="max-w-[1520px] px-3.5 pt-4 pb-[70px] min-[901px]:px-7 min-[901px]:pt-[22px]">{children}</main>
       </div>

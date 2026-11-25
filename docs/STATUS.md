@@ -1,6 +1,6 @@
 # Current status
 
-_Last updated: 24 Nov 2026. Update this page whenever the situation changes._
+_Last updated: 25 Nov 2026. Update this page whenever the situation changes._
 
 ## Where things stand
 
@@ -20,6 +20,8 @@ _Last updated: 24 Nov 2026. Update this page whenever the situation changes._
 |---|---|---|
 | Feedback from the client's testing | Final changes before go-live | — |
 | Check the district list (Settings → Locations) against the official Local Government Directory | It was typed from knowledge, not downloaded; a recently created or renamed district may be missing | R53 |
+| **Inventory start:** create the production team's login (role Production) and enter **opening stock** for each kit and item | Until then stock shows below zero after production | R54 |
+| Confirm which kit items are **different for each class** (now: the Class Connect books / notebooks) and which are shared | Stock is counted per class only for those | R54 |
 | **List of mandatory client documents** | The checklist is built with a starting list; type the client's list in Settings → Documents | R53 |
 | **Sample of the client's old data** (a few rows) | Import of old clients / segments (new, renewed, not renewed, left) | R53 |
 | Which pages are slow, on which devices / browsers | Speeding up the site | R53 |

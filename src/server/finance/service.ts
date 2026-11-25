@@ -1,5 +1,6 @@
 // Sales orders, invoices and payments for clients. Visible to Directors, Admins,
 // the Sales Head and the client's own account owner (clientScope).
+import { syncProductionOrder } from "../inventory";
 import { randomBytes } from "node:crypto";
 import { z } from "zod";
 import { Prisma } from "@/generated/prisma/client";
@@ -300,7 +301,7 @@ export async function createSalesOrder(user: SessionUser, clientId: string, raw:
     });
     if (!ok) throw new DomainError("That quotation doesn't belong to this client.");
   }
-  return withNextNumber("salesOrder", "SO", async (tx, n) => {
+  const soId = await withNextNumber("salesOrder", "SO", async (tx, n) => {
     const so = await tx.salesOrder.create({
       data: {
         ...n,
@@ -327,6 +328,9 @@ export async function createSalesOrder(user: SessionUser, clientId: string, raw:
     });
     return so.id;
   });
+  // R54: the kits go to the production team as a production order.
+  await syncProductionOrder(soId);
+  return soId;
 }
 
 export async function updateSalesOrder(user: SessionUser, id: string, raw: unknown) {
@@ -348,6 +352,8 @@ export async function updateSalesOrder(user: SessionUser, id: string, raw: unkno
       },
     }),
   ]);
+  // R54: a production order not started yet follows the changed order.
+  await syncProductionOrder(id);
 }
 
 export async function salesOrderForEdit(user: SessionUser, id: string) {
@@ -406,6 +412,8 @@ export async function cancelSalesOrder(user: SessionUser, id: string) {
       },
     }),
   ]);
+  // R54: its production order is cancelled too unless production has started.
+  await syncProductionOrder(id);
 }
 
 /* ---------- invoices ---------- */

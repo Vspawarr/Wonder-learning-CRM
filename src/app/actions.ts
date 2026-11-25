@@ -22,6 +22,7 @@ import * as po from "@/server/finance/po";
 import * as dispatch from "@/server/finance/dispatch";
 import * as material from "@/server/finance/material";
 import * as marketing from "@/server/marketing";
+import * as inventory from "@/server/inventory";
 import * as files from "@/server/files";
 import * as contacts from "@/server/contacts";
 import * as renewals from "@/server/renewals";
@@ -346,3 +347,14 @@ export async function markAlerts(keys: string[], read: boolean) {
 export const addMarketingLink = async (data: unknown) => run((u) => marketing.addMarketingLink(u, data));
 export const updateMarketing = async (id: string, data: unknown) => run((u) => marketing.updateMarketing(u, id, data));
 export const deleteMarketing = async (id: string) => run((u) => marketing.deleteMarketing(u, id));
+
+// R54: inventory and production.
+export const adjustStock = async (data: unknown) => run((u) => inventory.adjustStock(u, data));
+export const setReorderLevel = async (id: string, level: number | null) => run((u) => inventory.setReorderLevel(u, id, level));
+export const makeProductionOrder = async (salesOrderId: string) => run((u) => inventory.makeProductionOrder(u, salesOrderId));
+export const setProductionStatus = async (id: string, to: "IN_PRODUCTION" | "READY" | "CANCELLED" | "UNDO_READY") => run((u) => inventory.setProductionStatus(u, id, to));
+/** What can leave or come back for a material problem: the kit and its items (read only). */
+export async function materialStockChoices(salesOrderItemId: string) {
+  await requireUser();
+  return inventory.stockChoices(salesOrderItemId);
+}

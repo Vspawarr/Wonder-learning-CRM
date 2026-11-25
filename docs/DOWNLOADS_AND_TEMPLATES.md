@@ -65,7 +65,10 @@ Code: `src/server/reports/index.ts` (one builder per report, using the screen's 
 | `bills` | Accounts → Bills to pay | No., Bill date, Supplier, Their no., For, Description, Before GST, GST, Total, Paid, To pay, Due, Status; totals (follows the To pay / Waiting chips and dates) |
 | `salaries` | Accounts → Salaries | Month, Employee, Gross, Deductions, Take-home, Paid on, From (account), Mode / ref., Status; totals of approved |
 | `book` | Accounts → Account books | The chosen account: Date, Type, Particulars, In, Out, Balance, Matched (opening and closing in the title line); then other money in / out |
-| `dashboard` | Dashboard | Follows the **Show** buttons (Service & delivery also counts open material problems and documents pending, R53): Sales (key numbers, pipeline by stage, lead sources, biggest deals) · Finance (collected/outstanding/overdue/cheques, expenses, and for Accounts bank & cash and bills to pay; outstanding by school with % (R53); ageing, expected collections) · Team & management (win rate, lost, interactions, team table, targets, lost reasons, competitors) · Service & delivery (follow-ups, orders to deliver, kits in transit, onboarding, renewals, lists) |
+| `stock` | Inventory → Stock | Item, Type, In stock, Damaged, In production, Needed for production, To dispatch, Free, Reorder at, Status (follows the Show filter) (R54) |
+| `production` | Inventory → Production orders | Production order, School, Sales order / PO, Kits, Due, Status, Items short (Open / Ready-cancelled / All) (R54) |
+| `stockmoves` | Inventory → Movements | Date, Item, What, Qty, Details, By (item / kind filters) (R54) |
+| `dashboard` | Dashboard | Follows the **Show** buttons (Service & delivery also counts open material problems and documents pending, R53, and production orders open / stock short or low, R54): Sales (key numbers, pipeline by stage, lead sources, biggest deals) · Finance (collected/outstanding/overdue/cheques, expenses, and for Accounts bank & cash and bills to pay; outstanding by school with % (R53); ageing, expected collections) · Team & management (win rate, lost, interactions, team table, targets, lost reasons, competitors) · Service & delivery (follow-ups, orders to deliver, kits in transit, onboarding, renewals, lists) |
 
 Wording rule: the salesperson is always **"Assigned to"**; "Owner" only means the school's owner.
 

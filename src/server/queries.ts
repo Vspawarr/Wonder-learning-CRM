@@ -681,6 +681,7 @@ export async function clientDetail(user: SessionUser, id: string) {
             },
             orderBy: { createdAt: "asc" },
           },
+          productionOrder: { select: { number: true, status: true } },
           materialIssues: {
             include: {
               salesOrderItem: { select: { description: true, price: true, gstRate: true } },
@@ -796,10 +797,14 @@ export async function clientDetail(user: SessionUser, id: string) {
         receivedOn: d.receivedOn ? fromDbDate(d.receivedOn) : null,
         pod: d.files[0] ?? null,
       })),
+      /** R54: the production order made from this order, if any. */
+      production: so.productionOrder,
       /** R53: material that arrived short / damaged or came back, and how it was settled. */
       issues: so.materialIssues.map((m) => ({
         id: m.id,
         kind: m.kind as "SHORT" | "DAMAGED" | "RETURNED",
+        itemId: m.salesOrderItemId,
+        backTo: m.backTo as "GOOD" | "DAMAGED" | null,
         qty: m.qty,
         item: m.salesOrderItem.description,
         // Price per kit with GST, to suggest a refund.

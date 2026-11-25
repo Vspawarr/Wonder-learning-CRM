@@ -671,3 +671,22 @@ large files as **Google Drive links**. Mandatory documents: **client will provid
 | **Client segments** (new / renewed / not renewed / left) and **old data import** | ⏳ | Needs a sample of the client's old data |
 | **Slow site on some systems / browsers** | ⏳ | Needs which pages, devices and browsers |
 | **WhatsApp automatic reminders** | ⏸ On hold | Until the WhatsApp Business API and client approval |
+
+## R54. Inventory: production orders, dispatch out, returns in (25 Nov)
+
+"Today we will work on inventory part; you have just related to CRM not everything like paper and ink etc. You have
+product list, you have items in each kit. Now we will work on PO, means order received and production order to
+production team, Sales order (material dispatch) means outbound. Invoice and payment already exists there. Also
+return material in inventory, damaged etc. Whichever things related to our CRM."
+
+Owner's choices: stock of **items and finished kits**; **one store**; production order **made by itself from the PO**
+with a **new Production login**.
+
+| Change | Status | Notes |
+|---|---|---|
+| **Stock items** from the product list (kits, items in kits, other books) | ✅ | Kept in step with Settings → Products; class books / notebooks per class, other items shared; paper / ink not tracked |
+| **Production order to the production team** | ✅ | Made by itself when the sales order is created from the received PO; Start production → Mark ready (kits in, items out) · Cancel · Undo ready; items needed vs stock; "Make production order" for older orders |
+| **Sales order dispatch = outbound** | ✅ | Each challan takes its kits / items out of stock; a deleted challan puts them back; replacements take out the kit or the chosen item |
+| **Returns / damaged** | ✅ | On Report problem: back to the store as good or damaged stock (kit or item); damaged kept apart; repair / write off |
+| **Stock screen** | ✅ | In stock, damaged, in production, needed, to dispatch, free; Short / Low (reorder level); adjustments and opening stock; movements; PDF / Excel; dashboard counts |
+| **Production login** | ✅ | New role "Production" (Settings → Users): sees only Inventory & production |

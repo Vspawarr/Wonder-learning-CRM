@@ -3,13 +3,13 @@
 // Dispatch on a sales order: send kits in lots, print the delivery challan,
 // mark received and keep the school's signed proof of delivery.
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Field, Modal, useAction } from "@/components/client";
 import { DateInput } from "@/components/date-input";
 import { Icon } from "@/components/icons";
 import { Pill } from "@/components/ui";
 import { SendDocButton } from "@/components/send-doc";
-import { closeMaterialIssue, createDispatch, deleteDispatch, markDispatchReceived, refundMaterialIssue, reportMaterialIssue, sendMaterialReplacement } from "@/app/actions";
+import { closeMaterialIssue, createDispatch, deleteDispatch, makeProductionOrder, markDispatchReceived, materialStockChoices, refundMaterialIssue, reportMaterialIssue, sendMaterialReplacement } from "@/app/actions";
 import { useApp } from "@/components/app-context";
 import { todayIST } from "@/lib/dates";
 import { dmy } from "@/lib/format";
@@ -47,7 +47,7 @@ export function DispatchSection({
   const [receiving, setReceiving] = useState<SO["dispatches"][number] | null>(null);
   const [reporting, setReporting] = useState<string | null | false>(false);
   const [settling, setSettling] = useState<{ issue: Issue; how: "replace" | "refund" | "close" } | null>(null);
-  const { canFinance } = useApp();
+  const { canFinance, seesAll, features } = useApp();
   const { pending, run } = useAction();
   const ordered = so.items.reduce((t, i) => t + i.qty, 0);
   const sent = so.items.reduce((t, i) => t + i.sent, 0);
@@ -58,8 +58,21 @@ export function DispatchSection({
       <div className="flex flex-wrap items-center justify-between gap-2">
         <span className="small">
           <b>Dispatch:</b> {sent} of {ordered} kits sent{left > 0 ? ` · ${left} to go` : " · all sent"}
+          {so.production ? (
+            <>
+              {" · "}
+              <a href="/inventory?tab=production&pshow=all">
+                Production {so.production.number}: {{ PLANNED: "to start", IN_PRODUCTION: "in production", READY: "ready", CANCELLED: "cancelled" }[so.production.status] ?? so.production.status}
+              </a>
+            </>
+          ) : null}
         </span>
         <span className="flex flex-wrap gap-1.5">
+          {features.inventory && !so.production && so.status === "CONFIRMED" && seesAll ? (
+            <button className="btn sm" disabled={pending} onClick={() => run(() => makeProductionOrder(so.id), { success: "Production order made." })}>
+              Make production order
+            </button>
+          ) : null}
           {so.dispatches.length ? (
             <button className="btn sm" onClick={() => setReporting(null)}>
               Report problem
@@ -135,6 +148,7 @@ export function DispatchSection({
                   {" "}
                   · {dmy(m.date)}
                   {m.challan ? ` · ${m.challan}` : ""}
+                  {m.backTo ? ` · back in store as ${m.backTo === "GOOD" ? "good" : "damaged"} stock` : ""}
                   {m.replacement ? ` · replaced by ${m.replacement.number}` : ""}
                   {m.creditNote ? ` · credit note ${m.creditNote}` : ""}
                   {m.refundAmount !== null && !m.creditNote ? ` · ₹${m.refundAmount.toLocaleString("en-IN")} paid back` : ""}
@@ -305,8 +319,12 @@ function IssueModal({ so, dispatchId, onClose }: { so: SO; dispatchId: string | 
     detail: "",
     date: todayIST(),
     dispatchId: dispatchId ?? so.dispatches.filter((d) => !d.isReplacement).at(-1)?.id ?? "",
+    backTo: "" as "" | "GOOD" | "DAMAGED",
+    stockItemId: "",
   });
   const { pending, run } = useAction();
+  const { features } = useApp();
+  const choices = useStockChoices(features.inventory ? v.itemId : "");
   return (
     <Modal
       title={`Material problem · ${so.number}`}
@@ -317,7 +335,11 @@ function IssueModal({ so, dispatchId, onClose }: { so: SO; dispatchId: string | 
           <button className="btn" onClick={onClose}>
             Cancel
           </button>
-          <button className="btn pri" disabled={pending} onClick={() => run(() => reportMaterialIssue(so.id, v), { success: "Problem recorded.", onDone: onClose })}>
+          <button
+            className="btn pri"
+            disabled={pending}
+            onClick={() => run(() => reportMaterialIssue(so.id, { ...v, backTo: v.kind === "SHORT" ? null : v.backTo || null, stockItemId: v.stockItemId || null }), { success: "Problem recorded.", onDone: onClose })}
+          >
             {pending ? "Saving…" : "Save"}
           </button>
         </>
@@ -367,20 +389,69 @@ function IssueModal({ so, dispatchId, onClose }: { so: SO; dispatchId: string | 
           </select>
         </Field>
       </div>
+      {features.inventory && v.kind !== "SHORT" ? (
+        <div className="mt-1 rounded-lg border border-line p-3">
+          <div className="fld mb-2">
+            <label>Did it come back to our store?</label>
+            <div className="chips">
+              {(
+                [
+                  ["", "No"],
+                  ["GOOD", "Yes, as good stock"],
+                  ["DAMAGED", "Yes, as damaged stock"],
+                ] as const
+              ).map(([k, l]) => (
+                <button key={l} type="button" className={`chip ${v.backTo === k ? "on" : ""}`} aria-pressed={v.backTo === k} onClick={() => setV({ ...v, backTo: k })}>
+                  {l}
+                </button>
+              ))}
+            </div>
+          </div>
+          {v.backTo && choices.length > 1 ? (
+            <Field label="What came back" htmlFor="mi-stock">
+              <select className="sel" id="mi-stock" value={v.stockItemId} onChange={(e) => setV({ ...v, stockItemId: e.target.value })}>
+                {choices.map((c, i) => (
+                  <option key={c.id} value={i === 0 ? "" : c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            </Field>
+          ) : null}
+        </div>
+      ) : null}
     </Modal>
   );
 }
 
+/** R54: the kit and its items, for choosing what leaves or comes back to the store. */
+function useStockChoices(itemId: string) {
+  const [list, setList] = useState<{ id: string; name: string }[]>([]);
+  useEffect(() => {
+    let live = true;
+    if (!itemId) return;
+    materialStockChoices(itemId)
+      .then((x) => live && setList(x))
+      .catch(() => live && setList([]));
+    return () => {
+      live = false;
+    };
+  }, [itemId]);
+  return itemId ? list : [];
+}
+
 /** R53: settle a material problem: send a replacement, refund / adjust the money, or close it. */
 function SettleModal({ so, issue, how, onClose }: { so: SO; issue: Issue; how: "replace" | "refund" | "close"; onClose: () => void }) {
-  const [rep, setRep] = useState({ date: todayIST(), transporter: "", docketNo: "", vehicleNo: "" });
+  const [rep, setRep] = useState({ date: todayIST(), transporter: "", docketNo: "", vehicleNo: "", stockItemId: "" });
+  const { features } = useApp();
+  const choices = useStockChoices(features.inventory && how === "replace" ? issue.itemId : "");
   const [ref, setRef] = useState({ how: so.invoice ? "credit" : "paid", amount: String(Math.round(issue.unit * issue.qty * 100) / 100), date: todayIST(), note: "" });
   const [note, setNote] = useState("");
   const { pending, run } = useAction();
   const what = `${issue.qty} × ${issue.item}${issue.detail ? ` (${issue.detail})` : ""}`;
   const save = () =>
     how === "replace"
-      ? run(() => sendMaterialReplacement(issue.id, rep), {
+      ? run(() => sendMaterialReplacement(issue.id, { ...rep, stockItemId: rep.stockItemId || null }), {
           success: "Replacement challan made. Print it to send with the items.",
           onDone: (id) => {
             onClose();
@@ -410,6 +481,17 @@ function SettleModal({ so, issue, how, onClose }: { so: SO; issue: Issue; how: "
       {how === "replace" ? (
         <>
           <p className="small muted mb-3">A replacement challan is made for these items. It doesn&apos;t count against the order&apos;s kits.</p>
+          {choices.length > 1 ? (
+            <Field label="What leaves the store" htmlFor="rp-stock">
+              <select className="sel" id="rp-stock" value={rep.stockItemId} onChange={(e) => setRep({ ...rep, stockItemId: e.target.value })}>
+                {choices.map((c, i) => (
+                  <option key={c.id} value={i === 0 ? "" : c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            </Field>
+          ) : null}
           <div className="grid grid-cols-1 gap-3 min-[501px]:grid-cols-2">
             <Field label="Dispatch date" htmlFor="rp-date">
               <DateInput id="rp-date" value={rep.date} onChange={(date) => setRep({ ...rep, date })} />

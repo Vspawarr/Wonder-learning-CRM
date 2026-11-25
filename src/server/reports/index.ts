@@ -1,4 +1,5 @@
 // Every exportable report, built with the same filters and access rules as its screen.
+import * as inventory from "./inventory";
 import { CLIENT_STATUS_LABEL, EXPENSE_PAID_BY_SHORT, LEAD_STATUS_LABEL, STAGE_LABEL, TEMPERATURE_LABEL, clientCode, leadCode, oppCode } from "@/lib/constants";
 import { daysFrom, fmtDateTimeIST, istDate, todayIST } from "@/lib/dates";
 import { db } from "@/lib/db";
@@ -590,6 +591,13 @@ async function dashboard(user: SessionUser, p: Params): Promise<Report> {
       { k: "Orders to deliver", v: svc.orders.length },
       ...(features.dispatch ? [{ k: "Kits in transit", v: svc.inTransit }, { k: "Material problems open", v: svc.materialOpen }] : []),
       { k: "Clients onboarding", v: svc.onboarding },
+      ...(svc.inventory
+        ? [
+            { k: "Production orders open", v: svc.inventory.openProduction },
+            { k: "Stock items short", v: svc.inventory.short },
+            { k: "Stock items low", v: svc.inventory.low },
+          ]
+        : []),
       ...(features.documents ? [{ k: "Clients with documents pending", v: svc.docsPending.clients }, { k: "Documents to collect", v: svc.docsPending.documents }] : []),
       ...(renewals ? [{ k: `Renewals due (FY ${renewals.ay.label})`, v: renewals.clients.length }] : []),
     ]);
@@ -766,6 +774,9 @@ export const REPORTS = {
   ledger,
   todo,
   dashboard,
+  stock: inventory.stock,
+  production: inventory.production,
+  stockmoves: inventory.stockmoves,
 } as const;
 export type ReportName = keyof typeof REPORTS;
 

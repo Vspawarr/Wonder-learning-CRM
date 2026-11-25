@@ -12,6 +12,7 @@ import { DomainError, NotFoundError } from "../errors";
 import { getFeatures } from "../features";
 import { parse } from "../validation";
 import { createCreditNote, loadOrder, withNextNumber } from "./service";
+import { dispatchMoves, returnMoves } from "../inventory";
 
 export const ISSUE_KINDS = { SHORT: "Short (not received)", DAMAGED: "Damaged or wrong", RETURNED: "Returned by the school" } as const;
 export type IssueKind = keyof typeof ISSUE_KINDS;
@@ -31,6 +32,10 @@ export const issueInput = z.object({
   detail: optText(300),
   date: z.string().refine(isDateStr, "Enter the date."),
   dispatchId: optText(40),
+  /** R54: material that came back into our store: as good or damaged stock (empty: nothing came back). */
+  backTo: z.enum(["GOOD", "DAMAGED"]).nullish(),
+  /** The stock item that came back (the kit, or one of its items); empty: the kit. */
+  stockItemId: optText(40),
 });
 
 /** Records a problem with delivered (or returned) material on an order. */
@@ -42,8 +47,10 @@ export async function reportIssue(user: SessionUser, salesOrderId: string, raw: 
   if (d.qty > item.qty) throw new DomainError(`The order has only ${item.qty} kit(s) of ${item.description}.`);
   if (d.dispatchId && !(await db.dispatch.count({ where: { id: d.dispatchId, salesOrderId: so.id } })))
     throw new DomainError("That challan doesn't belong to this order.");
+  if (d.backTo && d.kind === "SHORT") throw new DomainError("Nothing comes back for kits that were short.");
   const issue = await db.materialIssue.create({
     data: {
+      backTo: d.backTo ?? null,
       clientId: so.clientId,
       salesOrderId: so.id,
       dispatchId: d.dispatchId,
@@ -55,6 +62,7 @@ export async function reportIssue(user: SessionUser, salesOrderId: string, raw: 
       createdById: user.id,
     },
   });
+  if (d.backTo) await db.$transaction((tx) => returnMoves(tx, user, issue.id, d.backTo!, d.stockItemId, d.qty));
   await db.activity.create({
     data: {
       type: "SYSTEM",
@@ -78,6 +86,8 @@ async function loadIssue(user: SessionUser, id: string) {
 
 export const replacementInput = z.object({
   date: z.string().refine(isDateStr, "Enter the dispatch date."),
+  /** R54: what leaves the store: the kit (empty) or one of its items. */
+  stockItemId: optText(40),
   transporter: optText(120),
   docketNo: optText(60),
   vehicleNo: optText(30),
@@ -105,6 +115,7 @@ export async function sendReplacement(user: SessionUser, id: string, raw: unknow
       },
     });
     await tx.materialIssue.update({ where: { id: i.id }, data: { status: "REPLACED", replacementId: dc.id, resolvedOn: toDbDate(d.date) } });
+    await dispatchMoves(tx, user, dc.id, [{ salesOrderItemId: i.salesOrderItemId, qty: i.qty, stockItemId: d.stockItemId }]);
     await tx.activity.create({
       data: {
         type: "SYSTEM",

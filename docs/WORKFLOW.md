@@ -73,6 +73,7 @@ Targets, Features, Project documents). At the bottom: **Download app**, change p
 | **Director**, **Admin** | Everyone's leads, deals, clients, money | All settings, users, products, money corrections |
 | **Sales Head** | Everyone's | Products & prices, targets, money corrections, give work to anyone in sales |
 | **Sales Manager**, **Sales Executive** | **Only their own** leads, deals, clients and to-dos | — |
+| **Production** | Only **Inventory & production** | Start / finish production orders, adjust stock |
 
 "**Assigned to**" always means the salesperson responsible. "**Owner**" means the school's owner.
 **Money corrections** (cancel an invoice, delete a payment, credit notes, cheque cleared / bounced) are only for
@@ -390,6 +391,21 @@ month; the Director approves entries made by Admin / Accounts.
 - **Income and expense**: sales (invoices before GST, less credit notes) and other income, minus expenses, bills,
   salaries and other payments = **profit / loss** (GST, loans, capital and withdrawals left out).
 - **GST summary**: GST on invoices vs GST on supplier bills, for the CA.
+
+## 9c. Inventory & production
+
+Menu → **Operations → Inventory & production** (R54). The production team's login shows only this page.
+- **Production orders** tab: made by themselves when a sales order is created from the school's received PO (older
+  orders: **Make production order** on the order). Each shows the school, order, PO, kits and delivery date;
+  **Items needed** lists every item for all its kits against today's stock (red = short). **Start production** →
+  **Mark ready** (kits go into stock, their items come out) · **Cancel** · **Undo ready** (only for a mistake).
+- **Stock** tab: every finished kit and item: in stock, damaged, in production, needed, to dispatch, **free**; filters
+  Finished kits · Items · Short / low · Damaged. **Adjust**: opening stock, add, remove (why), set aside as damaged,
+  damaged → good, write off damaged, and the reorder level ("Low" warning).
+- **Movements** tab: every change, by item and kind.
+- On a sales order: dispatch takes kits out of stock; **Report problem** → "Did it come back to our store?" (good /
+  damaged, whole kit or one item); **Send replacement** → "What leaves the store" (whole kit or one item).
+- PDF / Excel on each tab. Start with **opening stock** for each item and kit.
 
 ## 9b. Marketing material
 

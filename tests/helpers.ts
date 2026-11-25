@@ -28,6 +28,7 @@ export async function resetData() {
     db.opportunity.deleteMany(),
     db.leadInterest.deleteMany(),
     db.lead.deleteMany(),
+    db.stockItem.deleteMany(),
     db.product.deleteMany(),
     db.city.deleteMany(),
     db.user.deleteMany(),

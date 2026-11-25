@@ -12,6 +12,7 @@ change it here in the same commit as the code. Requirement numbers (R…) point 
 | Sales Head (Viren) | Everyone's data | Products & prices, targets, money corrections, assign work to anyone in sales |
 | Sales Manager | **Only their own** leads, opportunities, clients, to-dos | Assign work only to themselves |
 | Sales Executive | **Only their own** | Assign work only to themselves |
+| Production (R54) | **Only Inventory & production** (production orders, stock, movements) | Start / mark ready production orders, stock adjustments; every other page sends them back to Inventory |
 
 - Code: `src/lib/permissions.ts` (who may do what) and `src/server/access.ts` (what each person sees).
   These are the only places with these rules (R3, R4).
@@ -100,6 +101,25 @@ client shows a warning (the user may still save). The Excel upload skips same sc
   shows on the sales order, proforma and invoice. The sales order shows the quotation's creation time
   (date + H:M:S AM/PM) (R16.10, R17).
 - **Dispatch** in one or more lots with transporter/docket, a challan PDF, and **Mark received** with proof.
+- **Inventory & production** (R54, switch in Settings → Features; menu → Operations → Inventory & production):
+  - **Stock items** are made by the CRM from Settings → Products: every finished **kit**, every **item** inside the
+    kits, and the other books. Items in a kit's **Class Connect** section (the class books / notebooks) are separate
+    for each class ("LKG – Book 1 to 9"); everything else (bag, diary, flash cards…) is shared by all kits. Paper, ink
+    and other raw material are not tracked. One store.
+  - **Production order** (PRD/YYYY/MM/NNN): made by itself when a **sales order** is created (i.e. from the school's
+    received PO), with the kit lines and the items one kit needs (the quotation's kit changes applied: removed items
+    out, added items in). While "To start" it follows changes to the order; cancelling the order cancels it. Orders
+    made before inventory: **Make production order** on the order (Admin / Sales Head). Status: To start →
+    **Start production** → **Mark ready** (or Cancel). **Ready** adds the finished kits to stock and takes their items
+    out (a warning first if items are short; stock may then go below zero). **Undo ready** reverses it.
+  - **Dispatch** takes the finished kits (and items / books sold on their own) out of stock; deleting a challan puts
+    them back. A **replacement** lot takes out what is chosen: the whole kit or one of its items (e.g. bags).
+  - **Returned / damaged material** (Report problem): "Did it come back to our store?" No / as **good stock** / as
+    **damaged stock**, as the whole kit or one item. Damaged stock is kept apart and is not free to use.
+  - **Adjust** (production team, Admin, Sales Head; others only view): opening stock, add, remove (with a reason), set
+    aside as damaged, damaged → good, write off damaged; and a **reorder level** per item.
+  - **Free** = kits: in stock + in production − still to dispatch; items: in stock − needed by open production orders
+    − still to dispatch. **Short** when free is below zero; **Low** at or below the reorder level.
 - **Marketing material** (R53, switch in Settings → Features): menu → Marketing material. Admin / Director / Sales
   Head add items (title, category: Presentation, Brochure, Video, Animation, HTML file, PDF, Other; description) as a
   **file up to 4 MB** (PDF, PowerPoint, picture, video, HTML, ZIP) or a **Google Drive link** for big files, and edit /

@@ -1,5 +1,6 @@
 // Dispatch: kits leave in one or more lots, each with a numbered delivery
 // challan (DC/YYYY/MM/NNN), transporter details and the school's proof of delivery.
+import { dispatchMoves } from "../inventory";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { fromDbDate, isDateStr, toDbDate } from "@/lib/dates";
@@ -65,6 +66,8 @@ export async function createDispatch(user: SessionUser, salesOrderId: string, ra
         items: { create: lines.map((l) => ({ salesOrderItemId: l.itemId, qty: l.qty })) },
       },
     });
+    // R54: the kits leave the store.
+    await dispatchMoves(tx, user, dc.id, lines.map((l) => ({ salesOrderItemId: l.itemId, qty: l.qty })));
     const kits = lines.reduce((t, l) => t + l.qty, 0);
     const ordered = so.items.reduce((t, i) => t + i.qty, 0);
     const already = [...sent.values()].reduce((t, q) => t + q, 0);

@@ -210,7 +210,7 @@ export const userInput = z.object({
   name: reqText("Name", 120),
   email: z.string().trim().toLowerCase().pipe(z.email("Enter a valid email address.")),
   mobile: optMobileField,
-  role: z.enum(["DIRECTOR", "ADMIN", "SALES_HEAD", "SALES_MANAGER", "SALES_EXECUTIVE"]),
+  role: z.enum(["DIRECTOR", "ADMIN", "SALES_HEAD", "SALES_MANAGER", "SALES_EXECUTIVE", "PRODUCTION"]),
   active: z.boolean().default(true),
   password: z
     .string()

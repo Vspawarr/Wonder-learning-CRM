@@ -43,3 +43,8 @@ export const canAssignOthers = seesAllSales;
 
 /** R43: who approves moving a lead or client to another salesperson (their own transfers apply at once). */
 export const canApproveTransfers = seesAllSales;
+
+/** R54: the production team only sees production orders and stock (Inventory). */
+export const isProductionOnly = (role: Role) => role === "PRODUCTION";
+/** R54: update production orders and stock (adjustments, opening stock, damaged stock). Everyone else only views. */
+export const canManageInventory = (role: Role) => role === "PRODUCTION" || seesAllSales(role);

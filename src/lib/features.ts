@@ -16,6 +16,7 @@ export const FEATURES = {
   expenses: { label: "Expenses & advances", hint: "Team expense claims with bill photos, Accounts approval and reimbursement, advances to employees, company expenses." },
   companyAccounts: { label: "Company accounts", hint: "Money accounts (bank, cash, card), other money in / out, transfers, supplier bills, salaries, account books and the company finance overview." },
   transfers: { label: "Lead / client transfer with approval", hint: "Anyone can ask to move a lead or client to another salesperson; the Sales Head or Admin approves before it moves." },
+  inventory: { label: "Inventory & production", hint: "Stock of every kit item and finished kit, production orders from received POs, stock going out on dispatch and coming back on returns." },
   marketing: { label: "Marketing material", hint: "A library of presentations, videos, animations, HTML files and PDFs to show and send to schools (big files as Google Drive links)." },
   guide: { label: "How it works guide", hint: "A \"How it works\" page in the menu for everyone: the whole workflow and every button, step by step." },
 } as const;

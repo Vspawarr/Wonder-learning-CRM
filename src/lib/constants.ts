@@ -90,6 +90,7 @@ export const ROLE_LABEL = {
   SALES_HEAD: "Sales Head",
   SALES_MANAGER: "Sales Manager",
   SALES_EXECUTIVE: "Sales Executive",
+  PRODUCTION: "Production",
 } as const;
 
 export const LEAD_STATUS_LABEL = {

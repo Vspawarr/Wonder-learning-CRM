@@ -36,6 +36,8 @@ roles and the code map. You should not need old chat history.
   if the owner asks for an old kit or price again, take it from there.
 - Optional features are switchable in Settings → Features (`src/lib/features.ts`); new optional features should get a switch so the client can turn them off.
 - Money corrections (cancel invoice, delete payment, credit notes, clear/bounce cheques) are for `canManageFinance` roles only.
+- Inventory (R54, `src/server/inventory.ts`): stock is a sum of `StockMove`s; production orders come from sales orders;
+  the `PRODUCTION` role only reaches /inventory (redirect in `src/auth.ts`). Stock changes for stock go through moves only.
 - Deploys: pushing to the `claude/kind-pasteur-jpzqm5` branch auto-deploys to Vercel (see DEPLOY.md).
 
 - No fictional sample data in seeds. No pull requests unless the owner asks. Only push to `claude/kind-pasteur-jpzqm5`.

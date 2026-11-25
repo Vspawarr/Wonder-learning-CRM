@@ -369,6 +369,12 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
               <Kpi label="Material problems" value={svc.materialOpen} sub="Short, damaged or returned, not yet settled" color="#E3262C" href="/clients" />
             ) : null}
             <Kpi label="Onboarding" value={svc.onboarding} sub="New clients being set up" color="#1C86C4" href="/clients" />
+            {svc.inventory ? (
+              <>
+                <Kpi label="Production orders open" value={svc.inventory.openProduction} sub="To start or in production" color="#6C2D91" href="/inventory?tab=production" />
+                <Kpi label="Stock short / low" value={`${svc.inventory.short} / ${svc.inventory.low}`} sub="Items or kits needing attention" color="#E3262C" href="/inventory?tab=stock&show=alert" />
+              </>
+            ) : null}
             {features.documents ? (
               <Kpi
                 label="Documents pending"

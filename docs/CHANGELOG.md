@@ -5,6 +5,13 @@ wonder-learning-crm.vercel.app automatically). Newest first. **Add an entry with
 commit id, what changed in plain words, and the requirement it answers (R… in `REQUIREMENTS.md`).
 `git log --oneline` shows the full list.
 
+## 25 Nov 2026
+
+- `pending` **Inventory & production.** Stock of every kit, kit item and book; production orders made by themselves
+  from sales orders (received POs) for a new Production login (Start → Ready: kits in, items out); dispatch takes
+  stock out; returned material comes back as good or damaged stock; adjustments, opening stock, reorder levels,
+  movements; PDF / Excel; dashboard counts. (R54)
+
 ## 24 Nov 2026
 
 - `3af7957` **Marketing material library.** New menu page: presentations, brochures, videos, animations, HTML files and

@@ -27,6 +27,7 @@ enum Role {
   SALES_HEAD // heads sales: sees and reassigns all sales data
   SALES_MANAGER // sees all sales data
   SALES_EXECUTIVE // sees only own leads, opportunities and tasks
+  PRODUCTION // R54: production team: production orders and stock only
 }
 
 model User {
@@ -89,6 +90,7 @@ model User {
   bookMatches        BookMatch[]
   issuesReported     MaterialIssue[]          @relation("IssueCreatedBy")
   marketingAdded     MarketingItem[]          @relation("MarketingCreatedBy")
+  stockMoves         StockMove[]              @relation("StockMoveBy")
 }
 
 // ───────────────────────── Masters ─────────────────────────
@@ -122,6 +124,7 @@ model Product {
   quotationItems   QuotationItem[]
   salesOrderItems  SalesOrderItem[]
   invoiceItems     InvoiceItem[]
+  stockItem        StockItem?
 }
 
 // States and cities are managed in-app (Settings → Locations). They are the single
@@ -451,21 +454,22 @@ model Client {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  tasks          Task[]
-  activities     Activity[]
-  quotations     Quotation[]
-  salesOrders    SalesOrder[]
-  invoices       Invoice[]
-  payments       Payment[]
-  creditNotes    CreditNote[]
-  dispatches     Dispatch[]
-  files          ClientFile[]
-  logo           SchoolLogo?
-  expenses       Expense[]
-  contacts       ClientContact[]
-  renewals       Opportunity[]   @relation("Renewals")
-  transfers      OwnerTransfer[]
-  materialIssues MaterialIssue[]
+  tasks            Task[]
+  activities       Activity[]
+  quotations       Quotation[]
+  salesOrders      SalesOrder[]
+  invoices         Invoice[]
+  payments         Payment[]
+  creditNotes      CreditNote[]
+  dispatches       Dispatch[]
+  files            ClientFile[]
+  logo             SchoolLogo?
+  expenses         Expense[]
+  contacts         ClientContact[]
+  renewals         Opportunity[]     @relation("Renewals")
+  transfers        OwnerTransfer[]
+  materialIssues   MaterialIssue[]
+  productionOrders ProductionOrder[]
 
   @@index([ownerId, status])
 }
@@ -599,9 +603,10 @@ model SalesOrder {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  items          SalesOrderItem[]
-  invoices       Invoice[]
-  materialIssues MaterialIssue[]
+  items           SalesOrderItem[]
+  invoices        Invoice[]
+  materialIssues  MaterialIssue[]
+  productionOrder ProductionOrder?
 
   @@unique([year, month, seq])
   @@index([clientId])
@@ -670,6 +675,7 @@ model Dispatch {
   /// R53: problems reported on this lot (short, damaged, returned).
   issues         MaterialIssue[] @relation("IssueOnDispatch")
   replacementFor MaterialIssue?  @relation("IssueReplacement")
+  stockMoves     StockMove[]
 
   @@unique([year, month, seq])
   @@index([salesOrderId])
@@ -707,6 +713,8 @@ model MaterialIssue {
   date             DateTime       @db.Date
   /// OPEN · REPLACED · REFUNDED · CLOSED
   status           String         @default("OPEN")
+  /// R54: material that came back into our store, as GOOD or DAMAGED stock (null: nothing came back).
+  backTo           String?
   replacementId    String?        @unique
   replacement      Dispatch?      @relation("IssueReplacement", fields: [replacementId], references: [id], onDelete: SetNull)
   creditNoteId     String?        @unique
@@ -717,6 +725,7 @@ model MaterialIssue {
   createdById      String
   createdBy        User           @relation("IssueCreatedBy", fields: [createdById], references: [id])
   createdAt        DateTime       @default(now())
+  stockMoves       StockMove[]
 
   @@index([clientId])
   @@index([salesOrderId])
@@ -1281,4 +1290,89 @@ model MarketingItem {
   updatedAt   DateTime @updatedAt
 
   @@index([category])
+}
+
+/// R54: what we keep in stock: each item inside the kits (Bag, Diary, Book 1 to 9…), the other books sold on their
+/// own, and the finished kits. Kept in step with Settings → Products by the CRM itself.
+model StockItem {
+  id           String   @id @default(cuid())
+  name         String   @unique
+  /// KIT (finished kit, made by production) · ITEM (a component, or a product sold on its own)
+  kind         String
+  /// The product it is sold as (kits and other books); null for components inside kits.
+  productId    String?  @unique
+  product      Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+  /// Warn when the good stock falls to this or below.
+  reorderLevel Int?
+  active       Boolean  @default(true)
+
+  moves           StockMove[]
+  productionLines ProductionLine[]
+}
+
+/// R54: every change of stock. Balances are the sum of the moves; good and damaged stock are kept apart.
+model StockMove {
+  id                String           @id @default(cuid())
+  stockItemId       String
+  stockItem         StockItem        @relation(fields: [stockItemId], references: [id], onDelete: Cascade)
+  date              DateTime         @db.Date
+  /// OPENING · ADJUST · PRODUCED · USED · DISPATCHED · RETURNED · DAMAGED · WRITE_OFF · REPAIRED
+  kind              String
+  /// + into the store, − out of it.
+  qty               Int
+  /// Counts in the damaged stock instead of the good stock.
+  damaged           Boolean          @default(false)
+  note              String?
+  productionOrderId String?
+  productionOrder   ProductionOrder? @relation(fields: [productionOrderId], references: [id], onDelete: Cascade)
+  dispatchId        String?
+  dispatch          Dispatch?        @relation(fields: [dispatchId], references: [id], onDelete: Cascade)
+  materialIssueId   String?
+  materialIssue     MaterialIssue?   @relation(fields: [materialIssueId], references: [id], onDelete: Cascade)
+  createdById       String
+  createdBy         User             @relation("StockMoveBy", fields: [createdById], references: [id])
+  createdAt         DateTime         @default(now())
+
+  @@index([stockItemId])
+  @@index([date])
+}
+
+/// R54: production order for the production team, made by itself from a sales order (the school's received PO).
+model ProductionOrder {
+  id           String     @id @default(cuid())
+  number       String     @unique // PRD/2026/11/001
+  year         Int
+  month        Int
+  seq          Int
+  salesOrderId String     @unique
+  salesOrder   SalesOrder @relation(fields: [salesOrderId], references: [id], onDelete: Cascade)
+  clientId     String
+  client       Client     @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  /// PLANNED · IN_PRODUCTION · READY · CANCELLED
+  status       String     @default("PLANNED")
+  dueDate      DateTime?  @db.Date
+  notes        String?
+  startedAt    DateTime?
+  readyAt      DateTime?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  lines ProductionLine[]
+  moves StockMove[]
+
+  @@unique([year, month, seq])
+}
+
+/// One kit line of a production order, with the items one kit needs (removed items left out, added ones in).
+model ProductionLine {
+  id                String          @id @default(cuid())
+  productionOrderId String
+  productionOrder   ProductionOrder @relation(fields: [productionOrderId], references: [id], onDelete: Cascade)
+  stockItemId       String
+  stockItem         StockItem       @relation(fields: [stockItemId], references: [id])
+  description       String
+  qty               Int
+  /// [{ name, qty }]: items used for ONE kit.
+  components        Json
+  sortOrder         Int
 }

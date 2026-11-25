@@ -1,7 +1,7 @@
 import { db } from "@/lib/db";
 import { toDbDate, todayIST } from "@/lib/dates";
 import { ROLE_LABEL } from "@/lib/constants";
-import { canApprovePayments, canManageCompanyAccounts, canManageFinance, canManageProducts, canManageSettings, canViewUsers, seesAllSales } from "@/lib/permissions";
+import { canApprovePayments, canManageCompanyAccounts, canManageFinance, canManageProducts, canManageSettings, canViewUsers, isProductionOnly, seesAllSales } from "@/lib/permissions";
 import { AppProvider } from "@/components/app-context";
 import { getFeatures } from "@/server/features";
 import { ToastProvider } from "@/components/client";
@@ -82,7 +82,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     ...(canManageSettings(user.role) ? [{ href: "/admin/features", label: "Features", icon: "grid" as const }] : []),
     ...(canManageSettings(user.role) ? [{ href: "/admin/docs", label: "Project documents", icon: "doc" as const }] : []),
   ];
-  if (admin.length) nav.push({ group: "Settings", items: admin });
+  // R54: stock and production orders, for everyone (the production team sees only this).
+  if (features.inventory) nav.splice(1, 0, { group: "Operations", items: [{ href: "/inventory", label: "Inventory & production", icon: "box" }] });
+  if (admin.length && !isProductionOnly(user.role)) nav.push({ group: "Settings", items: admin });
+  if (isProductionOnly(user.role)) nav.splice(0, nav.length, { group: "Operations", items: [{ href: "/inventory", label: "Inventory & production", icon: "box" }] });
 
   return (
     <AppProvider
@@ -95,7 +98,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       }}
     >
       <ToastProvider>
-        <Shell nav={nav} user={{ id: user.id, name: user.name, role: ROLE_LABEL[user.role] }} year={year === null ? null : fyLabel(year)}>
+        <Shell nav={nav} user={{ id: user.id, name: user.name, role: ROLE_LABEL[user.role], productionOnly: isProductionOnly(user.role) }} year={year === null ? null : fyLabel(year)}>
           {children}
         </Shell>
       </ToastProvider>

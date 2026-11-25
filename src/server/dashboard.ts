@@ -1,5 +1,6 @@
 // Sales dashboard metrics. Scope first (a Sales Executive only ever sees their
 // own numbers), then the optional executive / state filters.
+import { inventorySummary } from "./inventory";
 import { docProgress, getDocumentSettings } from "./documents";
 import type { Prisma } from "@/generated/prisma/client";
 import { db } from "@/lib/db";
@@ -239,6 +240,7 @@ export async function serviceSummary(user: SessionUser, f: DashFilters) {
   ]);
   const docGaps = clientFiles.map((c) => docProgress(docSettings.requiredDocs, c.files.map((x) => x.category)).pending).filter((n) => n > 0);
   return {
+    inventory: await inventorySummary(),
     docsPending: { clients: docGaps.length, documents: docGaps.reduce((t, n) => t + n, 0) },
     orders: orders.map((o) => ({ id: o.id, number: o.number, date: fromDbDate(o.date), client: o.client })),
     inTransit,
