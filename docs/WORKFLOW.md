@@ -420,6 +420,11 @@ Menu → **Operations → Inventory & production** (R54). The production team's 
   damaged, whole kit or one item); **Send replacement** → "What leaves the store" (whole kit or one item).
 - PDF / Excel on each tab. Start with **opening stock** for each item and kit.
 
+## 9e. Previewing PDFs on a phone
+
+On a phone or in the Android app, **Preview** (quotation, sales order, invoice, receipt, challan, PO…) opens the
+PDF on screen: scroll through the pages, **+ / −** to zoom, **Download** to save it, **Back** to return.
+
 ## 9d. Backup (Admin)
 
 **Settings → Backup → Download full backup** every week and before big changes; keep the file in a private Google

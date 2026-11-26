@@ -784,3 +784,12 @@ faster again."
 | **Restore** into a new database | ✅ | `scripts/restore-backup.ts … --wipe`: exact copy, numbers continue; rehearsed 26 Nov (backup → new database → 47/47 tables identical → CRM runs on it) |
 | **Disaster recovery guide** | ✅ | `docs/DISASTER_RECOVERY.md` (also Settings → Project documents → Disaster recovery): what lives where, settings to keep, step-by-step for Vercel / Neon / GitHub / everything lost, checks after recovery |
 | **Owner's habits** | ⏳ | Weekly backup to a private Drive folder; monthly code ZIP; private note of the Vercel settings (esp. `AUTH_SECRET`, `DATABASE_URL`); two-step login on the GitHub account |
+
+## R62. Preview should show the PDF, not download it (26 Nov)
+
+"In applications when we click preview for quotation or sales order it directly download pdf without showing pdf.
+When click preview it should directly show preview."
+
+| Change | Status | Notes |
+|---|---|---|
+| **Preview opens on screen on phones and in the Android app** | ✅ | Phones and the app can't show a PDF inside a page, so they downloaded it. Now every Preview / View link to a CRM PDF or uploaded file (quotation, sales order PO, proforma, invoice, receipt, credit note, challan, PO template, checklist, bills, client documents) opens the CRM's own viewer: all pages, zoom + / −, Download, Back. Pictures are shown too. Computers keep the browser's own PDF viewer. No app reinstall needed |

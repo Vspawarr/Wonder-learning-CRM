@@ -5,6 +5,7 @@ import { canApprovePayments, canManageCompanyAccounts, canManageFinance, canMana
 import { AppProvider } from "@/components/app-context";
 import { getFeatures } from "@/server/features";
 import { ToastProvider } from "@/components/client";
+import { PreviewLinks } from "@/components/preview-links";
 import { requireUser } from "@/server/session";
 import { Shell, type NavGroup } from "./shell";
 import { selectedYear } from "@/server/year";
@@ -103,6 +104,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       }}
     >
       <ToastProvider>
+        <PreviewLinks />
         <Shell nav={nav} user={{ id: user.id, name: user.name, role: ROLE_LABEL[user.role], productionOnly: isProductionOnly(user.role) }} year={year === null ? null : fyLabel(year)}>
           {children}
         </Shell>

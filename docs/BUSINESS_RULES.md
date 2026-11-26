@@ -142,6 +142,11 @@ client shows a warning (the user may still save). The Excel upload skips same sc
   `src/lib/designs/` (one list per design type, so new types can be added); the separate file
   `public/tools/id-card-designer.html` is built from the same code (`npm run designer:build`; a test fails if it is out
   of date) and opens without login.
+- **Preview on phones / in the app** (R62): a link that opens a CRM file in a new tab (`/api/…`, no `download`) goes
+  to `/view?src=…` on Android / iPhone / the app (`src/components/preview-links.tsx`, rules in
+  `src/lib/file-preview.ts`): PDFs drawn with PDF.js (`public/pdfjs/` worker = the installed `pdfjs-dist`), pictures
+  shown, anything else offered as Download. Computers open the file directly as before. Only the CRM's own `/api/…`
+  files can be shown, for a signed-in user.
 - **Backup** (R61, Settings → Backup, Admin / Director only): one gzipped file with every database table (all
   records, users with scrambled passwords, settings, every uploaded file). Restore only into a new / emptied database
   (`scripts/restore-backup.ts`, `--wipe`), never merged into live data. Steps: `docs/DISASTER_RECOVERY.md`.
