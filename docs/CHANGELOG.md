@@ -7,6 +7,8 @@ commit id, what changed in plain words, and the requirement it answers (R… in 
 
 ## 26 Nov 2026
 
+- `pending` **Book covers without a logo** show only the school name in the front box (no initials badge). (R58)
+
 - `e93f0a2` **Old records: salespeople without a login.** A name in the file with no CRM user (left, or now under
   another name / role) is added as **Former staff** (no login); their schools are seen by Admin / Director only until
   handed over. Upload summary says who was added; Users page shows "Former staff". (R60)

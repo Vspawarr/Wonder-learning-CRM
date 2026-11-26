@@ -743,6 +743,7 @@ Nursery and LKG once their compressed PDFs arrive.
 |---|---|---|
 | **UKG book covers (Book 1–9)** in Marketing → Tools ("What to design") | ✅ | Client's covers (back + front) with Wonder Learning's logo box and address painted out; front box: school logo + name; back: school logo, name, address, phone. MRP, class, book number and pictures unchanged |
 | **Pop-up, download, share** | ✅ | Same as ID cards: all 9 in a pop-up; JPG picture, PDF at the real cover size (back + front, 436.9 × 279.4 mm), all 9 as one PDF, WhatsApp |
+| **No logo: no initials on covers** (26 Nov: "if logo is not uploaded then dont use initials at front as logo") | ✅ | Without a logo the front box shows only the school name (larger, across the box) and the back starts with the name; ID cards still show initials |
 | **Nursery and LKG covers** | ⏳ | Waiting for compressed PDFs (the 62 MB Nursery PDF on Drive is too big to download) |
 
 ## R59. Offline HTML file for the UKG book covers (25 Nov)

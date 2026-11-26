@@ -29,14 +29,15 @@ function lines(s: string, maxW: number, size: number, max = 2) {
 function front(d: CardData) {
   const [x0, y0, x1, y1] = [1163, 35, 1934, 285];
   const name = twoLines(d.schoolName, 22);
+  // No logo: no initials badge on the cover (owner, 26 Nov); the name uses the whole box instead.
   const hasLogo = !!d.logo;
-  const lw = hasLogo ? 210 : 190;
-  const tx = x0 + 40 + lw + 30;
+  const lw = 210;
+  const tx = hasLogo ? x0 + 40 + lw + 30 : x0 + 30;
   const tw = x1 - 30 - tx;
   const cy = (y0 + y1) / 2;
-  const size = Math.min(...name.map((l) => fit(l.toUpperCase(), tw, name.length > 1 ? 54 : 62, 24, true)));
+  const size = Math.min(...name.map((l) => fit(l.toUpperCase(), tw, name.length > 1 ? (hasLogo ? 54 : 64) : hasLogo ? 62 : 72, 24, true)));
   const top = cy - ((name.length - 1) * size * 1.15) / 2 + size * 0.36;
-  return `${logo(d, x0 + 40, cy - lw / 2, lw, lw, { color: NAVY })}${name
+  return `${hasLogo ? logo(d, x0 + 40, cy - lw / 2, lw, lw, { color: NAVY }) : ""}${name
     .map((l, i) =>
       text(tx + tw / 2, top + i * size * 1.15, l.toUpperCase(), {
         size,

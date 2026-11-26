@@ -169,7 +169,7 @@ export function Designer({ schools, loadLogo, kinds = DESIGN_KINDS }: Props) {
                   Remove
                 </button>
               ) : (
-                <small>Without a logo the school&apos;s initials are shown.</small>
+                <small>{kind.student ? "Without a logo the school's initials are shown." : "Without a logo only the school's name is shown."}</small>
               )}
             </div>
           </div>

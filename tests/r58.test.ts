@@ -27,8 +27,10 @@ describe("UKG book covers", () => {
     expect(svg).toContain("&amp; more");
     expect(svg).not.toContain("<Preschool>");
     expect(svg).not.toMatch(/undefined|NaN/);
-    // No logo: initials instead; no address / phone: nothing drawn for them.
+    // No logo: no logo or initials anywhere (only the name); no address / phone: nothing drawn for them.
     const bare = d.render({ ...data, logo: null, schoolAddress: "", schoolPhone: "" });
+    expect(bare).not.toContain("<circle");
+    expect(bare).not.toContain(">FP<");
     expect(bare).not.toContain("Address");
     expect(bare).not.toMatch(/undefined|NaN/);
   });

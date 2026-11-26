@@ -158,7 +158,8 @@ client shows a warning (the user may still save). The Excel upload skips same sc
   converted with `node scripts/dsr-to-old-records.mjs`.
 - **Book covers** (R58, same Tools tab, "What to design"): the client's UKG covers (Book 1–9, back + front) with
   Wonder Learning's logo box (front) and logo + address (back) painted out; the school's logo and name go in the front
-  box, its logo, name, address and phone on the back. Pictures: `public/designs/covers/` (made from the client's PDF
+  box, its logo, name, address and phone on the back. **No logo uploaded:** no initials on covers; the front box shows
+  the name alone (larger) and the back starts with the name (ID cards still show initials). Pictures: `public/designs/covers/` (made from the client's PDF
   at 120 dpi; a new class = its compressed PDF → same clean-up → a list in `src/lib/designs/book-covers.ts`). Covers
   are also in their own file `public/tools/book-cover-designer.html` (R59, pictures inside, about 4 MB). Saved as JPG (a PNG would be several MB).
 - **Mandatory client documents** (R53): Settings → Documents → "Mandatory client documents" (one per line; a starting
