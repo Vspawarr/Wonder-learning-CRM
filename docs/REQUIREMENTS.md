@@ -772,3 +772,15 @@ loaded with a **ready file through Leads → Upload leads**.
 | **The DSR converted** | ✅ | 214 schools in the upload file (2 rows had no school name); program, fees, call date, Hot/Warm/Cold, client type and source details kept in Remarks; a check list of rows with missing details. Converter: `scripts/dsr-to-old-records.mjs` |
 | **Salesperson with no CRM login** (owner, 26 Nov: "if no same name sales person available then he must have left organization or assigned to new role so add this names and keep that entries visible to admin only") | ✅ | Added by the upload as **Former staff** (no login, can't sign in; Settings → Users shows "Former staff"); their schools are seen by **Admin / Director only**; Admin moves them with **Hand over work** or Transfer; giving the record a login (Edit → Active) makes it an ordinary user. Pramod and Roshan were added this way |
 | **The 2 orders** in the Order sheet | ⏳ | To be entered as clients with their PO and payments; how, to be decided with the owner (part of old client data, R53) |
+
+## R61. Keep everything safe: rebuild fast if Vercel, Neon or GitHub is lost (26 Nov)
+
+"Keep everything safe and in memory. In any case we lost project on Vercel or Neon or GitHub we would able to make it
+faster again."
+
+| Change | Status | Notes |
+|---|---|---|
+| **Settings → Backup → Download full backup** (Admin / Director) | ✅ | One file with every table and every uploaded file; streamed, so no size limit; also from the command line (`scripts/backup.ts`) |
+| **Restore** into a new database | ✅ | `scripts/restore-backup.ts … --wipe`: exact copy, numbers continue; rehearsed 26 Nov (backup → new database → 47/47 tables identical → CRM runs on it) |
+| **Disaster recovery guide** | ✅ | `docs/DISASTER_RECOVERY.md` (also Settings → Project documents → Disaster recovery): what lives where, settings to keep, step-by-step for Vercel / Neon / GitHub / everything lost, checks after recovery |
+| **Owner's habits** | ⏳ | Weekly backup to a private Drive folder; monthly code ZIP; private note of the Vercel settings (esp. `AUTH_SECRET`, `DATABASE_URL`); two-step login on the GitHub account |

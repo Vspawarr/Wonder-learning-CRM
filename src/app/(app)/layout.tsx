@@ -80,6 +80,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     ...(canManageSettings(user.role) ? [{ href: "/admin/quotation", label: "Documents", icon: "doc" as const }] : []),
     ...(seesAllSales(user.role) && features.targets ? [{ href: "/admin/targets", label: "Targets", icon: "rupee" as const }] : []),
     ...(canManageSettings(user.role) ? [{ href: "/admin/features", label: "Features", icon: "grid" as const }] : []),
+    ...(canManageSettings(user.role) ? [{ href: "/admin/backup", label: "Backup", icon: "download" as const }] : []),
     ...(canManageSettings(user.role) ? [{ href: "/admin/docs", label: "Project documents", icon: "doc" as const }] : []),
   ];
   // R54: stock and production orders, for everyone (the production team sees only this).

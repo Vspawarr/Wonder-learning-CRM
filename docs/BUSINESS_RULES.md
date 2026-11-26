@@ -142,6 +142,9 @@ client shows a warning (the user may still save). The Excel upload skips same sc
   `src/lib/designs/` (one list per design type, so new types can be added); the separate file
   `public/tools/id-card-designer.html` is built from the same code (`npm run designer:build`; a test fails if it is out
   of date) and opens without login.
+- **Backup** (R61, Settings → Backup, Admin / Director only): one gzipped file with every database table (all
+  records, users with scrambled passwords, settings, every uploaded file). Restore only into a new / emptied database
+  (`scripts/restore-backup.ts`, `--wipe`), never merged into live data. Steps: `docs/DISASTER_RECOVERY.md`.
 - **Old records** (R60): Leads → Upload leads with a file whose sheet is "Old records" (columns: School Name*, Contact
   Person, Mobile Number, State*, City*, Area/Location, Current Publication/Curriculum, Current Student Strength, Lead
   Source, Reference Name, Assigned To*, Visit Date, Remarks). Admin / Director / Sales Head only. Each school becomes a

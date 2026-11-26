@@ -17,6 +17,7 @@ const DOCS = [
   { id: "downloads", file: "docs/DOWNLOADS_AND_TEMPLATES.md", label: "Downloads & templates" },
   { id: "changelog", file: "docs/CHANGELOG.md", label: "Change log" },
   { id: "deploy", file: "DEPLOY.md", label: "Going online" },
+  { id: "recovery", file: "docs/DISASTER_RECOVERY.md", label: "Disaster recovery" },
 ] as const;
 
 /** Links between the documents ("REQUIREMENTS.md#r9") stay inside this page. */

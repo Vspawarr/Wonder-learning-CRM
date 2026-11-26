@@ -420,6 +420,12 @@ Menu → **Operations → Inventory & production** (R54). The production team's 
   damaged, whole kit or one item); **Send replacement** → "What leaves the store" (whole kit or one item).
 - PDF / Excel on each tab. Start with **opening stock** for each item and kit.
 
+## 9d. Backup (Admin)
+
+**Settings → Backup → Download full backup** every week and before big changes; keep the file in a private Google
+Drive folder (never share it). If the CRM is ever lost, Settings → Project documents → **Disaster recovery** says how
+to rebuild it from this file.
+
 ## 9c. Bringing in old records (earlier sales reports)
 
 Admin / Sales Head: **Leads → Upload leads** → choose the "Old records" file (made from the old daily sales report) →
