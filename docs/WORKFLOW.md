@@ -424,6 +424,7 @@ Menu → **Operations → Inventory & production** (R54). The production team's 
 
 On a phone or in the Android app, **Preview** (quotation, sales order, invoice, receipt, challan, PO…) opens the
 PDF on screen: scroll through the pages, **+ / −** to zoom, **Download** to save it, **Back** to return.
+After an update the CRM refreshes itself; if the app ever still shows old behaviour, close it fully and open it again.
 
 ## 9d. Backup (Admin)
 

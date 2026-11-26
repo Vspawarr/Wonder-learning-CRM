@@ -7,6 +7,10 @@ commit id, what changed in plain words, and the requirement it answers (R… in 
 
 ## 26 Nov 2026
 
+- `pending` **View PDF on phones, sturdier.** The website redirects a phone opening a CRM PDF / file to the viewer
+  (works with old screens still loaded); the CRM reloads itself once when a newer version is live, so the app doesn't
+  keep running old screens after an update. (R62)
+
 - `fa2d6c0` **Preview shows the PDF on phones and in the app** (instead of downloading it): the CRM's own viewer with
   zoom, Download and Back, for every Preview / View link to a PDF or uploaded file. (R62)
 

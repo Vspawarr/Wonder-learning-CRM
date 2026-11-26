@@ -1,3 +1,4 @@
+import { PREVIEWABLE, needsViewer, viewerHref } from "@/lib/file-preview";
 import NextAuth, { CredentialsSignin } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
@@ -59,6 +60,15 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       // /r/<secret> is a payment receipt; /download-app is the public page with the Android app.
       if (["/login", "/q/", "/i/", "/r/", "/d/", "/m/", "/tools/", "/download-app", "/forgot-password", "/reset-password/"].some((p) => path.startsWith(p))) return true;
       if (!auth?.user) return false;
+      // R62: a CRM PDF / file opened as a page on a phone (which would download it) goes to the viewer instead.
+      if (
+        request.method === "GET" &&
+        PREVIEWABLE.test(path) &&
+        request.headers.get("sec-fetch-dest") === "document" &&
+        !request.nextUrl.searchParams.has("download") &&
+        needsViewer(request.headers.get("user-agent") ?? "")
+      )
+        return Response.redirect(new URL(viewerHref(path + request.nextUrl.search), request.nextUrl));
       // R54: the production team works only in Inventory (production orders and stock).
       const inventoryExport = /^\/api\/export\/(stock|production|stockmoves)$/.test(path);
       if (auth.user.role === "PRODUCTION" && !inventoryExport && !["/inventory", "/api/inventory", "/guide", "/_next"].some((p) => path.startsWith(p)))

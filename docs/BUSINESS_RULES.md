@@ -146,7 +146,11 @@ client shows a warning (the user may still save). The Excel upload skips same sc
   to `/view?src=…` on Android / iPhone / the app (`src/components/preview-links.tsx`, rules in
   `src/lib/file-preview.ts`): PDFs drawn with PDF.js (`public/pdfjs/` worker = the installed `pdfjs-dist`), pictures
   shown, anything else offered as Download. Computers open the file directly as before. Only the CRM's own `/api/…`
-  files can be shown, for a signed-in user.
+  files can be shown, for a signed-in user. Also in `src/auth.ts`: a phone opening one of the previewable file
+  addresses (`PREVIEWABLE`: quotation / PO / proforma / invoice / receipt / credit note / challan / checklist /
+  uploaded files; not exports, templates, backup) as a page is redirected to `/view` (unless `download=1`).
+- **New version reload** (R62, `src/components/version-watch.tsx`, `/api/version`): when a newer version is live,
+  the CRM reloads itself once: on coming back to the screen with no pop-up open, or on the next page change.
 - **Backup** (R61, Settings → Backup, Admin / Director only): one gzipped file with every database table (all
   records, users with scrambled passwords, settings, every uploaded file). Restore only into a new / emptied database
   (`scripts/restore-backup.ts`, `--wipe`), never merged into live data. Steps: `docs/DISASTER_RECOVERY.md`.
