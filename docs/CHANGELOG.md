@@ -7,7 +7,7 @@ commit id, what changed in plain words, and the requirement it answers (R… in 
 
 ## 26 Nov 2026
 
-- `pending` **Backup and disaster recovery.** Settings → Backup → Download full backup (every table and file, one
+- `6d153db` **Backup and disaster recovery.** Settings → Backup → Download full backup (every table and file, one
   file); restore into a new database with `scripts/restore-backup.ts`; guide `docs/DISASTER_RECOVERY.md` for losing
   Vercel, Neon or GitHub. Rehearsed: restored copy identical. (R61)
 
