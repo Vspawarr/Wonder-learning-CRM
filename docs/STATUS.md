@@ -23,7 +23,7 @@ _Last updated: 25 Nov 2026. Update this page whenever the situation changes._
 | **Inventory start:** create the production team's login (role Production) and enter **opening stock** for each kit and item | Until then stock shows below zero after production | R54 |
 | Confirm which kit items are **different for each class** (now: the Class Connect books / notebooks) and which are shared | Stock is counted per class only for those | R54 |
 | **List of mandatory client documents** | The checklist is built with a starting list; type the client's list in Settings → Documents | R53 |
-| **Upload the old DSR file** (Leads → Upload leads, file sent 26 Nov) after adding logins for **Pramod** and **Roshan** (110 of the 214 schools are theirs), or say who takes their schools | Old leads in the CRM | R60 |
+| **Upload the old DSR file again** (Leads → Upload leads; schools already in are skipped): Pramod and Roshan are now added as Former staff, their schools visible to Admin only. Then decide who takes their schools (Settings → Users → Hand over work) | Old leads in the CRM | R60 |
 | How to enter the **2 old orders** (Nityanand Preschool, Elite Kids Preschool) with their POs and payments | Old clients in the CRM | R60 |
 | **Sample of the client's old data** (a few rows) | Import of old clients / segments (new, renewed, not renewed, left) | R53 |
 | **Compressed PDFs of the Nursery and LKG book covers** (under ~10 MB each; the 62 MB Nursery file on Drive is too big to download) | Book cover designer for those classes (UKG is done) | R58 |

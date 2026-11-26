@@ -3,6 +3,10 @@
 // rules: every row becomes a lead marked Contacted (no opportunities); a missing contact person shows "Not recorded"
 // and a missing mobile stays blank (the rep fills it in later); no follow-up date and no to-do; the old visit and its
 // discussion remark go into the school's history on the visit date. Admin / Director / Sales Head only.
+// A salesperson with no CRM login (left, or now under another name / role) is added as "former staff": no login,
+// their leads seen by Admin / Director only (src/server/access.ts) until Admin transfers them.
+import bcrypt from "bcryptjs";
+import { randomBytes } from "crypto";
 import type ExcelJS from "exceljs";
 import { db } from "@/lib/db";
 import { REF_SOURCES, SOURCES } from "@/lib/constants";
@@ -70,9 +74,10 @@ export async function importOldRecords(
   if (!rows.length) throw new DomainError("The file has no records in it.");
   if (rows.length > 2000) throw new DomainError(`The file has ${rows.length} rows; the limit is 2000 per upload.`);
 
-  const [locations, people, existing] = await Promise.all([
+  const [locations, people, former, existing] = await Promise.all([
     getLocations(),
     db.user.findMany({ where: { active: true, role: { in: [...SALES_ROLES] } }, select: { id: true, name: true } }),
+    db.user.findMany({ where: { formerStaff: true }, select: { id: true, name: true } }),
     db.lead.findMany({ select: { id: true, schoolName: true, mobile: true, city: true } }),
   ]);
   // Same school twice: by name + mobile, or by name + city when there is no mobile. A repeat row in the file
@@ -81,7 +86,7 @@ export async function importOldRecords(
   const before = new Set(existing.map((l) => key(l.schoolName, l.mobile, l.city)));
   const madeNow = new Map<string, string>();
 
-  const result: ImportResult = { created: [], skipped: [], newCities: [] };
+  const result: ImportResult = { created: [], skipped: [], newCities: [], formerStaff: [] };
   for (const { row, values } of rows) {
     const t = Object.fromEntries(OLD_COLUMNS.map((c) => [c.key, cellText(values[c.key])])) as Record<OldKey, string>;
     const school = t.schoolName || "(no school name)";
@@ -97,14 +102,14 @@ export async function importOldRecords(
     if (t.studentStrength && !(Number.isInteger(strength) && strength! >= 0)) problems.push(`"Current Student Strength": "${t.studentStrength}" must be a whole number`);
     const visit = t.visitDate ? parseDate(values.visitDate) : null;
     if (t.visitDate && !visit) problems.push(`"Visit Date": "${t.visitDate}" is not a valid date (use DD/MM/YYYY)`);
-    const person = matchPerson(people, t.assignedTo);
+    // A current salesperson, else someone already added as former staff, else (below) a new former-staff record.
+    let person = matchPerson(people, t.assignedTo);
+    if (!person) person = matchPerson(former, t.assignedTo);
     if (t.assignedTo && person === "many") problems.push(`"Assigned To": more than one salesperson is called "${t.assignedTo}"; write the full name`);
-    else if (t.assignedTo && !person) problems.push(`"Assigned To": no active salesperson called "${t.assignedTo}"`);
     if (problems.length) {
       skip(problems.join("; ") + ".");
       continue;
     }
-    const rep = person as { id: string; name: string };
     const k = key(t.schoolName, mobile, t.city);
     if (before.has(k)) {
       skip("Already in the CRM (same school name and mobile, or same name and city when there is no mobile).");
@@ -112,6 +117,25 @@ export async function importOldRecords(
     }
 
     try {
+      if (!person) {
+        const name = t.assignedTo.trim().replace(/\s+/g, " ");
+        const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, ".").replace(/^\.|\.$/g, "") || "staff";
+        person = await db.user.create({
+          data: {
+            name,
+            // Not a real address and no usable password: the record can't sign in (and is inactive).
+            email: `former.${slug}.${randomBytes(4).toString("hex")}@old-records.invalid`,
+            passwordHash: await bcrypt.hash(randomBytes(24).toString("hex"), 10),
+            role: "SALES_EXECUTIVE",
+            active: false,
+            formerStaff: true,
+          },
+          select: { id: true, name: true },
+        });
+        former.push(person);
+        result.formerStaff!.push(name);
+      }
+      const rep = person as { id: string; name: string };
       const city = await ensureCity(db, t.state, t.city);
       if (city.added) {
         result.newCities.push(`${city.name}, ${t.state}`);

@@ -9,6 +9,7 @@ type Result = {
   created: { row: number; school: string }[];
   skipped: { row: number; school: string; reason: string }[];
   newCities?: string[];
+  formerStaff?: string[];
 };
 
 export function BulkLeadButtons() {
@@ -140,7 +141,7 @@ export function BulkLeadButtons() {
 }
 
 function UploadSummary({ result }: { result: Result }) {
-  const { created, skipped, newCities = [] } = result;
+  const { created, skipped, newCities = [], formerStaff = [] } = result;
   return (
     <div role="status">
       <div className="grid grid-cols-2 gap-3">
@@ -158,9 +159,15 @@ function UploadSummary({ result }: { result: Result }) {
           New {newCities.length > 1 ? "cities" : "city"} added to Settings → Locations: <b>{newCities.join("; ")}</b>.
         </div>
       ) : null}
+      {formerStaff.length ? (
+        <div className="note mt-4">
+          No CRM login for <b>{formerStaff.join(", ")}</b>: added as <b>former staff</b> (they can&apos;t sign in). Their schools are
+          seen by Admin and Director only; transfer them to a current salesperson to share them with the team.
+        </div>
+      ) : null}
       {skipped.length ? (
         <>
-          <h3 className="mt-4">Skipped rows: fix these in the sheet and upload them again</h3>
+          <h3 className="mt-4">Rows not added, with the reason (fix any problem in the sheet and upload again; schools already in the CRM need nothing)</h3>
           <ul className="mt-2 flex list-none flex-col gap-2 p-0">
             {skipped.map((s) => (
               <li key={s.row} className="rounded-lg border border-line bg-surf2 px-3 py-2">

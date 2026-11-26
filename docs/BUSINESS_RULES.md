@@ -149,7 +149,12 @@ client shows a warning (the user may still save). The Excel upload skips same sc
   and mobile blank are allowed (the lead page asks to add the mobile; Edit requires it); the visit (and remark) is a
   School visit in the history on that date, by the rep; a later row for the same school (same name + mobile, or name +
   city without mobile) adds its visit to that lead; a school already in the CRM is skipped, so the same file can be
-  uploaded again; Assigned To matches the full name or a first name only one active salesperson has. A DSR is
+  uploaded again; Assigned To matches the full name or a first name only one active salesperson has. **A name with no
+  CRM user** is added as **Former staff** (inactive, no usable login, email "...@old-records.invalid"); later rows with
+  that name use the same record. Leads of former staff are seen by **Admin / Director only** (`leadScope` /
+  `activityScope` in `src/server/access.ts`); the Sales Head and team see them once Admin hands them over (Settings →
+  Users → Hand over work, or Transfer on the lead). Making a former-staff record Active (with a real email and password)
+  turns it into an ordinary user. A DSR is
   converted with `node scripts/dsr-to-old-records.mjs`.
 - **Book covers** (R58, same Tools tab, "What to design"): the client's UKG covers (Book 1–9, back + front) with
   Wonder Learning's logo box (front) and logo + address (back) painted out; the school's logo and name go in the front

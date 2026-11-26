@@ -53,6 +53,8 @@ export async function updateUser(actor: SessionUser, id: string, raw: unknown) {
         mobile: d.mobile,
         role: d.role,
         active: d.active,
+        // R60: a former-staff record given a login (active) becomes an ordinary user, its leads seen as usual.
+        ...(d.active ? { formerStaff: false } : {}),
         ...(d.password ? { passwordHash: await bcrypt.hash(d.password, 12), failedLogins: 0, lockedUntil: null } : {}),
       },
     });

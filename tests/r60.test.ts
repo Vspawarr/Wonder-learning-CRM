@@ -5,6 +5,8 @@ import { db } from "@/lib/db";
 import type { SessionUser } from "@/lib/permissions";
 import { importLeads } from "@/server/lead-excel/import";
 import { NOT_RECORDED, OLD_HEADERS, OLD_SHEET, matchPerson } from "@/server/lead-excel/old-records";
+import { activityScope, leadScope } from "@/server/access";
+import { updateUser } from "@/server/settings";
 import { makeUser, resetData } from "./helpers";
 
 let head: SessionUser, pramod: SessionUser;
@@ -77,7 +79,6 @@ describe("old records upload", () => {
         { school: "A", state: "Atlantis" },
         { school: "B", mobile: "70" },
         { school: "C", rep: "Vinay" },
-        { school: "D", rep: "Harshal" },
         { school: "E", source: "Just Dial" },
         { school: "F", visit: "31/02/2025" },
         { school: "G", strength: "80+" },
@@ -85,8 +86,43 @@ describe("old records upload", () => {
     );
     expect(r.created).toEqual([]);
     const reasons = r.skipped.map((s) => s.reason).join("\n");
-    for (const m of ['"School Name" is required', '"Atlantis" is not in the list', '"70" is not a 10-digit', 'more than one salesperson is called "Vinay"', 'no active salesperson called "Harshal"', '"Just Dial" is not an allowed', '"31/02/2025" is not a valid date', '"80+" must be a whole number'])
+    for (const m of ['"School Name" is required', '"Atlantis" is not in the list', '"70" is not a 10-digit', 'more than one salesperson is called "Vinay"', '"Just Dial" is not an allowed', '"31/02/2025" is not a valid date', '"80+" must be a whole number'])
       expect(reasons).toContain(m);
+  });
+
+  it("adds a salesperson with no login as former staff, whose schools only Admin / Director see", async () => {
+    const admin = await makeUser("ADMIN", "Gautami Admin");
+    const r = await importLeads(
+      head,
+      await file([
+        { school: "Smart Kids Preschool", rep: "Pramod", mobile: "9892330868", visit: "01/12/2025" },
+        { school: "Golden Star Preschool", rep: "pramod", visit: "15/12/2025" },
+        { school: "Little Stars", rep: "Roshan" },
+        { school: "Mine", rep: "Viren" },
+      ]),
+    );
+    expect(r.skipped).toEqual([]);
+    expect(r.formerStaff).toEqual(["Roshan"]);
+    const roshan = await db.user.findFirstOrThrow({ where: { name: "Roshan" } });
+    expect(roshan).toMatchObject({ active: false, formerStaff: true, role: "SALES_EXECUTIVE" });
+    expect(roshan.email).toMatch(/@old-records\.invalid$/);
+
+    const seen = async (u: SessionUser) => (await db.lead.findMany({ where: leadScope(u), orderBy: { schoolName: "asc" } })).map((l) => l.schoolName);
+    expect(await seen(admin)).toEqual(["Golden Star Preschool", "Little Stars", "Mine", "Smart Kids Preschool"]);
+    expect(await seen(head)).toEqual(["Golden Star Preschool", "Mine", "Smart Kids Preschool"]);
+    expect(await seen(pramod)).toEqual(["Golden Star Preschool", "Smart Kids Preschool"]);
+    expect(await db.activity.count({ where: { ...activityScope(head), lead: { schoolName: "Little Stars" } } })).toBe(0);
+    expect(await db.activity.count({ where: { ...activityScope(admin), lead: { schoolName: "Little Stars" } } })).toBeGreaterThan(0);
+
+    // The same name again uses the same record; no second "Roshan".
+    const again = await importLeads(head, await file([{ school: "Another School", rep: "Roshan" }]));
+    expect(again.formerStaff).toEqual([]);
+    expect(await db.user.count({ where: { name: "Roshan" } })).toBe(1);
+
+    // Given a login, Roshan becomes an ordinary user and the Sales Head sees the schools.
+    await updateUser(admin, roshan.id, { name: "Roshan", email: "roshan@wonderlearning.in", role: "SALES_EXECUTIVE", active: true, password: "Secret#123" });
+    expect(await db.user.findUniqueOrThrow({ where: { id: roshan.id } })).toMatchObject({ formerStaff: false, active: true });
+    expect(await seen(head)).toContain("Little Stars");
   });
 
   it("is for Admin, Director and Sales Head only", async () => {

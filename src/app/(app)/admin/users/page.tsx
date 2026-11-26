@@ -17,7 +17,7 @@ export default async function UsersPage() {
   const team = await assignees(me);
   const users = await db.user.findMany({
     orderBy: [{ active: "desc" }, { name: "asc" }],
-    select: { id: true, name: true, email: true, mobile: true, role: true, active: true },
+    select: { id: true, name: true, email: true, mobile: true, role: true, active: true, formerStaff: true },
   });
 
   return (
@@ -33,10 +33,10 @@ export default async function UsersPage() {
               {u.id === me.id ? <span className="small faint"> (you)</span> : null}
             </td>
             <td>{ROLE_LABEL[u.role]}</td>
-            <td>{u.email}</td>
+            <td>{u.formerStaff ? <span className="faint">No login (from old records)</span> : u.email}</td>
             <td>{u.mobile ?? <span className="faint">—</span>}</td>
             <td>
-              <Pill>{u.active ? "Active" : "Inactive"}</Pill>
+              <Pill>{u.formerStaff ? "Former staff" : u.active ? "Active" : "Inactive"}</Pill>
             </td>
             <td className="num whitespace-nowrap">
               <span className="inline-flex gap-1.5">

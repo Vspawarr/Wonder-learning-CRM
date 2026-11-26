@@ -425,7 +425,9 @@ Menu → **Operations → Inventory & production** (R54). The production team's 
 Admin / Sales Head: **Leads → Upload leads** → choose the "Old records" file (made from the old daily sales report) →
 **Upload**. Every school becomes a lead marked *Contacted*, under its salesperson, dated on the visit, with the visit
 and remark in its Activity; no follow-up is set and no to-do is made. Rows for a salesperson who has no CRM login are
-listed as skipped: add the user (Settings → Users) and upload the same file again (schools already in are skipped).
+added as **Former staff** (no login): their schools are seen by Admin and Director only. Admin: Settings → Users →
+**Hand over work** on that name gives all their schools to a current salesperson (or Transfer one lead at a time).
+Uploading the same file again is safe: schools already in are skipped.
 On a lead with "Mobile: Not recorded", the salesperson adds the number with Edit.
 
 ## 9b. Marketing material

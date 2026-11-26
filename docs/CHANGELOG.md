@@ -7,6 +7,10 @@ commit id, what changed in plain words, and the requirement it answers (R… in 
 
 ## 26 Nov 2026
 
+- `pending` **Old records: salespeople without a login.** A name in the file with no CRM user (left, or now under
+  another name / role) is added as **Former staff** (no login); their schools are seen by Admin / Director only until
+  handed over. Upload summary says who was added; Users page shows "Former staff". (R60)
+
 - `503d500` **Old records upload.** Leads → Upload leads also takes an "Old records" sheet (the team's earlier daily
   sales report): each school becomes a Contacted lead dated on its visit, with no follow-up or to-do, the visit and
   remark in its history; contact / mobile may be blank ("Not recorded"); repeat visits merge. The DSR was converted

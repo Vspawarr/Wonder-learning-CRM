@@ -38,6 +38,9 @@ model User {
   role         Role
   passwordHash String
   active       Boolean   @default(true)
+  /// R60: a salesperson named in old records who has no CRM login (left, or now under another name / role). Never
+  /// active, can't sign in; their leads are seen by Admin / Director only, until transferred to a current salesperson.
+  formerStaff  Boolean   @default(false)
   /// Wrong passwords in a row; 5 locks the account for 15 minutes.
   failedLogins Int       @default(0)
   lockedUntil  DateTime?

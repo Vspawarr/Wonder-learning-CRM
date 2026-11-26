@@ -29,6 +29,8 @@ export type ImportResult = {
   skipped: { row: number; school: string; reason: string }[];
   /** R48: cities that were not in Settings → Locations and were added by this upload ("City, State"). */
   newCities: string[];
+  /** R60: salespeople in old records with no CRM login, added as former staff (their leads: Admin / Director only). */
+  formerStaff?: string[];
 };
 
 /** Plain text of any cell value exceljs can return. */
