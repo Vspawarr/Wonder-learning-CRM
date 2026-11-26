@@ -125,6 +125,10 @@ export function BulkLeadButtons() {
                 Always fill in a freshly downloaded template: its columns and dropdowns follow the current lead form, people and
                 cities. A template saved from an older version is refused, and the message says which column changed.
               </p>
+              <p className="small muted">
+                Old records (earlier sales reports) come in the same way on an &ldquo;Old records&rdquo; sheet (Admin / Sales Head): they
+                become Contacted leads with no follow-up, and each visit goes into the school&apos;s history.
+              </p>
             </>
           ) : (
             <UploadSummary result={result} />

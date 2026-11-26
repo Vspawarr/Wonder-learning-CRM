@@ -5,6 +5,13 @@ wonder-learning-crm.vercel.app automatically). Newest first. **Add an entry with
 commit id, what changed in plain words, and the requirement it answers (R… in `REQUIREMENTS.md`).
 `git log --oneline` shows the full list.
 
+## 26 Nov 2026
+
+- `pending` **Old records upload.** Leads → Upload leads also takes an "Old records" sheet (the team's earlier daily
+  sales report): each school becomes a Contacted lead dated on its visit, with no follow-up or to-do, the visit and
+  remark in its history; contact / mobile may be blank ("Not recorded"); repeat visits merge. The DSR was converted
+  into this file (214 schools). (R60)
+
 ## 25 Nov 2026
 
 - `42e50a6` **Offline book cover file** `book-cover-designer.html` (about 4 MB): the UKG book cover designer in one file

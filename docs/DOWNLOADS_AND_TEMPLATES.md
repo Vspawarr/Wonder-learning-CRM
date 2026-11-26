@@ -101,7 +101,7 @@ Sales orders are SO/YYYY/MM/NNN (on screen; the number prints on proforma and in
 
 | Upload | Where | Accepts | Code |
 |---|---|---|---|
-| Lead Excel | Leads → Upload leads | the downloaded .xlsx template only | `/api/leads/import`, `src/server/lead-excel/import.ts` |
+| Lead Excel | Leads → Upload leads | the downloaded .xlsx template, or an "Old records" file (R60: earlier DSR, made by `scripts/dsr-to-old-records.mjs`; columns in BUSINESS_RULES) | `/api/leads/import`, `src/server/lead-excel/import.ts` |
 | Expense bills | My expenses / Accounts → Expenses → Add expense | Photos (shrunk in the browser) or PDF, up to 4 per expense, 4 MB each | `/api/expenses`, `src/server/expenses.ts`; viewed at `/api/expenses/files/<id>` |
 | Supplier bill photo / PDF | Accounts → Bills to pay → Add bill | One photo (shrunk) or PDF, 4 MB | `/api/company/bills`, `src/server/company.ts`; viewed at `/api/company/files/bill/<id>` |
 | Voucher for other money in / out | Accounts → Account books → Other money in / Other payment | One photo (shrunk) or PDF, 4 MB (optional) | `/api/company/entries`; viewed at `/api/company/files/entry/<id>` |

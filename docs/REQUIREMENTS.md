@@ -752,3 +752,22 @@ Nursery and LKG once their compressed PDFs arrive.
 | Change | Status | Notes |
 |---|---|---|
 | **book-cover-designer.html** | ✅ | Like id-card-designer.html: one file (about 4 MB, the 9 cover pictures inside) that opens in any browser without login or internet; link on Marketing → Tools, or /tools/book-cover-designer.html |
+
+## R60. Old daily sales report (DSR) brought into the CRM as leads (26 Nov)
+
+"This is daily sales report of a team; I think its lead report in there old style now we have to pull this record to
+our CRM. Kindly check and proceed."
+
+The DSR has two sheets: **Field Visit Report** (216 school visits by Viren, Pramod, Vinay, Roshan, Harshal, Rohan;
+Oct 2024 – Mar 2026) and **Order** (2 orders: Nityanand Preschool PO/2627/01, Elite Kids Preschool PO/2627/02, with
+payments). Owner's choices: rows without mobile / contact **imported anyway** ("Not recorded", mobile blank for the rep
+to add); **all stay leads** (no opportunities; Hot / Warm / Cold kept in the remark); **no follow-up for old data**;
+loaded with a **ready file through Leads → Upload leads**.
+
+| Change | Status | Notes |
+|---|---|---|
+| **"Old records" upload** (same Upload leads button, sheet "Old records") | ✅ | Admin / Director / Sales Head. Each school → lead, status Contacted, dated on its visit date, no follow-up date or to-do; blank contact = "Not recorded", blank mobile allowed; the visit with its remark in the school's history; a repeat visit to the same school is added to that lead; schools already in the CRM skipped; new cities added; rep matched by first name when only one salesperson has it |
+| **Lead page without mobile** | ✅ | Shows "Not recorded: please add (Edit)" and hides Call / WhatsApp; saving an edit asks for the mobile |
+| **The DSR converted** | ✅ | 214 schools in the upload file (2 rows had no school name); program, fees, call date, Hot/Warm/Cold, client type and source details kept in Remarks; a check list of rows with missing details. Converter: `scripts/dsr-to-old-records.mjs` |
+| **Pramod and Roshan** | ⏳ | Not CRM users yet: their 110 schools are skipped until their logins are added (or their schools given to another rep); uploading the same file again is safe |
+| **The 2 orders** in the Order sheet | ⏳ | To be entered as clients with their PO and payments; how, to be decided with the owner (part of old client data, R53) |

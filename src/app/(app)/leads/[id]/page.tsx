@@ -66,9 +66,16 @@ export default async function LeadPage({ params }: { params: Promise<{ id: strin
               ["Designation", lead.designation],
               [
                 "Mobile",
-                <a key="m" href={`tel:${lead.mobile.replace(/[^\d+]/g, "")}`}>
-                  {lead.mobile}
-                </a>,
+                lead.mobile ? (
+                  <a key="m" href={`tel:${lead.mobile.replace(/[^\d+]/g, "")}`}>
+                    {lead.mobile}
+                  </a>
+                ) : (
+                  // R60: old records may have no mobile; Edit asks for it.
+                  <span key="m" className="pill warn">
+                    Not recorded: please add (Edit)
+                  </span>
+                ),
               ],
               ["Email", lead.email ? <a key="e" href={`mailto:${lead.email}`}>{lead.email}</a> : null],
               ["Location", [lead.area, lead.city, lead.state].filter(Boolean).join(", ")],

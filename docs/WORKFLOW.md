@@ -420,6 +420,14 @@ Menu → **Operations → Inventory & production** (R54). The production team's 
   damaged, whole kit or one item); **Send replacement** → "What leaves the store" (whole kit or one item).
 - PDF / Excel on each tab. Start with **opening stock** for each item and kit.
 
+## 9c. Bringing in old records (earlier sales reports)
+
+Admin / Sales Head: **Leads → Upload leads** → choose the "Old records" file (made from the old daily sales report) →
+**Upload**. Every school becomes a lead marked *Contacted*, under its salesperson, dated on the visit, with the visit
+and remark in its Activity; no follow-up is set and no to-do is made. Rows for a salesperson who has no CRM login are
+listed as skipped: add the user (Settings → Users) and upload the same file again (schools already in are skipped).
+On a lead with "Mobile: Not recorded", the salesperson adds the number with Edit.
+
 ## 9b. Marketing material
 
 Menu → **Marketing material** (R53): presentations, brochures, videos, animations, HTML files and PDFs to show a school

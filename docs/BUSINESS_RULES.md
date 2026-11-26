@@ -142,6 +142,15 @@ client shows a warning (the user may still save). The Excel upload skips same sc
   `src/lib/designs/` (one list per design type, so new types can be added); the separate file
   `public/tools/id-card-designer.html` is built from the same code (`npm run designer:build`; a test fails if it is out
   of date) and opens without login.
+- **Old records** (R60): Leads → Upload leads with a file whose sheet is "Old records" (columns: School Name*, Contact
+  Person, Mobile Number, State*, City*, Area/Location, Current Publication/Curriculum, Current Student Strength, Lead
+  Source, Reference Name, Assigned To*, Visit Date, Remarks). Admin / Director / Sales Head only. Each school becomes a
+  lead with status **Contacted**, added on its visit date, **no follow-up date and no to-do**; contact "Not recorded"
+  and mobile blank are allowed (the lead page asks to add the mobile; Edit requires it); the visit (and remark) is a
+  School visit in the history on that date, by the rep; a later row for the same school (same name + mobile, or name +
+  city without mobile) adds its visit to that lead; a school already in the CRM is skipped, so the same file can be
+  uploaded again; Assigned To matches the full name or a first name only one active salesperson has. A DSR is
+  converted with `node scripts/dsr-to-old-records.mjs`.
 - **Book covers** (R58, same Tools tab, "What to design"): the client's UKG covers (Book 1–9, back + front) with
   Wonder Learning's logo box (front) and logo + address (back) painted out; the school's logo and name go in the front
   box, its logo, name, address and phone on the back. Pictures: `public/designs/covers/` (made from the client's PDF

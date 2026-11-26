@@ -10,6 +10,7 @@ import { DomainError } from "../errors";
 import { createLead } from "../leads";
 import { ensureCity, getLocations } from "../locations";
 import { MOBILE_RE, normalizeMobile } from "@/lib/phone";
+import { OLD_SHEET, importOldRecords } from "./old-records";
 import {
   CATEGORY_BY_LABEL,
   COLUMNS,
@@ -76,6 +77,9 @@ export async function importLeads(user: SessionUser, file: ArrayBuffer | Buffer)
     throw new DomainError("This file couldn't be read. Upload the .xlsx template downloaded from the Leads screen.");
   }
   const sheet = wb.getWorksheet(DATA_SHEET);
+  // R60: old records (earlier DSR) come in through the same button, on their own sheet.
+  const old = wb.getWorksheet(OLD_SHEET);
+  if (!sheet && old) return importOldRecords(user, old, cellText, parseDate);
   if (!sheet) throw new DomainError(`This isn't the lead template: it has no "${DATA_SHEET}" sheet. Download the template and fill that in.`);
 
   // The header row must match the template exactly.
