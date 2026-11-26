@@ -7,7 +7,7 @@ commit id, what changed in plain words, and the requirement it answers (R… in 
 
 ## 26 Nov 2026
 
-- `pending` **Old records upload.** Leads → Upload leads also takes an "Old records" sheet (the team's earlier daily
+- `503d500` **Old records upload.** Leads → Upload leads also takes an "Old records" sheet (the team's earlier daily
   sales report): each school becomes a Contacted lead dated on its visit, with no follow-up or to-do, the visit and
   remark in its history; contact / mobile may be blank ("Not recorded"); repeat visits merge. The DSR was converted
   into this file (214 schools). (R60)
